@@ -39,20 +39,11 @@ export const metadata: Metadata = {
     description,
     type: "website",
     url: siteUrl,
-    images: [
-      {
-        url: `${siteUrl}/og.png`,
-        width: 1536,
-        height: 1024,
-        alt: "交易 Agent 多智能体业务工作台黑白线框界面",
-      },
-    ],
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "交易 Agent｜多智能体业务工作台",
     description,
-    images: [`${siteUrl}/og.png`],
   },
 };
 
