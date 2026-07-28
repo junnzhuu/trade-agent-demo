@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { headers } from "next/headers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,43 +12,49 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
-  const protocol = requestHeaders.get("x-forwarded-proto") || "https";
-  const origin = host ? `${protocol}://${host}` : "http://localhost:3000";
-  const description =
-    "一个面向交易业务场景的多 Agent 产品演示工作台，支持运营诊断、商品分析、招商、营销活动与项目管理。";
+const [githubOwner = "", repositoryName = ""] =
+  process.env.GITHUB_REPOSITORY?.split("/") ?? [];
+const isProjectPage =
+  Boolean(process.env.GITHUB_ACTIONS) &&
+  Boolean(repositoryName) &&
+  !repositoryName.endsWith(".github.io");
+const basePath = isProjectPage ? `/${repositoryName}` : "";
+const siteOrigin = githubOwner
+  ? `https://${githubOwner.toLowerCase()}.github.io`
+  : "http://localhost:3000";
+const siteUrl = `${siteOrigin}${basePath}`;
+const description =
+  "一个面向交易业务场景的多 Agent 前端交互演示工作台，支持运营诊断、商品分析、招商、营销活动与项目管理。";
 
-  return {
-    metadataBase: new URL(origin),
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  title: "交易 Agent｜多智能体业务工作台",
+  description,
+  icons: {
+    icon: `${basePath}/favicon.svg`,
+    shortcut: `${basePath}/favicon.svg`,
+  },
+  openGraph: {
     title: "交易 Agent｜多智能体业务工作台",
     description,
-    icons: {
-      icon: "/favicon.svg",
-      shortcut: "/favicon.svg",
-    },
-    openGraph: {
-      title: "交易 Agent｜多智能体业务工作台",
-      description,
-      type: "website",
-      images: [
-        {
-          url: new URL("/og.png", origin).toString(),
-          width: 1536,
-          height: 1024,
-          alt: "交易 Agent 多智能体业务工作台黑白线框界面",
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: "交易 Agent｜多智能体业务工作台",
-      description,
-      images: [new URL("/og.png", origin).toString()],
-    },
-  };
-}
+    type: "website",
+    url: siteUrl,
+    images: [
+      {
+        url: `${siteUrl}/og.png`,
+        width: 1536,
+        height: 1024,
+        alt: "交易 Agent 多智能体业务工作台黑白线框界面",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "交易 Agent｜多智能体业务工作台",
+    description,
+    images: [`${siteUrl}/og.png`],
+  },
+};
 
 export default function RootLayout({
   children,

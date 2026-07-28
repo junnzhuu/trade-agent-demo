@@ -33,14 +33,13 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  runDemoScenario,
+  type DemoAgentKey,
+} from "@/lib/demo-simulator";
 
 type Role = "user" | "assistant";
-type AgentKey =
-  | "operations"
-  | "product"
-  | "merchant"
-  | "campaign"
-  | "project";
+type AgentKey = DemoAgentKey;
 
 type Message = {
   id: string;
@@ -135,16 +134,6 @@ const id = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-function parseSseBlock(block: string) {
-  let event = "message";
-  const data: string[] = [];
-  for (const line of block.split("\n")) {
-    if (line.startsWith("event:")) event = line.slice(6).trim();
-    if (line.startsWith("data:")) data.push(line.slice(5).trim());
-  }
-  return { event, data: data.join("\n") };
-}
-
 function StatusMark({ status }: { status: RunEvent["status"] }) {
   if (status === "done") return <Check aria-hidden="true" size={13} />;
   if (status === "error") return <X aria-hidden="true" size={13} />;
@@ -223,6 +212,18 @@ export default function Home() {
           "done",
           String(data.detail ?? "已返回结果"),
         );
+      } else if (eventName === "tool.failed") {
+        markLatestEvent(
+          `tool:${String(data.name)}`,
+          "error",
+          String(data.message ?? "工具执行失败"),
+        );
+      } else if (eventName === "agent.completed") {
+        markLatestEvent(
+          `agent:${String(data.name)}`,
+          "done",
+          String(data.detail ?? "子任务已完成"),
+        );
       } else if (eventName === "message.delta") {
         setMessages((current) =>
           current.map((message) =>
@@ -272,11 +273,6 @@ export default function Home() {
         content: "",
         pending: true,
       };
-      const contextMessages = [...messages, userMessage]
-        .filter((message) => message.id !== "welcome")
-        .slice(-12)
-        .map(({ role, content }) => ({ role, content }));
-
       setMessages((current) => [...current, userMessage, assistantMessage]);
       setInput("");
       setEvents([]);
@@ -288,39 +284,13 @@ export default function Home() {
       abortRef.current = controller;
 
       try {
-        const response = await fetch("/api/runs", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            messages: contextMessages,
-            preferredAgent,
-          }),
+        await runDemoScenario({
+          prompt,
+          preferredAgent,
           signal: controller.signal,
+          onEvent: ({ name, data }) =>
+            handleServerEvent(name, JSON.stringify(data), assistantId),
         });
-
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => ({}))) as {
-            error?: string;
-          };
-          throw new Error(payload.error || `请求失败（${response.status}）`);
-        }
-        if (!response.body) throw new Error("服务未返回流式内容");
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
-          const blocks = buffer.split("\n\n");
-          buffer = blocks.pop() ?? "";
-          for (const block of blocks) {
-            const parsed = parseSseBlock(block);
-            handleServerEvent(parsed.event, parsed.data, assistantId);
-          }
-        }
       } catch (error) {
         const aborted = error instanceof DOMException && error.name === "AbortError";
         const message = aborted
@@ -337,13 +307,15 @@ export default function Home() {
         );
         if (!aborted) {
           addRunEvent("run", "任务执行失败", message, "error");
+        } else {
+          markLatestEvent("run", "error", "任务已停止");
         }
       } finally {
         setRunning(false);
         abortRef.current = null;
       }
     },
-    [addRunEvent, handleServerEvent, messages, preferredAgent, running],
+    [addRunEvent, handleServerEvent, markLatestEvent, preferredAgent, running],
   );
 
   const submit = (event: FormEvent) => {
@@ -505,7 +477,7 @@ export default function Home() {
           <span className="demo-dot" />
           <span>
             <strong>演示环境</strong>
-            <small>全部业务数据均为虚构</small>
+            <small>纯前端交互 · 数据均为虚构</small>
           </span>
         </div>
       </aside>
