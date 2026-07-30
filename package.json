@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "npx serve out",
-    "test": "tsx --test tests/demo-tools.test.ts tests/demo-simulator.test.ts && npm run build && node --test tests/rendered-html.test.mjs",
+    "test": "tsx --test tests/demo-tools.test.ts tests/demo-simulator.test.ts tests/task-history.test.ts && npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern out --ignore-pattern .next"
   },
   "dependencies": {

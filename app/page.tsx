@@ -6,31 +6,36 @@ import {
   Check,
   ChevronDown,
   CornerDownLeft,
+  Folder,
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Paperclip,
   Plus,
+  Search,
+  Share2,
   Square,
+  X,
 } from "lucide-react";
 import {
   type FormEvent,
   type KeyboardEvent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { runDemoScenario } from "@/lib/demo-simulator";
-
-type ChatMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  pending?: boolean;
-};
-
-const recentChats = ["出价上下限", "飞书机器人默认标题"];
+import {
+  createTaskTitle,
+  filterRecentTasks,
+  formatTaskTimestamp,
+  initialRecentTasks,
+  prependRecentTask,
+  type RecentTask,
+  type TaskMessage,
+} from "@/lib/task-history";
 
 // 后续功能扩展会从这五类能力进入；首页先保持截图中的极简状态。
 const agentCapabilities = [
@@ -51,16 +56,47 @@ export default function Home() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<TaskMessage[]>([]);
+  const [recentTasks, setRecentTasks] =
+    useState<RecentTask[]>(initialRecentTasks);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeResultIndex, setActiveResultIndex] = useState(0);
   const [running, setRunning] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const runTokenRef = useRef(0);
   const scrollEndRef = useRef<HTMLDivElement | null>(null);
+  const searchButtonRef = useRef<HTMLButtonElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const filteredTasks = useMemo(
+    () => filterRecentTasks(recentTasks, searchQuery),
+    [recentTasks, searchQuery],
+  );
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setActiveResultIndex(0);
+    requestAnimationFrame(() => searchButtonRef.current?.focus());
+  }, []);
+
+  const openSearch = useCallback(() => {
+    setMobileSidebarOpen(false);
+    setSearchQuery("");
+    setActiveResultIndex(0);
+    setSearchOpen(true);
+    requestAnimationFrame(() => searchInputRef.current?.focus());
+  }, []);
 
   const startNewChat = useCallback(() => {
+    runTokenRef.current += 1;
     abortRef.current?.abort();
     setMessages([]);
     setInput("");
     setRunning(false);
+    setActiveTaskId(null);
     setMobileSidebarOpen(false);
   }, []);
 
@@ -76,10 +112,19 @@ export default function Home() {
       const prompt = rawPrompt.trim();
       if (!prompt || running) return;
 
+      const taskId = createId();
       const assistantId = createId();
-      setMessages((current) => [
-        ...current,
-        { id: createId(), role: "user", content: prompt },
+      const userMessage: TaskMessage = {
+        id: createId(),
+        role: "user",
+        content: prompt,
+      };
+      const runToken = runTokenRef.current + 1;
+      runTokenRef.current = runToken;
+      let assistantText = "";
+
+      setMessages([
+        userMessage,
         {
           id: assistantId,
           role: "assistant",
@@ -89,6 +134,7 @@ export default function Home() {
       ]);
       setInput("");
       setRunning(true);
+      setActiveTaskId(taskId);
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -98,21 +144,48 @@ export default function Home() {
           prompt,
           signal: controller.signal,
           onEvent: ({ name, data }) => {
-            if (name !== "message.delta") return;
+            if (
+              name !== "message.delta" ||
+              runTokenRef.current !== runToken
+            ) {
+              return;
+            }
+            const delta = String(data.delta ?? "");
+            assistantText += delta;
             setMessages((current) =>
               current.map((message) =>
                 message.id === assistantId
                   ? {
                       ...message,
                       pending: false,
-                      content: `${message.content}${String(data.delta ?? "")}`,
+                      content: `${message.content}${delta}`,
                     }
                   : message,
               ),
             );
           },
         });
+
+        if (runTokenRef.current === runToken && assistantText) {
+          setRecentTasks((current) =>
+            prependRecentTask(current, {
+              id: taskId,
+              title: createTaskTitle(prompt),
+              metadata: formatTaskTimestamp(new Date()),
+              icon: "folder",
+              messages: [
+                userMessage,
+                {
+                  id: assistantId,
+                  role: "assistant",
+                  content: assistantText,
+                },
+              ],
+            }),
+          );
+        }
       } catch (error) {
+        if (runTokenRef.current !== runToken) return;
         const stopped =
           error instanceof DOMException && error.name === "AbortError";
         setMessages((current) =>
@@ -129,11 +202,28 @@ export default function Home() {
           ),
         );
       } finally {
-        abortRef.current = null;
-        setRunning(false);
+        if (runTokenRef.current === runToken) {
+          abortRef.current = null;
+          setRunning(false);
+        }
       }
     },
     [running],
+  );
+
+  const openTask = useCallback(
+    (task: RecentTask) => {
+      runTokenRef.current += 1;
+      abortRef.current?.abort();
+      abortRef.current = null;
+      setRunning(false);
+      setMessages(task.messages);
+      setActiveTaskId(task.id);
+      setInput("");
+      setMobileSidebarOpen(false);
+      closeSearch();
+    },
+    [closeSearch],
   );
 
   const submit = (event: FormEvent) => {
@@ -145,6 +235,53 @@ export default function Home() {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       void sendPrompt(input);
+    }
+  };
+
+  const handleSearchKeyDown = (
+    event: KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveResultIndex((current) =>
+        filteredTasks.length
+          ? Math.min(current + 1, filteredTasks.length - 1)
+          : 0,
+      );
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveResultIndex((current) => Math.max(current - 1, 0));
+    } else if (event.key === "Enter" && filteredTasks[activeResultIndex]) {
+      event.preventDefault();
+      openTask(filteredTasks[activeResultIndex]);
+    }
+  };
+
+  const handleDialogKeyDown = (
+    event: KeyboardEvent<HTMLElement>,
+  ) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeSearch();
+      return;
+    }
+
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        'input, button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (!focusable.length) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
     }
   };
 
@@ -168,17 +305,28 @@ export default function Home() {
             <MessageSquare size={18} strokeWidth={1.8} />
           </span>
           <strong>交易 Agent</strong>
-          <button
-            aria-label="收起侧栏"
-            className="sidebar-toggle"
-            onClick={() => {
-              setSidebarOpen(false);
-              setMobileSidebarOpen(false);
-            }}
-            type="button"
-          >
-            <PanelLeftClose size={18} strokeWidth={1.8} />
-          </button>
+          <div className="sidebar-header-actions">
+            <button
+              aria-label="收起侧栏"
+              className="sidebar-toggle"
+              onClick={() => {
+                setSidebarOpen(false);
+                setMobileSidebarOpen(false);
+              }}
+              type="button"
+            >
+              <PanelLeftClose size={18} strokeWidth={1.8} />
+            </button>
+            <button
+              aria-label="搜索最近任务"
+              className="sidebar-search-button"
+              onClick={openSearch}
+              ref={searchButtonRef}
+              type="button"
+            >
+              <Search size={18} strokeWidth={1.8} />
+            </button>
+          </div>
         </header>
 
         <button className="new-chat" onClick={startNewChat} type="button">
@@ -187,15 +335,17 @@ export default function Home() {
         </button>
 
         <section className="recent-section">
-          <h2>最近对话</h2>
-          <nav aria-label="最近对话">
-            {recentChats.map((chat) => (
+          <h2>最近任务</h2>
+          <nav aria-label="最近任务">
+            {recentTasks.map((task) => (
               <button
-                key={chat}
-                onClick={() => setInput(chat)}
+                aria-current={activeTaskId === task.id ? "page" : undefined}
+                className={activeTaskId === task.id ? "current" : ""}
+                key={task.id}
+                onClick={() => openTask(task)}
                 type="button"
               >
-                {chat}
+                {task.title}
               </button>
             ))}
           </nav>
@@ -290,6 +440,99 @@ export default function Home() {
           onClick={() => setMobileSidebarOpen(false)}
           type="button"
         />
+      )}
+
+      {searchOpen && (
+        <div className="search-modal-layer">
+          <button
+            aria-label="关闭任务搜索"
+            className="search-modal-scrim"
+            onClick={closeSearch}
+            type="button"
+          />
+          <section
+            aria-labelledby="search-dialog-title"
+            aria-modal="true"
+            className="search-dialog"
+            onKeyDown={handleDialogKeyDown}
+            role="dialog"
+          >
+            <div className="search-dialog-header">
+              <label className="task-search-field">
+                <Search aria-hidden="true" size={23} strokeWidth={1.7} />
+                <span className="sr-only">搜索任务</span>
+                <input
+                  aria-activedescendant={
+                    filteredTasks[activeResultIndex]
+                      ? `recent-task-result-${filteredTasks[activeResultIndex].id}`
+                      : undefined
+                  }
+                  aria-controls="recent-task-results"
+                  autoComplete="off"
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value);
+                    setActiveResultIndex(0);
+                  }}
+                  onKeyDown={handleSearchKeyDown}
+                  placeholder="搜索任务"
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchQuery}
+                />
+              </label>
+              <button
+                aria-label="关闭搜索"
+                className="search-dialog-close"
+                onClick={closeSearch}
+                type="button"
+              >
+                <X size={24} strokeWidth={1.7} />
+              </button>
+            </div>
+
+            <h2 id="search-dialog-title">最近任务</h2>
+            <ul
+              aria-live="polite"
+              className="search-results"
+              id="recent-task-results"
+            >
+              {filteredTasks.length ? (
+                filteredTasks.map((task, index) => (
+                  <li key={task.id}>
+                    <button
+                      aria-current={
+                        activeTaskId === task.id ? "page" : undefined
+                      }
+                      className={`search-result ${
+                        activeResultIndex === index ? "active" : ""
+                      }`}
+                      id={`recent-task-result-${task.id}`}
+                      onClick={() => openTask(task)}
+                      onMouseEnter={() => setActiveResultIndex(index)}
+                      type="button"
+                    >
+                      <strong>{task.title}</strong>
+                      <span>
+                        {task.icon === "project" ? (
+                          <Share2 size={17} strokeWidth={1.7} />
+                        ) : (
+                          <Folder size={17} strokeWidth={1.7} />
+                        )}
+                        <span>{task.metadata}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))
+              ) : (
+                <li className="search-empty">
+                  <Search size={24} strokeWidth={1.5} />
+                  <strong>未找到相关任务</strong>
+                  <span>换个关键词试试</span>
+                </li>
+              )}
+            </ul>
+          </section>
+        </div>
       )}
     </main>
   );
