@@ -19,6 +19,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /演示数据/);
   assert.match(page, /aria-live="polite"/);
   assert.match(page, /runDemoScenario/);
+  assert.match(page, /专家 · 技能/);
+  assert.match(page, /ExpertSkillWorkspace/);
+  assert.match(page, /AutomationWorkspace/);
+  assert.match(css, /\.expert-grid/);
+  assert.match(css, /\.skill-grid/);
   assert.match(css, /prefers-reduced-motion/);
   assert.match(nextConfig, /output: "export"/);
   assert.match(workflow, /actions\/deploy-pages@v4/);

@@ -15,6 +15,8 @@ import {
   Search,
   Share2,
   Square,
+  Users,
+  Workflow,
   X,
 } from "lucide-react";
 import {
@@ -27,6 +29,7 @@ import {
   useState,
 } from "react";
 import { runDemoScenario } from "@/lib/demo-simulator";
+import { ExpertSkillWorkspace } from "@/components/expert-skill-workspace";
 import {
   createTaskTitle,
   filterRecentTasks,
@@ -46,12 +49,15 @@ const agentCapabilities = [
   "项目管理 Agent",
 ];
 
+type WorkspaceView = "chat" | "experts" | "automation";
+
 const createId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export default function Home() {
+  const [activeView, setActiveView] = useState<WorkspaceView>("chat");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -97,6 +103,7 @@ export default function Home() {
     setInput("");
     setRunning(false);
     setActiveTaskId(null);
+    setActiveView("chat");
     setMobileSidebarOpen(false);
   }, []);
 
@@ -219,6 +226,7 @@ export default function Home() {
       setRunning(false);
       setMessages(task.messages);
       setActiveTaskId(task.id);
+      setActiveView("chat");
       setInput("");
       setMobileSidebarOpen(false);
       closeSearch();
@@ -329,10 +337,39 @@ export default function Home() {
           </div>
         </header>
 
-        <button className="new-chat" onClick={startNewChat} type="button">
-          <Plus size={19} strokeWidth={1.8} />
-          新建
-        </button>
+        <nav aria-label="工作台导航" className="primary-sidebar-nav">
+          <button
+            onClick={startNewChat}
+            type="button"
+          >
+            <Plus size={19} strokeWidth={1.8} />
+            <span>新建任务</span>
+          </button>
+          <button
+            aria-current={activeView === "experts" ? "page" : undefined}
+            className={activeView === "experts" ? "active" : ""}
+            onClick={() => {
+              setActiveView("experts");
+              setMobileSidebarOpen(false);
+            }}
+            type="button"
+          >
+            <Users size={18} strokeWidth={1.7} />
+            <span>专家 · 技能</span>
+          </button>
+          <button
+            aria-current={activeView === "automation" ? "page" : undefined}
+            className={activeView === "automation" ? "active" : ""}
+            onClick={() => {
+              setActiveView("automation");
+              setMobileSidebarOpen(false);
+            }}
+            type="button"
+          >
+            <Workflow size={18} strokeWidth={1.7} />
+            <span>自动化</span>
+          </button>
+        </nav>
 
         <section className="recent-section">
           <h2>最近任务</h2>
@@ -373,7 +410,11 @@ export default function Home() {
           <PanelLeftOpen size={19} />
         </button>
 
-        {messages.length === 0 ? (
+        {activeView === "experts" ? (
+          <ExpertSkillWorkspace />
+        ) : activeView === "automation" ? (
+          <AutomationWorkspace />
+        ) : messages.length === 0 ? (
           <div className="empty-state">
             <h1>Hi 哈基咪(Manbo)，有什么可以帮你的？</h1>
             <Composer
@@ -535,6 +576,19 @@ export default function Home() {
         </div>
       )}
     </main>
+  );
+}
+
+function AutomationWorkspace() {
+  return (
+    <div className="automation-workspace">
+      <div className="automation-mark" aria-hidden="true">
+        <Workflow size={26} strokeWidth={1.6} />
+      </div>
+      <h1>自动化</h1>
+      <p>把重复的运营任务交给 Agent 按计划自动执行。</p>
+      <span>演示能力即将开放</span>
+    </div>
   );
 }
 
