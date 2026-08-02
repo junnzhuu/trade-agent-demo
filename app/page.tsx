@@ -1274,18 +1274,17 @@ function SidebarTaskSection({
                     <span className="recent-task-title">{task.title}</span>
                     <span className="recent-task-meta">
                       {activityIndicator === "spinner" ? (
-                        <LoaderCircle
-                          aria-hidden="true"
-                          className="recent-task-spinner"
-                          size={14}
-                        />
+                        <>
+                          <LoaderCircle
+                            aria-hidden="true"
+                            className="recent-task-spinner"
+                            size={14}
+                          />
+                          <span className="sr-only">执行中</span>
+                        </>
                       ) : activityIndicator === "attention" ? (
                         <span className="recent-task-attention">
-                          <span className="sr-only">
-                            {task.status === "running"
-                              ? "后台执行中"
-                              : "已完成，未查看"}
-                          </span>
+                          <span className="sr-only">已完成，未查看</span>
                         </span>
                       ) : (
                         <time dateTime={new Date(task.updatedAt).toISOString()}>

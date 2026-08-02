@@ -35,7 +35,7 @@ export function getTaskActivityIndicator(
   isViewing: boolean,
 ): TaskActivityIndicator {
   if (task.status === "running") {
-    return isViewing ? "spinner" : "attention";
+    return "spinner";
   }
   return task.unreadCompletion && !isViewing ? "attention" : "time";
 }

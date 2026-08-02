@@ -26,13 +26,20 @@ test("derives sidebar activity from task status and current view", () => {
     status: "running",
   };
   assert.equal(getTaskActivityIndicator(task, true), "spinner");
-  assert.equal(getTaskActivityIndicator(task, false), "attention");
+  assert.equal(getTaskActivityIndicator(task, false), "spinner");
   assert.equal(
     getTaskActivityIndicator(
       { ...task, status: "completed", unreadCompletion: true },
       false,
     ),
     "attention",
+  );
+  assert.equal(
+    getTaskActivityIndicator(
+      { ...task, status: "completed", unreadCompletion: true },
+      true,
+    ),
+    "time",
   );
   assert.equal(
     getTaskActivityIndicator(
