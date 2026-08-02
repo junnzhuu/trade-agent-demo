@@ -796,6 +796,15 @@ export default function Home() {
       </aside>
 
       <section className="minimal-main">
+        <Image
+          alt=""
+          aria-hidden="true"
+          className="main-background"
+          fill
+          priority
+          sizes="(min-width: 761px) calc(100vw - 255px), 100vw"
+          src="./background.svg"
+        />
         <button
           aria-label="展开侧栏"
           className="open-sidebar"

@@ -60,7 +60,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /重命名/);
   assert.match(page, /归档/);
   assert.match(page, /collapsed-sidebar-toggle/);
+  assert.match(page, /\.\/background\.svg/);
   assert.match(css, /\.recent-task-complete/);
+  assert.match(css, /\.main-background/);
   assert.match(css, /\.task-context-menu/);
   assert.match(css, /rgba\(184, 235, 250/);
   assert.match(css, /\.primary-sidebar-nav button:first-child/);
