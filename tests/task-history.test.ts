@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   filterRecentTasks,
+  formatRelativeTaskTime,
   initialRecentTasks,
   prependRecentTask,
   type RecentTask,
@@ -30,6 +31,7 @@ test("prepends a completed task and replaces a duplicate id", () => {
     metadata: "2026-07-30 10:30",
     icon: "folder",
     messages: [],
+    updatedAt: new Date("2026-07-30T10:30:00+08:00").getTime(),
     status: "completed",
   };
   const result = prependRecentTask(initialRecentTasks, task);
@@ -38,4 +40,12 @@ test("prepends a completed task and replaces a duplicate id", () => {
   assert.equal(result.length, initialRecentTasks.length);
   assert.equal(result.filter((item) => item.id === task.id).length, 1);
   assert.equal(result[0].status, "completed");
+});
+
+test("formats relative task time without calendar noise", () => {
+  const now = new Date("2026-08-03T12:00:00+08:00").getTime();
+  assert.equal(formatRelativeTaskTime(now - 20_000, now), "刚刚");
+  assert.equal(formatRelativeTaskTime(now - 12 * 60_000, now), "12分钟前");
+  assert.equal(formatRelativeTaskTime(now - 3 * 60 * 60_000, now), "3小时前");
+  assert.equal(formatRelativeTaskTime(now - 4 * 24 * 60 * 60_000, now), "4天前");
 });

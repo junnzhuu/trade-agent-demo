@@ -37,6 +37,7 @@ import { ExpertSkillWorkspace } from "@/components/expert-skill-workspace";
 import {
   createTaskTitle,
   filterRecentTasks,
+  formatRelativeTaskTime,
   formatTaskTimestamp,
   initialRecentTasks,
   prependRecentTask,
@@ -82,6 +83,7 @@ function stopTaskSnapshot(task: RecentTask): RecentTask {
     ...task,
     metadata: "已停止",
     status: undefined,
+    updatedAt: Date.now(),
     messages: task.messages.map((message) =>
       message.pending
         ? {
@@ -116,6 +118,7 @@ export default function Home() {
   const [activeResultIndex, setActiveResultIndex] = useState(0);
   const [running, setRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [relativeTimeNow, setRelativeTimeNow] = useState(() => Date.now());
   const abortRef = useRef<AbortController | null>(null);
   const runTokenRef = useRef(0);
   const runStartedAtRef = useRef(0);
@@ -177,6 +180,14 @@ export default function Home() {
     const timer = window.setInterval(updateElapsed, 100);
     return () => window.clearInterval(timer);
   }, [running]);
+
+  useEffect(() => {
+    const timer = window.setInterval(
+      () => setRelativeTimeNow(Date.now()),
+      60_000,
+    );
+    return () => window.clearInterval(timer);
+  }, []);
 
   const sendPrompt = useCallback(
     async (rawPrompt: string) => {
@@ -251,6 +262,7 @@ export default function Home() {
           metadata: "处理中",
           icon: taskIcon,
           messages: pendingConversation,
+          updatedAt: Date.now(),
           status: "running",
         }),
       );
@@ -344,13 +356,15 @@ export default function Home() {
             completedAssistantMessage,
           ];
           setMessages(completedConversation);
+          const completedAt = new Date();
           setRecentTasks((current) =>
             prependRecentTask(current, {
               id: taskId,
               title: taskTitle,
-              metadata: formatTaskTimestamp(new Date()),
+              metadata: formatTaskTimestamp(completedAt),
               icon: taskIcon,
               messages: completedConversation,
+              updatedAt: completedAt.getTime(),
               status: "completed",
             }),
           );
@@ -393,6 +407,7 @@ export default function Home() {
               userMessage,
               failedAssistantMessage,
             ],
+            updatedAt: Date.now(),
           }),
         );
       } finally {
@@ -575,37 +590,52 @@ export default function Home() {
         <section className="recent-section">
           <h2>最近任务</h2>
           <nav aria-label="最近任务">
-            {recentTasks.map((task) => (
-              <button
-                aria-label={`${task.title}${
-                  task.status === "running"
-                    ? "，正在生成"
-                    : task.status === "completed"
-                      ? "，生成完成"
-                      : ""
-                }`}
-                aria-current={activeTaskId === task.id ? "page" : undefined}
-                className={activeTaskId === task.id ? "current" : ""}
-                key={task.id}
-                onClick={() => openTask(task)}
-                type="button"
-              >
-                <span className="recent-task-title">{task.title}</span>
-                {task.status === "running" ? (
-                  <LoaderCircle
-                    aria-hidden="true"
-                    className="recent-task-spinner"
-                    size={14}
-                    strokeWidth={1.8}
-                  />
-                ) : task.status === "completed" ? (
-                  <span
-                    aria-hidden="true"
-                    className="recent-task-complete"
-                  />
-                ) : null}
-              </button>
-            ))}
+            {recentTasks.map((task) => {
+              const relativeTime = formatRelativeTaskTime(
+                task.updatedAt,
+                relativeTimeNow,
+              );
+              return (
+                <button
+                  aria-label={`${task.title}${
+                    task.status === "running"
+                      ? "，正在生成"
+                      : task.status === "completed"
+                        ? `，生成完成，${relativeTime}`
+                        : `，${relativeTime}`
+                  }`}
+                  aria-current={activeTaskId === task.id ? "page" : undefined}
+                  className={activeTaskId === task.id ? "current" : ""}
+                  key={task.id}
+                  onClick={() => openTask(task)}
+                  type="button"
+                >
+                  <span className="recent-task-title">{task.title}</span>
+                  <span className="recent-task-meta">
+                    {task.status === "running" ? (
+                      <LoaderCircle
+                        aria-hidden="true"
+                        className="recent-task-spinner"
+                        size={14}
+                        strokeWidth={1.8}
+                      />
+                    ) : (
+                      <>
+                        <time dateTime={new Date(task.updatedAt).toISOString()}>
+                          {relativeTime}
+                        </time>
+                        {task.status === "completed" ? (
+                          <span
+                            aria-hidden="true"
+                            className="recent-task-complete"
+                          />
+                        ) : null}
+                      </>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
           </nav>
         </section>
 
@@ -666,20 +696,14 @@ export default function Home() {
             <div aria-live="polite" className="chat-scroll">
               <div className="chat-column">
                 {messages.map((message) => (
-                  <article className={`chat-message ${message.role}`} key={message.id}>
-                    <div className="chat-avatar" aria-hidden="true">
-                      {message.role === "assistant" ? (
-                        <MessageSquare size={16} />
-                      ) : (
-                        "咪"
-                      )}
-                    </div>
+                  <article
+                    aria-label={
+                      message.role === "assistant" ? "Agent 回复" : "用户消息"
+                    }
+                    className={`chat-message ${message.role}`}
+                    key={message.id}
+                  >
                     <div className="chat-message-content">
-                      <strong>
-                        {message.role === "assistant"
-                          ? "交易 Agent"
-                          : "哈基咪(Manbo)"}
-                      </strong>
                       {message.role === "assistant" ? (
                         <AssistantExecution
                           elapsedMs={
@@ -846,8 +870,8 @@ function AutomationWorkspace() {
 
 function formatElapsedTime(elapsedMs: number) {
   const minutes = Math.floor(elapsedMs / 60_000);
-  const seconds = Math.floor((elapsedMs % 60_000) / 100) / 10;
-  return `${minutes}m ${seconds.toFixed(1)}s`;
+  const seconds = Math.floor((elapsedMs % 60_000) / 1_000);
+  return `${minutes}m ${seconds}s`;
 }
 
 function AssistantExecution({

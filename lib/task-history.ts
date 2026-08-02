@@ -20,8 +20,11 @@ export type RecentTask = {
   metadata: string;
   icon: "folder" | "project";
   messages: TaskMessage[];
+  updatedAt: number;
   status?: "running" | "completed";
 };
+
+const initialTaskTime = Date.now();
 
 export const initialRecentTasks: RecentTask[] = [
   {
@@ -29,6 +32,7 @@ export const initialRecentTasks: RecentTask[] = [
     title: "出价上下限",
     metadata: "2026-07-29 10:20",
     icon: "folder",
+    updatedAt: initialTaskTime - 60 * 60 * 1_000,
     messages: [
       {
         id: "preset-bid-limits-user",
@@ -48,6 +52,7 @@ export const initialRecentTasks: RecentTask[] = [
     title: "飞书机器人默认标题",
     metadata: "项目新手指引",
     icon: "project",
+    updatedAt: initialTaskTime - 4 * 24 * 60 * 60 * 1_000,
     messages: [
       {
         id: "preset-feishu-title-user",
@@ -100,4 +105,22 @@ export function formatTaskTimestamp(date: Date): string {
     pad(date.getDate()),
   ].join("-") +
     ` ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export function formatRelativeTaskTime(
+  updatedAt: number,
+  now = Date.now(),
+): string {
+  const elapsedMinutes = Math.max(
+    0,
+    Math.floor((now - updatedAt) / 60_000),
+  );
+  if (elapsedMinutes < 1) return "刚刚";
+  if (elapsedMinutes < 60) return `${elapsedMinutes}分钟前`;
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) return `${elapsedHours}小时前`;
+
+  const elapsedDays = Math.floor(elapsedHours / 24);
+  return `${elapsedDays}天前`;
 }
