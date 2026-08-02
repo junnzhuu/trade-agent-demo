@@ -30,10 +30,12 @@ test("prepends a completed task and replaces a duplicate id", () => {
     metadata: "2026-07-30 10:30",
     icon: "folder",
     messages: [],
+    status: "completed",
   };
   const result = prependRecentTask(initialRecentTasks, task);
 
   assert.equal(result[0].title, "更新后的任务");
   assert.equal(result.length, initialRecentTasks.length);
   assert.equal(result.filter((item) => item.id === task.id).length, 1);
+  assert.equal(result[0].status, "completed");
 });

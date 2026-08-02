@@ -230,8 +230,11 @@ button:disabled {
 }
 
 .recent-section nav button {
+  display: flex;
   min-height: 38px;
   overflow: hidden;
+  align-items: center;
+  gap: 8px;
   padding: 0 6px;
   border: 0;
   border-radius: 8px;
@@ -240,6 +243,28 @@ button:disabled {
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.recent-task-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-task-spinner {
+  flex: 0 0 auto;
+  margin-left: auto;
+  animation: task-spin 850ms linear infinite;
+}
+
+.recent-task-complete {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  border-radius: 999px;
+  background: #22a06b;
+  box-shadow: 0 0 0 3px rgba(34, 160, 107, 0.1);
 }
 
 .recent-section nav button.current {
@@ -729,6 +754,191 @@ button:disabled {
   line-height: 1.75;
   text-align: left;
   white-space: pre-wrap;
+}
+
+.chat-message-content {
+  min-width: 0;
+}
+
+.assistant-execution {
+  width: 100%;
+}
+
+.execution-duration {
+  position: relative;
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 5px;
+  margin: 1px 0 14px;
+  color: #696969;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.execution-duration-mark {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #6f6f6f;
+}
+
+.assistant-execution.running .execution-duration-mark {
+  animation: execution-pulse 1.2s ease-in-out infinite;
+}
+
+.assistant-execution.running .execution-duration::after {
+  position: absolute;
+  right: 0;
+  bottom: -6px;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #8b8b8b, transparent);
+  background-size: 55% 100%;
+  background-repeat: no-repeat;
+  content: "";
+  animation: execution-sweep 1.45s ease-in-out infinite;
+}
+
+.execution-trace {
+  position: relative;
+  display: grid;
+  gap: 0;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.execution-trace::before {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  left: 10px;
+  width: 1px;
+  background: #dedede;
+  content: "";
+}
+
+.execution-trace li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  min-height: 50px;
+  padding: 4px 0 8px;
+}
+
+.trace-node {
+  z-index: 1;
+  display: grid;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  border: 1px solid #d7d7d7;
+  border-radius: 999px;
+  background: white;
+  color: #727272;
+}
+
+.execution-trace li.running .trace-node {
+  border-color: #969696;
+  color: #222222;
+}
+
+.execution-trace li.running .trace-node svg {
+  animation: task-spin 850ms linear infinite;
+}
+
+.execution-trace li strong {
+  margin: 1px 0 3px;
+  color: #272727;
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.execution-trace li p {
+  color: #898989;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.assistant-final-answer {
+  padding-top: 13px;
+  border-top: 1px solid #ededed;
+}
+
+.generating-reply {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 7px;
+  margin-top: 15px;
+  color: #676767;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.generating-dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.generating-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: generating-dot 1.05s ease-in-out infinite;
+}
+
+.generating-dots i:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.generating-dots i:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+@keyframes task-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes execution-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes execution-sweep {
+  0% {
+    background-position: -120% 0;
+  }
+  100% {
+    background-position: 220% 0;
+  }
+}
+
+@keyframes generating-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
 }
 
 .chat-message.user p {

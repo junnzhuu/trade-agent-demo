@@ -1,8 +1,17 @@
+export type TaskTraceStep = {
+  id: string;
+  title: string;
+  detail: string;
+  status: "running" | "completed";
+};
+
 export type TaskMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
   pending?: boolean;
+  elapsedMs?: number;
+  trace?: TaskTraceStep[];
 };
 
 export type RecentTask = {
@@ -11,6 +20,7 @@ export type RecentTask = {
   metadata: string;
   icon: "folder" | "project";
   messages: TaskMessage[];
+  status?: "running" | "completed";
 };
 
 export const initialRecentTasks: RecentTask[] = [

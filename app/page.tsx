@@ -9,6 +9,7 @@ import {
   ChevronRight,
   FilePlus2,
   Folder,
+  LoaderCircle,
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
@@ -41,6 +42,7 @@ import {
   prependRecentTask,
   type RecentTask,
   type TaskMessage,
+  type TaskTraceStep,
 } from "@/lib/task-history";
 
 // 后续功能扩展会从这五类能力进入；首页先保持截图中的极简状态。
@@ -75,6 +77,27 @@ const createId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+function stopTaskSnapshot(task: RecentTask): RecentTask {
+  return {
+    ...task,
+    metadata: "已停止",
+    status: undefined,
+    messages: task.messages.map((message) =>
+      message.pending
+        ? {
+            ...message,
+            pending: false,
+            content: message.content || "已停止生成。",
+            trace: message.trace?.map((step) => ({
+              ...step,
+              status: "completed" as const,
+            })),
+          }
+        : message,
+    ),
+  };
+}
+
 export default function Home() {
   const [activeView, setActiveView] = useState<WorkspaceView>("chat");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -92,8 +115,10 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeResultIndex, setActiveResultIndex] = useState(0);
   const [running, setRunning] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const runTokenRef = useRef(0);
+  const runStartedAtRef = useRef(0);
   const scrollEndRef = useRef<HTMLDivElement | null>(null);
   const searchButtonRef = useRef<HTMLButtonElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -119,6 +144,13 @@ export default function Home() {
   }, []);
 
   const startNewChat = useCallback(() => {
+    if (running && activeTaskId) {
+      setRecentTasks((current) =>
+        current.map((task) =>
+          task.id === activeTaskId ? stopTaskSnapshot(task) : task,
+        ),
+      );
+    }
     runTokenRef.current += 1;
     abortRef.current?.abort();
     setMessages([]);
@@ -127,7 +159,7 @@ export default function Home() {
     setActiveTaskId(null);
     setActiveView("chat");
     setMobileSidebarOpen(false);
-  }, []);
+  }, [activeTaskId, running]);
 
   useEffect(() => {
     scrollEndRef.current?.scrollIntoView({
@@ -135,6 +167,16 @@ export default function Home() {
       block: "end",
     });
   }, [messages, running]);
+
+  useEffect(() => {
+    if (!running) return;
+    const updateElapsed = () => {
+      setElapsedMs(performance.now() - runStartedAtRef.current);
+    };
+    updateElapsed();
+    const timer = window.setInterval(updateElapsed, 100);
+    return () => window.clearInterval(timer);
+  }, [running]);
 
   const sendPrompt = useCallback(
     async (rawPrompt: string) => {
@@ -151,19 +193,57 @@ export default function Home() {
       const runToken = runTokenRef.current + 1;
       runTokenRef.current = runToken;
       let assistantText = "";
+      let assistantTrace: TaskTraceStep[] = [];
+      let generationStarted = false;
+      let traceSequence = 0;
+      const startedAt = performance.now();
+      const taskTitle = createTaskTitle(prompt);
+      const pendingAssistantMessage: TaskMessage = {
+        id: assistantId,
+        role: "assistant",
+        content: "",
+        pending: true,
+        trace: [],
+      };
 
-      setMessages([
-        userMessage,
-        {
-          id: assistantId,
-          role: "assistant",
-          content: "",
-          pending: true,
-        },
-      ]);
+      const appendTrace = (title: string, detail: string) => {
+        assistantTrace = [
+          ...assistantTrace.map((step) => ({
+            ...step,
+            status: "completed" as const,
+          })),
+          {
+            id: `${assistantId}-trace-${traceSequence++}`,
+            title,
+            detail,
+            status: "running",
+          },
+        ];
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === assistantId
+              ? { ...message, trace: assistantTrace }
+              : message,
+          ),
+        );
+      };
+
+      setMessages([userMessage, pendingAssistantMessage]);
       setInput("");
+      setElapsedMs(0);
+      runStartedAtRef.current = startedAt;
       setRunning(true);
       setActiveTaskId(taskId);
+      setRecentTasks((current) =>
+        prependRecentTask(current, {
+          id: taskId,
+          title: taskTitle,
+          metadata: "处理中",
+          icon: "folder",
+          messages: [userMessage, pendingAssistantMessage],
+          status: "running",
+        }),
+      );
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -173,43 +253,85 @@ export default function Home() {
           prompt,
           signal: controller.signal,
           onEvent: ({ name, data }) => {
-            if (
-              name !== "message.delta" ||
-              runTokenRef.current !== runToken
-            ) {
-              return;
+            if (runTokenRef.current !== runToken) return;
+
+            if (name === "run.started") {
+              appendTrace(
+                "理解问题并规划执行路径",
+                String(data.detail ?? "识别任务意图与所需业务能力"),
+              );
+            } else if (name === "agent.started") {
+              appendTrace(
+                `召唤 ${String(data.name ?? "业务专家")}`,
+                String(data.detail ?? "将任务拆解后交给领域专家处理"),
+              );
+            } else if (name === "tool.started") {
+              appendTrace(
+                `调用 Skill · ${String(data.label ?? data.name ?? "业务查询")}`,
+                `使用 ${String(data.name ?? "确定性业务工具")} 查询内置演示数据`,
+              );
+            } else if (name === "tool.completed") {
+              appendTrace(
+                `Skill 返回 · ${String(data.name ?? "业务查询")}`,
+                String(data.detail ?? "已获得可用于回答的数据证据"),
+              );
+            } else if (name === "tool.failed") {
+              appendTrace(
+                `Skill 执行异常 · ${String(data.name ?? "业务查询")}`,
+                String(data.message ?? "未获得可用结果，准备调整回答"),
+              );
+            } else if (name === "agent.completed") {
+              appendTrace(
+                `${String(data.name ?? "业务专家")} 完成分析`,
+                String(data.detail ?? "专家结果已返回交易主理人"),
+              );
+            } else if (name === "message.delta") {
+              if (!generationStarted) {
+                generationStarted = true;
+                appendTrace(
+                  "汇总分析并组织回复",
+                  "整合各专家结论、数据证据与下一步行动建议",
+                );
+              }
+              const delta = String(data.delta ?? "");
+              assistantText += delta;
+              setMessages((current) =>
+                current.map((message) =>
+                  message.id === assistantId
+                    ? {
+                        ...message,
+                        content: `${message.content}${delta}`,
+                      }
+                    : message,
+                ),
+              );
             }
-            const delta = String(data.delta ?? "");
-            assistantText += delta;
-            setMessages((current) =>
-              current.map((message) =>
-                message.id === assistantId
-                  ? {
-                      ...message,
-                      pending: false,
-                      content: `${message.content}${delta}`,
-                    }
-                  : message,
-              ),
-            );
           },
         });
 
         if (runTokenRef.current === runToken && assistantText) {
+          const finalElapsedMs = performance.now() - startedAt;
+          const completedTrace = assistantTrace.map((step) => ({
+            ...step,
+            status: "completed" as const,
+          }));
+          const completedAssistantMessage: TaskMessage = {
+            id: assistantId,
+            role: "assistant",
+            content: assistantText,
+            elapsedMs: finalElapsedMs,
+            trace: completedTrace,
+          };
+          setElapsedMs(finalElapsedMs);
+          setMessages([userMessage, completedAssistantMessage]);
           setRecentTasks((current) =>
             prependRecentTask(current, {
               id: taskId,
-              title: createTaskTitle(prompt),
+              title: taskTitle,
               metadata: formatTaskTimestamp(new Date()),
               icon: "folder",
-              messages: [
-                userMessage,
-                {
-                  id: assistantId,
-                  role: "assistant",
-                  content: assistantText,
-                },
-              ],
+              messages: [userMessage, completedAssistantMessage],
+              status: "completed",
             }),
           );
         }
@@ -217,18 +339,37 @@ export default function Home() {
         if (runTokenRef.current !== runToken) return;
         const stopped =
           error instanceof DOMException && error.name === "AbortError";
+        const failureText = stopped
+          ? "已停止生成。"
+          : "演示任务执行失败，请稍后重试。";
+        const finalElapsedMs = performance.now() - startedAt;
+        const failedAssistantMessage: TaskMessage = {
+          id: assistantId,
+          role: "assistant",
+          pending: false,
+          content: failureText,
+          elapsedMs: finalElapsedMs,
+          trace: assistantTrace.map((step) => ({
+            ...step,
+            status: "completed",
+          })),
+        };
+        setElapsedMs(finalElapsedMs);
         setMessages((current) =>
           current.map((message) =>
             message.id === assistantId
-              ? {
-                  ...message,
-                  pending: false,
-                  content: stopped
-                    ? "已停止生成。"
-                    : "演示任务执行失败，请稍后重试。",
-                }
+              ? failedAssistantMessage
               : message,
           ),
+        );
+        setRecentTasks((current) =>
+          prependRecentTask(current, {
+            id: taskId,
+            title: taskTitle,
+            metadata: stopped ? "已停止" : "执行失败",
+            icon: "folder",
+            messages: [userMessage, failedAssistantMessage],
+          }),
         );
       } finally {
         if (runTokenRef.current === runToken) {
@@ -242,6 +383,20 @@ export default function Home() {
 
   const openTask = useCallback(
     (task: RecentTask) => {
+      if (running && activeTaskId === task.id) {
+        setMobileSidebarOpen(false);
+        closeSearch();
+        return;
+      }
+      if (running && activeTaskId) {
+        setRecentTasks((current) =>
+          current.map((currentTask) =>
+            currentTask.id === activeTaskId
+              ? stopTaskSnapshot(currentTask)
+              : currentTask,
+          ),
+        );
+      }
       runTokenRef.current += 1;
       abortRef.current?.abort();
       abortRef.current = null;
@@ -253,7 +408,7 @@ export default function Home() {
       setMobileSidebarOpen(false);
       closeSearch();
     },
-    [closeSearch],
+    [activeTaskId, closeSearch, running],
   );
 
   const submit = (event: FormEvent) => {
@@ -398,13 +553,33 @@ export default function Home() {
           <nav aria-label="最近任务">
             {recentTasks.map((task) => (
               <button
+                aria-label={`${task.title}${
+                  task.status === "running"
+                    ? "，正在生成"
+                    : task.status === "completed"
+                      ? "，生成完成"
+                      : ""
+                }`}
                 aria-current={activeTaskId === task.id ? "page" : undefined}
                 className={activeTaskId === task.id ? "current" : ""}
                 key={task.id}
                 onClick={() => openTask(task)}
                 type="button"
               >
-                {task.title}
+                <span className="recent-task-title">{task.title}</span>
+                {task.status === "running" ? (
+                  <LoaderCircle
+                    aria-hidden="true"
+                    className="recent-task-spinner"
+                    size={14}
+                    strokeWidth={1.8}
+                  />
+                ) : task.status === "completed" ? (
+                  <span
+                    aria-hidden="true"
+                    className="recent-task-complete"
+                  />
+                ) : null}
               </button>
             ))}
           </nav>
@@ -475,17 +650,24 @@ export default function Home() {
                         "咪"
                       )}
                     </div>
-                    <div>
+                    <div className="chat-message-content">
                       <strong>
                         {message.role === "assistant"
                           ? "交易 Agent"
                           : "哈基咪(Manbo)"}
                       </strong>
-                      <p>
-                        {message.pending && !message.content
-                          ? "正在思考…"
-                          : message.content}
-                      </p>
+                      {message.role === "assistant" ? (
+                        <AssistantExecution
+                          elapsedMs={
+                            message.pending
+                              ? elapsedMs
+                              : (message.elapsedMs ?? 0)
+                          }
+                          message={message}
+                        />
+                      ) : (
+                        <p>{message.content}</p>
+                      )}
                     </div>
                   </article>
                 ))}
@@ -635,6 +817,74 @@ function AutomationWorkspace() {
       <p>把重复的运营任务交给 Agent 按计划自动执行。</p>
       <span>演示能力即将开放</span>
     </div>
+  );
+}
+
+function formatElapsedTime(elapsedMs: number) {
+  const minutes = Math.floor(elapsedMs / 60_000);
+  const seconds = Math.floor((elapsedMs % 60_000) / 100) / 10;
+  return `${minutes}m ${seconds.toFixed(1)}s`;
+}
+
+function AssistantExecution({
+  elapsedMs,
+  message,
+}: {
+  elapsedMs: number;
+  message: TaskMessage;
+}) {
+  const hasExecutionTrace = Boolean(message.trace?.length || message.pending);
+
+  if (!hasExecutionTrace) return <p>{message.content}</p>;
+
+  return (
+    <section
+      aria-label="Agent 执行过程"
+      className={`assistant-execution ${message.pending ? "running" : "completed"}`}
+    >
+      <div className="execution-duration">
+        <span aria-hidden="true" className="execution-duration-mark" />
+        <span>已处理</span>
+        <time>{formatElapsedTime(elapsedMs)}</time>
+      </div>
+
+      {message.trace?.length ? (
+        <ol aria-label="思考与 Skill 调用步骤" className="execution-trace">
+          {message.trace.map((step) => (
+            <li className={step.status} key={step.id}>
+              <span aria-hidden="true" className="trace-node">
+                {step.status === "running" ? (
+                  <LoaderCircle size={13} strokeWidth={1.9} />
+                ) : (
+                  <Check size={12} strokeWidth={2} />
+                )}
+              </span>
+              <div>
+                <strong>{step.title}</strong>
+                <p>{step.detail}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+
+      {message.content ? (
+        <div className="assistant-final-answer">
+          <p>{message.content}</p>
+        </div>
+      ) : null}
+
+      {message.pending ? (
+        <div aria-live="polite" className="generating-reply" role="status">
+          <span>生成回复中</span>
+          <span aria-hidden="true" className="generating-dots">
+            <i />
+            <i />
+            <i />
+          </span>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
