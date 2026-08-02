@@ -3,9 +3,12 @@ import test from "node:test";
 import {
   filterRecentTasks,
   formatRelativeTaskTime,
+  getFavoriteAnswers,
+  getFavoriteTasks,
   getTaskActivityIndicator,
   initialRecentTasks,
   prependRecentTask,
+  restoreArchivedTask,
   type RecentTask,
 } from "../lib/task-history";
 
@@ -18,6 +21,46 @@ test("filters recent tasks by title and metadata", () => {
     filterRecentTasks(initialRecentTasks, "新手指引").map((task) => task.id),
     ["preset-feishu-title"],
   );
+});
+
+test("collects favorite tasks and assistant answers without losing archive state", () => {
+  const tasks: RecentTask[] = [
+    {
+      ...initialRecentTasks[0],
+      archived: true,
+      favorited: true,
+      messages: initialRecentTasks[0].messages.map((message) =>
+        message.role === "assistant" ? { ...message, favorited: true } : message,
+      ),
+    },
+    initialRecentTasks[1],
+  ];
+
+  assert.deepEqual(getFavoriteTasks(tasks).map((task) => task.id), [
+    "preset-bid-limits",
+  ]);
+  assert.equal(getFavoriteTasks(tasks)[0].archived, true);
+  assert.deepEqual(
+    getFavoriteAnswers(tasks).map((answer) => answer.message.id),
+    ["preset-bid-limits-assistant"],
+  );
+});
+
+test("restores an archived task to the top without pinning it", () => {
+  const restoredAt = new Date("2026-08-03T12:00:00+08:00").getTime();
+  const archived = initialRecentTasks.map((task, index) =>
+    index === 1 ? { ...task, archived: true, pinned: true } : task,
+  );
+  const restored = restoreArchivedTask(
+    archived,
+    "preset-feishu-title",
+    restoredAt,
+  );
+
+  assert.equal(restored[0].id, "preset-feishu-title");
+  assert.equal(restored[0].archived, false);
+  assert.equal(restored[0].pinned, false);
+  assert.equal(restored[0].updatedAt, restoredAt);
 });
 
 test("derives sidebar activity from task status and current view", () => {

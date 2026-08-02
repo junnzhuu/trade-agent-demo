@@ -12,6 +12,7 @@ export type TaskMessage = {
   pending?: boolean;
   elapsedMs?: number;
   trace?: TaskTraceStep[];
+  favorited?: boolean;
 };
 
 export type RecentTask = {
@@ -26,6 +27,13 @@ export type RecentTask = {
   status?: "running" | "completed";
   startedAt?: number;
   unreadCompletion?: boolean;
+  favorited?: boolean;
+};
+
+export type FavoriteAnswer = {
+  taskId: string;
+  taskTitle: string;
+  message: TaskMessage;
 };
 
 export type TaskActivityIndicator = "spinner" | "attention" | "time";
@@ -105,6 +113,18 @@ export function prependRecentTask(
   return [task, ...tasks.filter((item) => item.id !== task.id)];
 }
 
+export function getFavoriteTasks(tasks: RecentTask[]): RecentTask[] {
+  return tasks.filter((task) => task.favorited);
+}
+
+export function getFavoriteAnswers(tasks: RecentTask[]): FavoriteAnswer[] {
+  return tasks.flatMap((task) =>
+    task.messages
+      .filter((message) => message.role === "assistant" && message.favorited)
+      .map((message) => ({ taskId: task.id, taskTitle: task.title, message })),
+  );
+}
+
 export function createTaskTitle(prompt: string, maxLength = 28): string {
   const title = prompt.replace(/\s+/g, " ").trim() || "新建交易任务";
   return title.length > maxLength ? `${title.slice(0, maxLength)}…` : title;
@@ -117,6 +137,22 @@ export function formatTaskTimestamp(date: Date): string {
       "-",
     ) + ` ${pad(date.getHours())}:${pad(date.getMinutes())}`
   );
+}
+
+export function restoreArchivedTask(
+  tasks: RecentTask[],
+  taskId: string,
+  restoredAt = Date.now(),
+): RecentTask[] {
+  const task = tasks.find((item) => item.id === taskId);
+  if (!task?.archived) return tasks;
+  return prependRecentTask(tasks, {
+    ...task,
+    archived: false,
+    pinned: false,
+    updatedAt: restoredAt,
+    metadata: formatTaskTimestamp(new Date(restoredAt)),
+  });
 }
 
 export function formatRelativeTaskTime(

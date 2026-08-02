@@ -79,6 +79,12 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /background: rgba\(218, 220, 224, 0\.56\)/);
   assert.match(css, /backdrop-filter: blur\(12px\)/);
   assert.match(css, /\.task-context-menu/);
+  assert.match(page, /我的收藏/);
+  assert.match(page, /复制请求 ID/);
+  assert.match(page, /ID: Manbo/);
+  assert.match(css, /\.account-drawer/);
+  assert.match(css, /\.answer-more-menu/);
+  assert.match(css, /\.library-dialog/);
   assert.match(css, /\.primary-sidebar-nav button:first-child/);
   assert.match(css, /@keyframes generating-dot/);
   assert.match(css, /\.execution-details\[open\] \.execution-chevron/);

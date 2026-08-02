@@ -2,8 +2,8 @@
 
 import {
   ArrowLeft,
-  ArrowDownUp,
   Archive,
+  Bookmark,
   Check,
   ChevronDown,
   ChevronRight,
@@ -12,6 +12,7 @@ import {
   FilePlus2,
   Folder,
   LoaderCircle,
+  MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
@@ -45,9 +46,12 @@ import {
   filterRecentTasks,
   formatRelativeTaskTime,
   formatTaskTimestamp,
+  getFavoriteAnswers,
+  getFavoriteTasks,
   getTaskActivityIndicator,
   initialRecentTasks,
   prependRecentTask,
+  restoreArchivedTask,
   type RecentTask,
   type TaskMessage,
   type TaskTraceStep,
@@ -88,6 +92,7 @@ const feedbackReasons = [
 type ModelId = (typeof modelOptions)[number]["id"];
 
 type WorkspaceView = "chat" | "experts" | "automation";
+type LibraryDialog = "favorites" | "archive";
 
 type DemoRunJob = {
   taskId: string;
@@ -153,6 +158,8 @@ export default function Home() {
   const [taskMenuId, setTaskMenuId] = useState<string | null>(null);
   const [renamingTaskId, setRenamingTaskId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [libraryDialog, setLibraryDialog] = useState<LibraryDialog | null>(null);
   const activeTaskIdRef = useRef<string | null>(null);
   const activeViewRef = useRef<WorkspaceView>("chat");
   const mountedRef = useRef(true);
@@ -161,6 +168,9 @@ export default function Home() {
   const searchButtonRef = useRef<HTMLButtonElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const feedbackCloseRef = useRef<HTMLButtonElement | null>(null);
+  const accountControlRef = useRef<HTMLDivElement | null>(null);
+  const accountButtonRef = useRef<HTMLButtonElement | null>(null);
+  const libraryCloseRef = useRef<HTMLButtonElement | null>(null);
 
   const filteredTasks = useMemo(
     () => filterRecentTasks(recentTasks, searchQuery),
@@ -184,6 +194,18 @@ export default function Home() {
     ? Math.max(0, elapsedNow - (activeTask.startedAt ?? elapsedNow))
     : 0;
   const hasRunningTasks = recentTasks.some((task) => task.status === "running");
+  const favoriteTasks = useMemo(
+    () => getFavoriteTasks(recentTasks),
+    [recentTasks],
+  );
+  const favoriteAnswers = useMemo(
+    () => getFavoriteAnswers(recentTasks),
+    [recentTasks],
+  );
+  const archivedTasks = useMemo(
+    () => recentTasks.filter((task) => task.archived),
+    [recentTasks],
+  );
 
   useEffect(() => {
     if (!taskMenuId) return;
@@ -206,6 +228,30 @@ export default function Home() {
     };
   }, [taskMenuId]);
 
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    const closeOnOutsidePress = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !accountControlRef.current?.contains(event.target)
+      ) {
+        setAccountMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setAccountMenuOpen(false);
+        requestAnimationFrame(() => accountButtonRef.current?.focus());
+      }
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [accountMenuOpen]);
+
   const closeSearch = useCallback(() => {
     setSearchOpen(false);
     setSearchQuery("");
@@ -219,6 +265,17 @@ export default function Home() {
     setActiveResultIndex(0);
     setSearchOpen(true);
     requestAnimationFrame(() => searchInputRef.current?.focus());
+  }, []);
+
+  const closeLibrary = useCallback(() => {
+    setLibraryDialog(null);
+    requestAnimationFrame(() => accountButtonRef.current?.focus());
+  }, []);
+
+  const openLibrary = useCallback((dialog: LibraryDialog) => {
+    setAccountMenuOpen(false);
+    setLibraryDialog(dialog);
+    requestAnimationFrame(() => libraryCloseRef.current?.focus());
   }, []);
 
   const startNewChat = useCallback(() => {
@@ -507,6 +564,7 @@ export default function Home() {
           messages: pendingConversation,
           updatedAt: submittedAt,
           pinned: currentTask?.pinned,
+          favorited: currentTask?.favorited,
           archived: false,
           status: "running",
           startedAt: submittedAt,
@@ -631,6 +689,53 @@ export default function Home() {
     setTaskMenuId(null);
   };
 
+  const toggleTaskFavorite = (taskId: string) => {
+    setRecentTasks((current) =>
+      current.map((task) =>
+        task.id === taskId ? { ...task, favorited: !task.favorited } : task,
+      ),
+    );
+    setTaskMenuId(null);
+  };
+
+  const toggleAnswerFavorite = (taskId: string, messageId: string) => {
+    updateTask(taskId, (task) => ({
+      ...task,
+      messages: task.messages.map((message) =>
+        message.id === messageId
+          ? { ...message, favorited: !message.favorited }
+          : message,
+      ),
+    }));
+  };
+
+  const restoreTask = (taskId: string) => {
+    setRecentTasks((current) => restoreArchivedTask(current, taskId));
+  };
+
+  const copyRequestId = async (requestId: string) => {
+    await navigator.clipboard.writeText(requestId);
+    setFeedbackNotice("请求 ID 已复制");
+    window.setTimeout(() => setFeedbackNotice(""), 2_000);
+  };
+
+  const openTaskFromLibrary = (task: RecentTask) => {
+    closeLibrary();
+    openTask(task);
+  };
+
+  const openFavoriteAnswer = (taskId: string, messageId: string) => {
+    const task = recentTasks.find((item) => item.id === taskId);
+    if (!task) return;
+    closeLibrary();
+    openTask(task);
+    window.setTimeout(() => {
+      document
+        .getElementById(`message-${messageId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+  };
+
   const archiveTask = (taskId: string) => {
     const taskToArchive = recentTasks.find((task) => task.id === taskId);
     if (taskToArchive?.status === "running") cancelTask(taskId);
@@ -698,6 +803,30 @@ export default function Home() {
     );
     if (!focusable.length) return;
 
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  const handleLibraryKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeLibrary();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
     if (event.shiftKey && document.activeElement === first) {
@@ -821,6 +950,7 @@ export default function Home() {
               setRenameValue,
               commitTaskRename,
               toggleTaskPin,
+              toggleTaskFavorite,
               archiveTask,
             }}
           />
@@ -843,17 +973,75 @@ export default function Home() {
             setRenameValue,
             commitTaskRename,
             toggleTaskPin,
+            toggleTaskFavorite,
             archiveTask,
           }}
         />
 
-        <button className="account-menu" type="button">
-          <span className="account-avatar" aria-hidden="true">
-            <span>咪</span>
-          </span>
-          <strong>哈基咪(Manbo)</strong>
-          <ArrowDownUp size={15} strokeWidth={1.8} />
-        </button>
+        <div className="account-control" ref={accountControlRef}>
+          {accountMenuOpen ? (
+            <div aria-label="账号操作" className="account-drawer" role="menu">
+              <button
+                onClick={() => openLibrary("favorites")}
+                role="menuitem"
+                type="button"
+              >
+                <Bookmark size={17} />
+                我的收藏
+              </button>
+              <button
+                onClick={() => openLibrary("archive")}
+                role="menuitem"
+                type="button"
+              >
+                <Archive size={17} />
+                我的归档
+              </button>
+              <button
+                onClick={() => {
+                  setAccountMenuOpen(false);
+                  openFeedback("account-feedback");
+                }}
+                role="menuitem"
+                type="button"
+              >
+                <MessageSquare size={17} />
+                我要反馈
+              </button>
+              <button
+                onClick={() => {
+                  setAccountMenuOpen(false);
+                  setFeedbackNotice("交流群入口为演示功能");
+                  window.setTimeout(() => setFeedbackNotice(""), 3_000);
+                }}
+                role="menuitem"
+                type="button"
+              >
+                <Users size={17} />
+                加入交流群
+              </button>
+            </div>
+          ) : null}
+          <button
+            aria-expanded={accountMenuOpen}
+            aria-haspopup="menu"
+            className={`account-menu ${accountMenuOpen ? "open" : ""}`}
+            onClick={() => {
+              setTaskMenuId(null);
+              setAccountMenuOpen((current) => !current);
+            }}
+            ref={accountButtonRef}
+            type="button"
+          >
+            <span className="account-avatar" aria-hidden="true">
+              <span>咪</span>
+            </span>
+            <span className="account-identity">
+              <strong>哈基咪</strong>
+              <small>ID: Manbo</small>
+            </span>
+          </button>
+        </div>
       </aside>
 
       <section className="minimal-main">
@@ -911,6 +1099,7 @@ export default function Home() {
                       message.role === "assistant" ? "Agent 回复" : "用户消息"
                     }
                     className={`chat-message ${message.role}`}
+                    id={`message-${message.id}`}
                     key={message.id}
                   >
                     <div className="chat-message-content">
@@ -928,8 +1117,17 @@ export default function Home() {
                             <AnswerActions
                               content={message.content}
                               disabled={running}
+                              favorited={Boolean(message.favorited)}
                               onDislike={() => openFeedback(message.id)}
+                              onCopyRequestId={() =>
+                                void copyRequestId(message.id)
+                              }
                               onRegenerate={() => regenerateMessage(message.id)}
+                              onToggleFavorite={() =>
+                                activeTaskId &&
+                                toggleAnswerFavorite(activeTaskId, message.id)
+                              }
+                              requestId={message.id}
                             />
                           ) : null}
                         </>
@@ -1076,6 +1274,159 @@ export default function Home() {
         </div>
       )}
 
+      {libraryDialog && (
+        <div className="library-modal-layer">
+          <button
+            aria-label={`关闭${libraryDialog === "favorites" ? "我的收藏" : "我的归档"}`}
+            className="library-modal-scrim"
+            onClick={closeLibrary}
+            type="button"
+          />
+          <section
+            aria-labelledby="library-dialog-title"
+            aria-modal="true"
+            className="library-dialog"
+            onKeyDown={handleLibraryKeyDown}
+            role="dialog"
+          >
+            <header>
+              <div>
+                <span>{libraryDialog === "favorites" ? "COLLECTION" : "ARCHIVE"}</span>
+                <h2 id="library-dialog-title">
+                  {libraryDialog === "favorites" ? "我的收藏" : "我的归档"}
+                </h2>
+              </div>
+              <button
+                aria-label="关闭"
+                className="library-close"
+                onClick={closeLibrary}
+                ref={libraryCloseRef}
+                type="button"
+              >
+                <X size={21} />
+              </button>
+            </header>
+
+            <div className="library-content">
+              {libraryDialog === "favorites" ? (
+                <>
+                  <section className="library-group">
+                    <h3>
+                      收藏的任务 <span>{favoriteTasks.length}</span>
+                    </h3>
+                    {favoriteTasks.length ? (
+                      <div className="library-list">
+                        {favoriteTasks.map((task) => (
+                          <article className="library-row" key={task.id}>
+                            <button
+                              className="library-row-main"
+                              onClick={() => openTaskFromLibrary(task)}
+                              type="button"
+                            >
+                              <strong>{task.title}</strong>
+                              <span>
+                                {task.archived ? "已归档 · " : ""}
+                                {formatRelativeTaskTime(
+                                  task.updatedAt,
+                                  relativeTimeNow,
+                                )}
+                              </span>
+                            </button>
+                            <button
+                              aria-label={`取消收藏任务：${task.title}`}
+                              className="library-row-action selected"
+                              onClick={() => toggleTaskFavorite(task.id)}
+                              type="button"
+                            >
+                              <Bookmark size={17} fill="currentColor" />
+                            </button>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="library-empty">暂无收藏的任务</p>
+                    )}
+                  </section>
+
+                  <section className="library-group">
+                    <h3>
+                      收藏的答案 <span>{favoriteAnswers.length}</span>
+                    </h3>
+                    {favoriteAnswers.length ? (
+                      <div className="library-list">
+                        {favoriteAnswers.map((answer) => (
+                          <article
+                            className="library-row answer-row"
+                            key={`${answer.taskId}-${answer.message.id}`}
+                          >
+                            <button
+                              className="library-row-main"
+                              onClick={() =>
+                                openFavoriteAnswer(
+                                  answer.taskId,
+                                  answer.message.id,
+                                )
+                              }
+                              type="button"
+                            >
+                              <strong>{answer.taskTitle}</strong>
+                              <span>{answer.message.content}</span>
+                            </button>
+                            <button
+                              aria-label="取消收藏答案"
+                              className="library-row-action selected"
+                              onClick={() =>
+                                toggleAnswerFavorite(
+                                  answer.taskId,
+                                  answer.message.id,
+                                )
+                              }
+                              type="button"
+                            >
+                              <Bookmark size={17} fill="currentColor" />
+                            </button>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="library-empty">暂无收藏的答案</p>
+                    )}
+                  </section>
+                </>
+              ) : archivedTasks.length ? (
+                <div className="library-list archive-list">
+                  {archivedTasks.map((task) => (
+                    <article className="library-row archive-row" key={task.id}>
+                      <button
+                        className="library-row-main"
+                        onClick={() => openTaskFromLibrary(task)}
+                        type="button"
+                      >
+                        <strong>{task.title}</strong>
+                        <span>{task.metadata}</span>
+                      </button>
+                      <button
+                        className="restore-task-button"
+                        onClick={() => restoreTask(task.id)}
+                        type="button"
+                      >
+                        恢复
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="library-empty-state">
+                  <Archive size={24} />
+                  <strong>暂无归档任务</strong>
+                  <span>归档后的任务会集中显示在这里</span>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
       {feedbackTargetId && (
         <div className="feedback-modal-layer">
           <button
@@ -1200,6 +1551,7 @@ function SidebarTaskSection({
   setRenameValue,
   commitTaskRename,
   toggleTaskPin,
+  toggleTaskFavorite,
   archiveTask,
 }: {
   title: string;
@@ -1218,6 +1570,7 @@ function SidebarTaskSection({
   setRenameValue: (value: string) => void;
   commitTaskRename: (id: string) => void;
   toggleTaskPin: (id: string) => void;
+  toggleTaskFavorite: (id: string) => void;
   archiveTask: (id: string) => void;
 }) {
   return (
@@ -1331,6 +1684,17 @@ function SidebarTaskSection({
                       {task.pinned ? "取消置顶" : "置顶"}
                     </button>
                     <button
+                      onClick={() => toggleTaskFavorite(task.id)}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <Bookmark
+                        fill={task.favorited ? "currentColor" : "none"}
+                        size={16}
+                      />
+                      {task.favorited ? "取消收藏" : "收藏"}
+                    </button>
+                    <button
                       onClick={() => archiveTask(task.id)}
                       role="menuitem"
                       type="button"
@@ -1431,17 +1795,48 @@ function AssistantExecution({
 function AnswerActions({
   content,
   disabled,
+  favorited,
+  onCopyRequestId,
   onDislike,
   onRegenerate,
+  onToggleFavorite,
+  requestId,
 }: {
   content: string;
   disabled: boolean;
+  favorited: boolean;
+  onCopyRequestId: () => void;
   onDislike: () => void;
   onRegenerate: () => void;
+  onToggleFavorite: () => void;
+  requestId: string;
 }) {
   const [copied, setCopied] = useState(false);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreControlRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!moreMenuOpen) return;
+    const closeOnOutsidePress = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !moreControlRef.current?.contains(event.target)
+      ) {
+        setMoreMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setMoreMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [moreMenuOpen]);
 
   const copyAnswer = async () => {
     await navigator.clipboard.writeText(content);
@@ -1508,9 +1903,44 @@ function AnswerActions({
       >
         <Share2 size={17} />
       </button>
-      <button aria-label="更多操作" type="button">
-        <Ellipsis size={18} />
-      </button>
+      <div className="answer-more-control" ref={moreControlRef}>
+        <button
+          aria-expanded={moreMenuOpen}
+          aria-haspopup="menu"
+          aria-label="更多操作"
+          onClick={() => setMoreMenuOpen((current) => !current)}
+          type="button"
+        >
+          <Ellipsis size={18} />
+        </button>
+        {moreMenuOpen ? (
+          <div aria-label="答案更多操作" className="answer-more-menu" role="menu">
+            <button
+              onClick={() => {
+                onToggleFavorite();
+                setMoreMenuOpen(false);
+              }}
+              role="menuitem"
+              type="button"
+            >
+              <Bookmark fill={favorited ? "currentColor" : "none"} size={16} />
+              {favorited ? "取消收藏" : "收藏"}
+            </button>
+            <button
+              aria-label={`复制请求 ID：${requestId}`}
+              onClick={() => {
+                onCopyRequestId();
+                setMoreMenuOpen(false);
+              }}
+              role="menuitem"
+              type="button"
+            >
+              <Copy size={16} />
+              复制请求 ID
+            </button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
