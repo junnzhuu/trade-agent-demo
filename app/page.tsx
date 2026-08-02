@@ -1212,19 +1212,9 @@ function SidebarTaskSection({
                           size={14}
                         />
                       ) : (
-                        <>
-                          <time
-                            dateTime={new Date(task.updatedAt).toISOString()}
-                          >
-                            {relativeTime}
-                          </time>
-                          {task.status === "completed" ? (
-                            <span
-                              aria-label="已完成"
-                              className="recent-task-complete"
-                            />
-                          ) : null}
-                        </>
+                        <time dateTime={new Date(task.updatedAt).toISOString()}>
+                          {relativeTime}
+                        </time>
                       )}
                     </span>
                   </button>

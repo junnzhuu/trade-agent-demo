@@ -342,8 +342,8 @@ button:disabled {
   place-items: center;
   padding: 0 !important;
   border: 0;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.82) !important;
+  border-radius: 0;
+  background: transparent !important;
   opacity: 0;
   pointer-events: none;
   transition: opacity 120ms ease;
@@ -430,20 +430,17 @@ button:disabled {
   color: #8a8a8a;
   font-size: 12px;
   font-weight: 450;
+  transition: opacity 120ms ease;
+}
+
+.recent-task-row:hover .recent-task-meta,
+.recent-task-row:focus-within .recent-task-meta {
+  opacity: 0;
 }
 
 .recent-task-spinner {
   flex: 0 0 auto;
   animation: task-spin 850ms linear infinite;
-}
-
-.recent-task-complete {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: #22a06b;
-  box-shadow: 0 0 0 3px rgba(34, 160, 107, 0.1);
 }
 
 .recent-section nav button.current {

@@ -67,7 +67,10 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /归档/);
   assert.match(page, /collapsed-sidebar-toggle/);
   assert.match(page, /\.\/background\.svg/);
-  assert.match(css, /\.recent-task-complete/);
+  assert.doesNotMatch(page, /recent-task-complete/);
+  assert.doesNotMatch(css, /\.recent-task-complete/);
+  assert.match(css, /\.recent-task-row:hover \.recent-task-meta/);
+  assert.match(css, /background: transparent !important/);
   assert.match(css, /\.main-background/);
   assert.match(css, /background: rgba\(218, 220, 224, 0\.56\)/);
   assert.match(css, /backdrop-filter: blur\(12px\)/);
