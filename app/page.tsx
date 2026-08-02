@@ -661,6 +661,15 @@ export default function Home() {
 
   return (
     <main className={`minimal-app ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
+      <Image
+        alt=""
+        aria-hidden="true"
+        className="main-background"
+        fill
+        priority
+        sizes="100vw"
+        src="./background.svg"
+      />
       <span className="sr-only">
         交易业务智能工作台，使用演示数据，支持 {agentCapabilities.join("、")}
       </span>
@@ -794,15 +803,6 @@ export default function Home() {
       </aside>
 
       <section className="minimal-main">
-        <Image
-          alt=""
-          aria-hidden="true"
-          className="main-background"
-          fill
-          priority
-          sizes="(min-width: 761px) calc(100vw - 255px), 100vw"
-          src="./background.svg"
-        />
         <button
           aria-label="展开侧栏"
           className="open-sidebar"
