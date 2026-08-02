@@ -56,6 +56,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /填写详情（选填）/);
   assert.match(page, /点击加入反馈群/);
   assert.match(css, /\.answer-actions/);
+  assert.match(css, /background: #01c1c2/);
+  assert.match(css, /color: #ffffff/);
   assert.match(css, /\.feedback-dialog/);
   assert.doesNotMatch(page, /className="chat-avatar"/);
   assert.match(page, /生成回复中/);

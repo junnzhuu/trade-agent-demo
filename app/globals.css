@@ -1141,7 +1141,8 @@ button:disabled {
 .chat-message.user p {
   padding: 9px 12px;
   border-radius: 12px 3px 12px 12px;
-  background: #f1f1f1;
+  background: #01c1c2;
+  color: #ffffff;
 }
 
 .docked-composer {
