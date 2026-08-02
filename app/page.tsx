@@ -1,11 +1,11 @@
 "use client";
 
 import {
+  ArrowUp,
   ArrowDownUp,
   BrainCircuit,
   Check,
   ChevronDown,
-  CornerDownLeft,
   Folder,
   MessageSquare,
   PanelLeftClose,
@@ -52,6 +52,19 @@ const agentCapabilities = [
 const composerPlaceholder =
   "今天帮你做些什么？@ 召唤专家，/ 调用技能";
 
+const modelOptions = [
+  { id: "glm-5", label: "glm-5" },
+  { id: "qwen3.5-flash", label: "qwen3.5-flash" },
+  { id: "deepseek-v4-flash", label: "deepseek-v4-flash" },
+  { id: "deepseek-v4-pro", label: "deepseek-v4-pro" },
+  { id: "doubao-seed-2-0-lite", label: "doubao-seed-2-0-lite" },
+  { id: "qwen3.6-flash", label: "qwen3.6-flash", imageUnderstanding: true },
+  { id: "qwen3.7-plus", label: "qwen3.7-plus", imageUnderstanding: true },
+  { id: "glm-5.2", label: "glm-5.2" },
+] as const;
+
+type ModelId = (typeof modelOptions)[number]["id"];
+
 type WorkspaceView = "chat" | "experts" | "automation";
 
 const createId = () =>
@@ -65,6 +78,8 @@ export default function Home() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
+  const [selectedModelId, setSelectedModelId] =
+    useState<ModelId>("glm-5");
   const [messages, setMessages] = useState<TaskMessage[]>([]);
   const [recentTasks, setRecentTasks] =
     useState<RecentTask[]>(initialRecentTasks);
@@ -427,6 +442,8 @@ export default function Home() {
               onSubmit={submit}
               onStop={() => abortRef.current?.abort()}
               running={running}
+              selectedModelId={selectedModelId}
+              selectModel={setSelectedModelId}
               thinking={thinking}
               toggleThinking={() => setThinking((current) => !current)}
             />
@@ -469,6 +486,8 @@ export default function Home() {
                 onSubmit={submit}
                 onStop={() => abortRef.current?.abort()}
                 running={running}
+                selectedModelId={selectedModelId}
+                selectModel={setSelectedModelId}
                 thinking={thinking}
                 toggleThinking={() => setThinking((current) => !current)}
               />
@@ -602,6 +621,8 @@ function Composer({
   onSubmit,
   onStop,
   running,
+  selectedModelId,
+  selectModel,
   thinking,
   toggleThinking,
 }: {
@@ -611,9 +632,37 @@ function Composer({
   onSubmit: (event: FormEvent) => void;
   onStop: () => void;
   running: boolean;
+  selectedModelId: ModelId;
+  selectModel: (modelId: ModelId) => void;
   thinking: boolean;
   toggleThinking: () => void;
 }) {
+  const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const modelControlRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!modelMenuOpen) return;
+
+    const closeOnOutsidePress = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !modelControlRef.current?.contains(event.target)
+      ) {
+        setModelMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setModelMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [modelMenuOpen]);
+
   return (
     <form className="minimal-composer" onSubmit={onSubmit}>
       <textarea
@@ -641,31 +690,78 @@ function Composer({
             <span>思考</span>
             {thinking && <Check size={12} />}
           </button>
-          <button className="model-selector" type="button">
-            GLM-5
-            <ChevronDown size={13} />
-          </button>
         </div>
 
-        {running ? (
-          <button
-            aria-label="停止生成"
-            className="composer-send"
-            onClick={onStop}
-            type="button"
-          >
-            <Square fill="currentColor" size={12} />
-          </button>
-        ) : (
-          <button
-            aria-label="发送"
-            className="composer-send"
-            disabled={!input.trim()}
-            type="submit"
-          >
-            <CornerDownLeft size={18} strokeWidth={1.8} />
-          </button>
-        )}
+        <div className="composer-right-actions">
+          <div className="model-control" ref={modelControlRef}>
+            <button
+              aria-expanded={modelMenuOpen}
+              aria-haspopup="menu"
+              className="model-selector"
+              onClick={() => setModelMenuOpen((current) => !current)}
+              type="button"
+            >
+              {selectedModelId}
+              <ChevronDown
+                className={modelMenuOpen ? "open" : ""}
+                size={13}
+              />
+            </button>
+
+            {modelMenuOpen && (
+              <div aria-label="选择模型" className="model-menu" role="menu">
+                {modelOptions.map((model) => (
+                  <button
+                    aria-checked={model.id === selectedModelId}
+                    className={
+                      model.id === selectedModelId ? "selected" : ""
+                    }
+                    key={model.id}
+                    onClick={() => {
+                      selectModel(model.id);
+                      setModelMenuOpen(false);
+                    }}
+                    role="menuitemradio"
+                    type="button"
+                  >
+                    <span>{model.label}</span>
+                    {"imageUnderstanding" in model &&
+                      model.imageUnderstanding && (
+                        <span className="image-capability">图片理解</span>
+                      )}
+                    {model.id === selectedModelId && (
+                      <Check
+                        className="model-selected-check"
+                        size={17}
+                        strokeWidth={2.4}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {running ? (
+            <button
+              aria-label="停止生成"
+              className="composer-send"
+              onClick={onStop}
+              type="button"
+            >
+              <Square fill="currentColor" size={12} />
+            </button>
+          ) : (
+            <button
+              aria-label="发送"
+              className="composer-send"
+              disabled={!input.trim()}
+              type="submit"
+            >
+              <ArrowUp size={19} strokeWidth={1.9} />
+            </button>
+          )}
+        </div>
       </div>
     </form>
   );

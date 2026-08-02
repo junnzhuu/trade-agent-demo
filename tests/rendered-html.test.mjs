@@ -23,6 +23,10 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /ExpertSkillWorkspace/);
   assert.match(page, /AutomationWorkspace/);
   assert.match(page, /今天帮你做些什么？@ 召唤专家，\/ 调用技能/);
+  assert.match(page, /qwen3\.7-plus/);
+  assert.match(page, /doubao-seed-2-0-lite/);
+  assert.match(page, /图片理解/);
+  assert.match(page, /ArrowUp/);
   assert.match(css, /\.expert-grid/);
   assert.match(css, /\.skill-grid/);
   assert.match(css, /prefers-reduced-motion/);

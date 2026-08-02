@@ -352,7 +352,7 @@ button:disabled {
 
 .minimal-composer {
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid #e4e4e4;
   border-radius: 19px;
   background: white;
@@ -422,13 +422,95 @@ button:disabled {
   color: #222222;
 }
 
-.composer-left-actions .model-selector {
-  margin-left: 17px;
+.composer-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.model-control {
+  position: relative;
+}
+
+.model-selector {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
   color: #707070;
+  font-size: 13px;
+}
+
+.model-selector:hover,
+.model-selector[aria-expanded="true"] {
+  background: #f2f2f2;
+  color: #222222;
 }
 
 .model-selector svg {
-  display: none;
+  transition: transform 140ms ease;
+}
+
+.model-selector svg.open {
+  transform: rotate(180deg);
+}
+
+.model-menu {
+  position: absolute;
+  z-index: 50;
+  right: 0;
+  bottom: 43px;
+  display: grid;
+  width: min(320px, calc(100vw - 40px));
+  max-height: min(440px, calc(100dvh - 90px));
+  gap: 2px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid #e4e4e4;
+  border-radius: 15px;
+  background: white;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
+}
+
+.model-menu > button {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 38px 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font-size: 16px;
+  text-align: left;
+}
+
+.model-menu > button:hover,
+.model-menu > button:focus-visible,
+.model-menu > button.selected {
+  background: #f3f3f3;
+}
+
+.image-capability {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border: 1px solid #bdbdbd;
+  border-radius: 4px;
+  color: #555555;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.model-selected-check {
+  position: absolute;
+  right: 13px;
+  color: #202020;
 }
 
 .composer-send {
@@ -1053,10 +1135,6 @@ button:disabled {
     padding: 0 6px;
   }
 
-  .composer-left-actions .model-selector {
-    margin-left: 2px;
-  }
-
   .chat-scroll {
     padding: 72px 14px 180px;
   }
@@ -1171,10 +1249,13 @@ button:disabled {
     justify-content: center;
   }
 
-  .composer-left-actions .model-selector {
-    width: auto;
-    margin-left: 4px;
-    padding: 0 7px;
+  .model-selector {
+    padding: 0 6px;
+  }
+
+  .model-menu {
+    right: -40px;
+    width: min(320px, calc(100vw - 24px));
   }
 
   .empty-state h1 {
