@@ -24,6 +24,18 @@ test("returns all tasks for a blank query and none for no match", () => {
   assert.deepEqual(filterRecentTasks(initialRecentTasks, "不存在的任务"), []);
 });
 
+test("excludes archived tasks from blank and matched searches", () => {
+  const archivedTasks = initialRecentTasks.map((task, index) =>
+    index === 0 ? { ...task, archived: true } : task,
+  );
+
+  assert.deepEqual(
+    filterRecentTasks(archivedTasks, "").map((task) => task.id),
+    ["preset-feishu-title"],
+  );
+  assert.deepEqual(filterRecentTasks(archivedTasks, "出价"), []);
+});
+
 test("prepends a completed task and replaces a duplicate id", () => {
   const task: RecentTask = {
     id: "preset-bid-limits",
@@ -47,5 +59,8 @@ test("formats relative task time without calendar noise", () => {
   assert.equal(formatRelativeTaskTime(now - 20_000, now), "刚刚");
   assert.equal(formatRelativeTaskTime(now - 12 * 60_000, now), "12分钟前");
   assert.equal(formatRelativeTaskTime(now - 3 * 60 * 60_000, now), "3小时前");
-  assert.equal(formatRelativeTaskTime(now - 4 * 24 * 60 * 60_000, now), "4天前");
+  assert.equal(
+    formatRelativeTaskTime(now - 4 * 24 * 60 * 60_000, now),
+    "4天前",
+  );
 });

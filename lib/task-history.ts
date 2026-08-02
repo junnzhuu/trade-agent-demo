@@ -21,6 +21,8 @@ export type RecentTask = {
   icon: "folder" | "project";
   messages: TaskMessage[];
   updatedAt: number;
+  pinned?: boolean;
+  archived?: boolean;
   status?: "running" | "completed";
 };
 
@@ -74,12 +76,11 @@ export function filterRecentTasks(
   rawQuery: string,
 ): RecentTask[] {
   const query = rawQuery.trim().toLocaleLowerCase("zh-CN");
-  if (!query) return tasks;
+  const visibleTasks = tasks.filter((task) => !task.archived);
+  if (!query) return visibleTasks;
 
-  return tasks.filter((task) =>
-    `${task.title} ${task.metadata}`
-      .toLocaleLowerCase("zh-CN")
-      .includes(query),
+  return visibleTasks.filter((task) =>
+    `${task.title} ${task.metadata}`.toLocaleLowerCase("zh-CN").includes(query),
   );
 }
 
@@ -92,29 +93,23 @@ export function prependRecentTask(
 
 export function createTaskTitle(prompt: string, maxLength = 28): string {
   const title = prompt.replace(/\s+/g, " ").trim() || "新建交易任务";
-  return title.length > maxLength
-    ? `${title.slice(0, maxLength)}…`
-    : title;
+  return title.length > maxLength ? `${title.slice(0, maxLength)}…` : title;
 }
 
 export function formatTaskTimestamp(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, "0");
-  return [
-    date.getFullYear(),
-    pad(date.getMonth() + 1),
-    pad(date.getDate()),
-  ].join("-") +
-    ` ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return (
+    [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join(
+      "-",
+    ) + ` ${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
 }
 
 export function formatRelativeTaskTime(
   updatedAt: number,
   now = Date.now(),
 ): string {
-  const elapsedMinutes = Math.max(
-    0,
-    Math.floor((now - updatedAt) / 60_000),
-  );
+  const elapsedMinutes = Math.max(0, Math.floor((now - updatedAt) / 60_000));
   if (elapsedMinutes < 1) return "刚刚";
   if (elapsedMinutes < 60) return `${elapsedMinutes}分钟前`;
 

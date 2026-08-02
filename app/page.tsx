@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowUp,
   ArrowDownUp,
+  Archive,
   Check,
   ChevronDown,
   ChevronRight,
@@ -14,6 +15,8 @@ import {
   LoaderCircle,
   PanelLeftClose,
   PanelLeftOpen,
+  Pencil,
+  Pin,
   Plus,
   RotateCcw,
   Search,
@@ -60,8 +63,7 @@ const agentCapabilities = [
   "项目管理 Agent",
 ];
 
-const composerPlaceholder =
-  "今天帮你做些什么？@ 召唤专家，/ 调用技能";
+const composerPlaceholder = "今天帮你做些什么？@ 召唤专家，/ 调用技能";
 
 const modelOptions = [
   { id: "glm-5", label: "glm-5" },
@@ -121,8 +123,7 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [planMode, setPlanMode] = useState(false);
-  const [selectedModelId, setSelectedModelId] =
-    useState<ModelId>("glm-5");
+  const [selectedModelId, setSelectedModelId] = useState<ModelId>("glm-5");
   const [messages, setMessages] = useState<TaskMessage[]>([]);
   const [recentTasks, setRecentTasks] =
     useState<RecentTask[]>(initialRecentTasks);
@@ -134,9 +135,16 @@ export default function Home() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [relativeTimeNow, setRelativeTimeNow] = useState(() => Date.now());
   const [feedbackTargetId, setFeedbackTargetId] = useState<string | null>(null);
-  const [selectedFeedbackReasons, setSelectedFeedbackReasons] = useState<string[]>([]);
+  const [selectedFeedbackReasons, setSelectedFeedbackReasons] = useState<
+    string[]
+  >([]);
   const [feedbackDetail, setFeedbackDetail] = useState("");
   const [feedbackNotice, setFeedbackNotice] = useState("");
+  const [pinnedExpanded, setPinnedExpanded] = useState(true);
+  const [recentExpanded, setRecentExpanded] = useState(true);
+  const [taskMenuId, setTaskMenuId] = useState<string | null>(null);
+  const [renamingTaskId, setRenamingTaskId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const runTokenRef = useRef(0);
   const runStartedAtRef = useRef(0);
@@ -149,6 +157,35 @@ export default function Home() {
     () => filterRecentTasks(recentTasks, searchQuery),
     [recentTasks, searchQuery],
   );
+  const pinnedTasks = useMemo(
+    () => recentTasks.filter((task) => task.pinned && !task.archived),
+    [recentTasks],
+  );
+  const unpinnedTasks = useMemo(
+    () => recentTasks.filter((task) => !task.pinned && !task.archived),
+    [recentTasks],
+  );
+
+  useEffect(() => {
+    if (!taskMenuId) return;
+    const closeTaskMenu = (event: PointerEvent) => {
+      if (
+        event.target instanceof Element &&
+        !event.target.closest(".recent-task-row")
+      ) {
+        setTaskMenuId(null);
+      }
+    };
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setTaskMenuId(null);
+    };
+    document.addEventListener("pointerdown", closeTaskMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeTaskMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [taskMenuId]);
 
   const closeSearch = useCallback(() => {
     setSearchOpen(false);
@@ -234,6 +271,7 @@ export default function Home() {
       const startedAt = performance.now();
       const taskTitle = currentTask?.title ?? createTaskTitle(prompt);
       const taskIcon = currentTask?.icon ?? "folder";
+      const taskPinned = currentTask?.pinned;
       const pendingAssistantMessage: TaskMessage = {
         id: assistantId,
         role: "assistant",
@@ -283,6 +321,7 @@ export default function Home() {
           icon: taskIcon,
           messages: pendingConversation,
           updatedAt: Date.now(),
+          pinned: taskPinned,
           status: "running",
         }),
       );
@@ -385,6 +424,7 @@ export default function Home() {
               icon: taskIcon,
               messages: completedConversation,
               updatedAt: completedAt.getTime(),
+              pinned: taskPinned,
               status: "completed",
             }),
           );
@@ -411,9 +451,7 @@ export default function Home() {
         setElapsedMs(finalElapsedMs);
         setMessages((current) =>
           current.map((message) =>
-            message.id === assistantId
-              ? failedAssistantMessage
-              : message,
+            message.id === assistantId ? failedAssistantMessage : message,
           ),
         );
         setRecentTasks((current) =>
@@ -428,6 +466,7 @@ export default function Home() {
               failedAssistantMessage,
             ],
             updatedAt: Date.now(),
+            pinned: taskPinned,
           }),
         );
       } finally {
@@ -471,9 +510,7 @@ export default function Home() {
     requestAnimationFrame(() => feedbackCloseRef.current?.focus());
   }, []);
 
-  const handleFeedbackKeyDown = (
-    event: KeyboardEvent<HTMLElement>,
-  ) => {
+  const handleFeedbackKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
       closeFeedback();
@@ -535,6 +572,40 @@ export default function Home() {
     [activeTaskId, closeSearch, running],
   );
 
+  const commitTaskRename = (taskId: string) => {
+    const title = renameValue.trim();
+    if (title) {
+      setRecentTasks((current) =>
+        current.map((task) => (task.id === taskId ? { ...task, title } : task)),
+      );
+    }
+    setRenamingTaskId(null);
+    setRenameValue("");
+  };
+
+  const toggleTaskPin = (taskId: string) => {
+    setRecentTasks((current) =>
+      current.map((task) =>
+        task.id === taskId ? { ...task, pinned: !task.pinned } : task,
+      ),
+    );
+    setTaskMenuId(null);
+  };
+
+  const archiveTask = (taskId: string) => {
+    setRecentTasks((current) =>
+      current.map((task) =>
+        task.id === taskId ? { ...task, archived: true, pinned: false } : task,
+      ),
+    );
+    setTaskMenuId(null);
+    if (activeTaskId === taskId) {
+      setMessages([]);
+      setActiveTaskId(null);
+      setActiveView("chat");
+    }
+  };
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     void sendPrompt(input);
@@ -547,9 +618,7 @@ export default function Home() {
     }
   };
 
-  const handleSearchKeyDown = (
-    event: KeyboardEvent<HTMLInputElement>,
-  ) => {
+  const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setActiveResultIndex((current) =>
@@ -566,9 +635,7 @@ export default function Home() {
     }
   };
 
-  const handleDialogKeyDown = (
-    event: KeyboardEvent<HTMLElement>,
-  ) => {
+  const handleDialogKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
       closeSearch();
@@ -595,12 +662,9 @@ export default function Home() {
   };
 
   return (
-    <main
-      className={`minimal-app ${sidebarOpen ? "" : "sidebar-collapsed"}`}
-    >
+    <main className={`minimal-app ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
       <span className="sr-only">
-        交易业务智能工作台，使用演示数据，支持{" "}
-        {agentCapabilities.join("、")}
+        交易业务智能工作台，使用演示数据，支持 {agentCapabilities.join("、")}
       </span>
 
       <aside
@@ -610,39 +674,46 @@ export default function Home() {
         }`}
       >
         <header className="sidebar-brand">
-          <span className="brand-mark" aria-hidden="true">
-            <Image alt="" height={23} src="./logo.svg" width={28} />
-          </span>
-          <strong>交易智能助手</strong>
-          <div className="sidebar-header-actions">
+          {sidebarOpen ? (
+            <>
+              <span className="brand-mark" aria-hidden="true">
+                <Image alt="" height={23} src="./logo.svg" width={28} />
+              </span>
+              <strong>交易智能助手</strong>
+              <div className="sidebar-header-actions">
+                <button
+                  aria-label="收起侧栏"
+                  className="sidebar-toggle"
+                  onClick={() => setSidebarOpen(false)}
+                  type="button"
+                >
+                  <PanelLeftClose size={18} strokeWidth={1.8} />
+                </button>
+                <button
+                  aria-label="搜索最近任务"
+                  className="sidebar-search-button"
+                  onClick={openSearch}
+                  ref={searchButtonRef}
+                  type="button"
+                >
+                  <Search size={18} strokeWidth={1.8} />
+                </button>
+              </div>
+            </>
+          ) : (
             <button
-              aria-label="收起侧栏"
-              className="sidebar-toggle"
-              onClick={() => {
-                setSidebarOpen(false);
-                setMobileSidebarOpen(false);
-              }}
+              aria-label="展开侧栏"
+              className="collapsed-sidebar-toggle"
+              onClick={() => setSidebarOpen(true)}
               type="button"
             >
-              <PanelLeftClose size={18} strokeWidth={1.8} />
+              <PanelLeftOpen size={19} strokeWidth={1.8} />
             </button>
-            <button
-              aria-label="搜索最近任务"
-              className="sidebar-search-button"
-              onClick={openSearch}
-              ref={searchButtonRef}
-              type="button"
-            >
-              <Search size={18} strokeWidth={1.8} />
-            </button>
-          </div>
+          )}
         </header>
 
         <nav aria-label="工作台导航" className="primary-sidebar-nav">
-          <button
-            onClick={startNewChat}
-            type="button"
-          >
+          <button aria-label="新建任务" onClick={startNewChat} type="button">
             <Plus size={19} strokeWidth={1.8} />
             <span>新建任务</span>
           </button>
@@ -672,57 +743,48 @@ export default function Home() {
           </button>
         </nav>
 
-        <section className="recent-section">
-          <h2>最近任务</h2>
-          <nav aria-label="最近任务">
-            {recentTasks.map((task) => {
-              const relativeTime = formatRelativeTaskTime(
-                task.updatedAt,
-                relativeTimeNow,
-              );
-              return (
-                <button
-                  aria-label={`${task.title}${
-                    task.status === "running"
-                      ? "，正在生成"
-                      : task.status === "completed"
-                        ? `，生成完成，${relativeTime}`
-                        : `，${relativeTime}`
-                  }`}
-                  aria-current={activeTaskId === task.id ? "page" : undefined}
-                  className={activeTaskId === task.id ? "current" : ""}
-                  key={task.id}
-                  onClick={() => openTask(task)}
-                  type="button"
-                >
-                  <span className="recent-task-title">{task.title}</span>
-                  <span className="recent-task-meta">
-                    {task.status === "running" ? (
-                      <LoaderCircle
-                        aria-hidden="true"
-                        className="recent-task-spinner"
-                        size={14}
-                        strokeWidth={1.8}
-                      />
-                    ) : (
-                      <>
-                        <time dateTime={new Date(task.updatedAt).toISOString()}>
-                          {relativeTime}
-                        </time>
-                        {task.status === "completed" ? (
-                          <span
-                            aria-hidden="true"
-                            className="recent-task-complete"
-                          />
-                        ) : null}
-                      </>
-                    )}
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
-        </section>
+        {pinnedTasks.length ? (
+          <SidebarTaskSection
+            title="置顶任务"
+            expanded={pinnedExpanded}
+            onToggle={() => setPinnedExpanded((value) => !value)}
+            tasks={pinnedTasks}
+            {...{
+              activeTaskId,
+              relativeTimeNow,
+              taskMenuId,
+              renamingTaskId,
+              renameValue,
+              openTask,
+              setTaskMenuId,
+              setRenamingTaskId,
+              setRenameValue,
+              commitTaskRename,
+              toggleTaskPin,
+              archiveTask,
+            }}
+          />
+        ) : null}
+        <SidebarTaskSection
+          title="最近任务"
+          expanded={recentExpanded}
+          onToggle={() => setRecentExpanded((value) => !value)}
+          tasks={unpinnedTasks}
+          {...{
+            activeTaskId,
+            relativeTimeNow,
+            taskMenuId,
+            renamingTaskId,
+            renameValue,
+            openTask,
+            setTaskMenuId,
+            setRenamingTaskId,
+            setRenameValue,
+            commitTaskRename,
+            toggleTaskPin,
+            archiveTask,
+          }}
+        />
 
         <button className="account-menu" type="button">
           <span className="account-avatar" aria-hidden="true">
@@ -1054,6 +1116,167 @@ function AutomationWorkspace() {
   );
 }
 
+function SidebarTaskSection({
+  title,
+  expanded,
+  onToggle,
+  tasks,
+  activeTaskId,
+  relativeTimeNow,
+  taskMenuId,
+  renamingTaskId,
+  renameValue,
+  openTask,
+  setTaskMenuId,
+  setRenamingTaskId,
+  setRenameValue,
+  commitTaskRename,
+  toggleTaskPin,
+  archiveTask,
+}: {
+  title: string;
+  expanded: boolean;
+  onToggle: () => void;
+  tasks: RecentTask[];
+  activeTaskId: string | null;
+  relativeTimeNow: number;
+  taskMenuId: string | null;
+  renamingTaskId: string | null;
+  renameValue: string;
+  openTask: (task: RecentTask) => void;
+  setTaskMenuId: (id: string | null) => void;
+  setRenamingTaskId: (id: string | null) => void;
+  setRenameValue: (value: string) => void;
+  commitTaskRename: (id: string) => void;
+  toggleTaskPin: (id: string) => void;
+  archiveTask: (id: string) => void;
+}) {
+  return (
+    <section
+      className={`recent-section ${title === "置顶任务" ? "pinned-section" : ""}`}
+    >
+      <button
+        aria-expanded={expanded}
+        className="task-section-toggle"
+        onClick={onToggle}
+        type="button"
+      >
+        <span>
+          {title}
+          {title === "置顶任务" ? ` (${tasks.length})` : ""}
+        </span>
+        <ChevronDown className={expanded ? "open" : ""} size={15} />
+      </button>
+      {expanded ? (
+        <nav aria-label={title}>
+          {tasks.map((task) => {
+            const relativeTime = formatRelativeTaskTime(
+              task.updatedAt,
+              relativeTimeNow,
+            );
+            return (
+              <div className="recent-task-row" key={task.id}>
+                {renamingTaskId === task.id ? (
+                  <input
+                    aria-label="编辑任务名称"
+                    autoFocus
+                    className="task-rename-input"
+                    onBlur={() => commitTaskRename(task.id)}
+                    onChange={(event) => setRenameValue(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") commitTaskRename(task.id);
+                      if (event.key === "Escape") setRenamingTaskId(null);
+                    }}
+                    value={renameValue}
+                  />
+                ) : (
+                  <button
+                    aria-current={activeTaskId === task.id ? "page" : undefined}
+                    className={`task-open-button ${activeTaskId === task.id ? "current" : ""}`}
+                    onClick={() => openTask(task)}
+                    type="button"
+                  >
+                    <span className="recent-task-title">{task.title}</span>
+                    <span className="recent-task-meta">
+                      {task.status === "running" ? (
+                        <LoaderCircle
+                          aria-hidden="true"
+                          className="recent-task-spinner"
+                          size={14}
+                        />
+                      ) : (
+                        <>
+                          <time
+                            dateTime={new Date(task.updatedAt).toISOString()}
+                          >
+                            {relativeTime}
+                          </time>
+                          {task.status === "completed" ? (
+                            <span
+                              aria-label="已完成"
+                              className="recent-task-complete"
+                            />
+                          ) : null}
+                        </>
+                      )}
+                    </span>
+                  </button>
+                )}
+                <button
+                  aria-label={`管理任务：${task.title}`}
+                  className="task-more-button"
+                  onClick={() =>
+                    setTaskMenuId(taskMenuId === task.id ? null : task.id)
+                  }
+                  type="button"
+                >
+                  <Ellipsis size={17} />
+                </button>
+                {taskMenuId === task.id ? (
+                  <div
+                    aria-label="任务操作"
+                    className="task-context-menu"
+                    role="menu"
+                  >
+                    <button
+                      onClick={() => {
+                        setRenamingTaskId(task.id);
+                        setRenameValue(task.title);
+                        setTaskMenuId(null);
+                      }}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <Pencil size={16} />
+                      重命名
+                    </button>
+                    <button
+                      onClick={() => toggleTaskPin(task.id)}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <Pin size={16} />
+                      {task.pinned ? "取消置顶" : "置顶"}
+                    </button>
+                    <button
+                      onClick={() => archiveTask(task.id)}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <Archive size={16} />
+                      归档
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </nav>
+      ) : null}
+    </section>
+  );
+}
+
 function formatElapsedTime(elapsedMs: number) {
   const minutes = Math.floor(elapsedMs / 60_000);
   const seconds = Math.floor((elapsedMs % 60_000) / 1_000);
@@ -1155,7 +1378,11 @@ function AnswerActions({
 
   return (
     <div aria-label="回答操作" className="answer-actions" role="toolbar">
-      <button aria-label={copied ? "已复制" : "复制回答"} onClick={() => void copyAnswer()} type="button">
+      <button
+        aria-label={copied ? "已复制" : "复制回答"}
+        onClick={() => void copyAnswer()}
+        type="button"
+      >
         {copied ? <Check size={17} /> : <Copy size={17} />}
       </button>
       <button
@@ -1191,7 +1418,11 @@ function AnswerActions({
       >
         <RotateCcw size={17} />
       </button>
-      <button aria-label="分享回答" onClick={() => void shareAnswer()} type="button">
+      <button
+        aria-label="分享回答"
+        onClick={() => void shareAnswer()}
+        type="button"
+      >
         <Share2 size={17} />
       </button>
       <button aria-label="更多操作" type="button">
@@ -1233,9 +1464,7 @@ function Composer({
   toggleThinking: () => void;
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [addMenuView, setAddMenuView] = useState<"main" | "mode">(
-    "main",
-  );
+  const [addMenuView, setAddMenuView] = useState<"main" | "mode">("main");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const addControlRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -1246,17 +1475,11 @@ function Composer({
 
     const closeOnOutsidePress = (event: PointerEvent) => {
       if (event.target instanceof Node) {
-        if (
-          addMenuOpen &&
-          !addControlRef.current?.contains(event.target)
-        ) {
+        if (addMenuOpen && !addControlRef.current?.contains(event.target)) {
           setAddMenuOpen(false);
           setAddMenuView("main");
         }
-        if (
-          modelMenuOpen &&
-          !modelControlRef.current?.contains(event.target)
-        ) {
+        if (modelMenuOpen && !modelControlRef.current?.contains(event.target)) {
           setModelMenuOpen(false);
         }
       }
@@ -1420,10 +1643,7 @@ function Composer({
               type="button"
             >
               {selectedModelId}
-              <ChevronDown
-                className={modelMenuOpen ? "open" : ""}
-                size={13}
-              />
+              <ChevronDown className={modelMenuOpen ? "open" : ""} size={13} />
             </button>
 
             {modelMenuOpen && (
@@ -1431,9 +1651,7 @@ function Composer({
                 {modelOptions.map((model) => (
                   <button
                     aria-checked={model.id === selectedModelId}
-                    className={
-                      model.id === selectedModelId ? "selected" : ""
-                    }
+                    className={model.id === selectedModelId ? "selected" : ""}
                     key={model.id}
                     onClick={() => {
                       selectModel(model.id);

@@ -3,14 +3,18 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 test("ships the trading agent workspace instead of the starter preview", async () => {
-  const [page, layout, css, packageJson, nextConfig, workflow] = await Promise.all([
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-    readFile(new URL("../package.json", import.meta.url), "utf8"),
-    readFile(new URL("../next.config.ts", import.meta.url), "utf8"),
-    readFile(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8"),
-  ]);
+  const [page, layout, css, packageJson, nextConfig, workflow] =
+    await Promise.all([
+      readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+      readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+      readFile(new URL("../package.json", import.meta.url), "utf8"),
+      readFile(new URL("../next.config.ts", import.meta.url), "utf8"),
+      readFile(
+        new URL("../.github/workflows/deploy-pages.yml", import.meta.url),
+        "utf8",
+      ),
+    ]);
 
   assert.match(layout, /title: "交易 Agent｜多智能体业务工作台"/);
   assert.match(page, /交易业务智能工作台/);
@@ -52,7 +56,14 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /className="chat-avatar"/);
   assert.match(page, /生成回复中/);
   assert.match(page, /recent-task-spinner/);
+  assert.match(page, /置顶任务/);
+  assert.match(page, /重命名/);
+  assert.match(page, /归档/);
+  assert.match(page, /collapsed-sidebar-toggle/);
   assert.match(css, /\.recent-task-complete/);
+  assert.match(css, /\.task-context-menu/);
+  assert.match(css, /rgba\(184, 235, 250/);
+  assert.match(css, /\.primary-sidebar-nav button:first-child/);
   assert.match(css, /@keyframes generating-dot/);
   assert.match(css, /\.expert-grid/);
   assert.match(css, /\.skill-grid/);
