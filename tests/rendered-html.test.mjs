@@ -70,6 +70,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /recent-task-complete/);
   assert.doesNotMatch(css, /\.recent-task-complete/);
   assert.match(css, /\.recent-task-row:hover \.recent-task-meta/);
+  assert.doesNotMatch(css, /padding-right: 35px/);
   assert.match(css, /background: transparent !important/);
   assert.match(css, /\.main-background/);
   assert.match(css, /background: rgba\(218, 220, 224, 0\.56\)/);
