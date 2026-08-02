@@ -10,7 +10,6 @@ import {
   FilePlus2,
   Folder,
   LoaderCircle,
-  MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
@@ -526,9 +525,9 @@ export default function Home() {
       >
         <header className="sidebar-brand">
           <span className="brand-mark" aria-hidden="true">
-            <MessageSquare size={18} strokeWidth={1.8} />
+            <span>Ai</span>
           </span>
-          <strong>交易 Agent</strong>
+          <strong>商家智能助手</strong>
           <div className="sidebar-header-actions">
             <button
               aria-label="收起侧栏"

@@ -14,6 +14,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
 
   assert.match(layout, /title: "交易 Agent｜多智能体业务工作台"/);
   assert.match(page, /交易业务智能工作台/);
+  assert.match(page, /商家智能助手/);
   assert.match(page, /日常运营 Agent/);
   assert.match(page, /营销活动 Agent/);
   assert.match(page, /演示数据/);
@@ -45,6 +46,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /@keyframes generating-dot/);
   assert.match(css, /\.expert-grid/);
   assert.match(css, /\.skill-grid/);
+  assert.match(css, /linear-gradient\(145deg, #73aee8/);
   assert.match(css, /prefers-reduced-motion/);
   assert.match(nextConfig, /output: "export"/);
   assert.match(workflow, /actions\/deploy-pages@v4/);
