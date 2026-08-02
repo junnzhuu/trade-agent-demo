@@ -1296,31 +1296,42 @@ function AssistantExecution({
       aria-label="Agent 执行过程"
       className={`assistant-execution ${message.pending ? "running" : "completed"}`}
     >
-      <div className="execution-duration">
-        <span aria-hidden="true" className="execution-duration-mark" />
-        <span>已处理</span>
-        <time>{formatElapsedTime(elapsedMs)}</time>
-      </div>
+      <details
+        className="execution-details"
+        open={message.pending || undefined}
+      >
+        <summary aria-label="展开或折叠思考过程" className="execution-duration">
+          <span aria-hidden="true" className="execution-duration-mark" />
+          <span>已处理</span>
+          <time>{formatElapsedTime(elapsedMs)}</time>
+          <ChevronRight
+            aria-hidden="true"
+            className="execution-chevron"
+            size={14}
+            strokeWidth={1.8}
+          />
+        </summary>
 
-      {message.trace?.length ? (
-        <ol aria-label="思考与 Skill 调用步骤" className="execution-trace">
-          {message.trace.map((step) => (
-            <li className={step.status} key={step.id}>
-              <span aria-hidden="true" className="trace-node">
-                {step.status === "running" ? (
-                  <LoaderCircle size={13} strokeWidth={1.9} />
-                ) : (
-                  <Check size={12} strokeWidth={2} />
-                )}
-              </span>
-              <div>
-                <strong>{step.title}</strong>
-                <p>{step.detail}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      ) : null}
+        {message.trace?.length ? (
+          <ol aria-label="思考与 Skill 调用步骤" className="execution-trace">
+            {message.trace.map((step) => (
+              <li className={step.status} key={step.id}>
+                <span aria-hidden="true" className="trace-node">
+                  {step.status === "running" ? (
+                    <LoaderCircle size={13} strokeWidth={1.9} />
+                  ) : (
+                    <Check size={12} strokeWidth={2} />
+                  )}
+                </span>
+                <div>
+                  <strong>{step.title}</strong>
+                  <p>{step.detail}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        ) : null}
+      </details>
 
       {message.content ? (
         <div className="assistant-final-answer">

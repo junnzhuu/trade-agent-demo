@@ -938,6 +938,22 @@ button:disabled {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.execution-duration::-webkit-details-marker {
+  display: none;
+}
+
+.execution-chevron {
+  margin-left: 2px;
+  transition: transform 140ms ease;
+}
+
+.execution-details[open] .execution-chevron {
+  transform: rotate(90deg);
 }
 
 .execution-duration-mark {

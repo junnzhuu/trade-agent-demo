@@ -45,6 +45,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /BrainCircuit/);
   assert.match(page, /已处理/);
   assert.match(page, /思考与 Skill 调用步骤/);
+  assert.match(page, /execution-details/);
+  assert.match(page, /open=\{message\.pending \|\| undefined\}/);
+  assert.match(page, /展开或折叠思考过程/);
   assert.match(page, /深度分析并核验结论/);
   assert.match(page, /formatRelativeTaskTime/);
   assert.match(page, /Agent 回复/);
@@ -78,6 +81,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.task-context-menu/);
   assert.match(css, /\.primary-sidebar-nav button:first-child/);
   assert.match(css, /@keyframes generating-dot/);
+  assert.match(css, /\.execution-details\[open\] \.execution-chevron/);
   assert.match(css, /\.expert-grid/);
   assert.match(css, /\.skill-grid/);
   assert.match(css, /\.brand-mark img/);
