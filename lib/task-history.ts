@@ -24,7 +24,21 @@ export type RecentTask = {
   pinned?: boolean;
   archived?: boolean;
   status?: "running" | "completed";
+  startedAt?: number;
+  unreadCompletion?: boolean;
 };
+
+export type TaskActivityIndicator = "spinner" | "attention" | "time";
+
+export function getTaskActivityIndicator(
+  task: RecentTask,
+  isViewing: boolean,
+): TaskActivityIndicator {
+  if (task.status === "running") {
+    return isViewing ? "spinner" : "attention";
+  }
+  return task.unreadCompletion && !isViewing ? "attention" : "time";
+}
 
 const initialTaskTime = Date.now();
 

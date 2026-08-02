@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   filterRecentTasks,
   formatRelativeTaskTime,
+  getTaskActivityIndicator,
   initialRecentTasks,
   prependRecentTask,
   type RecentTask,
@@ -16,6 +17,29 @@ test("filters recent tasks by title and metadata", () => {
   assert.deepEqual(
     filterRecentTasks(initialRecentTasks, "新手指引").map((task) => task.id),
     ["preset-feishu-title"],
+  );
+});
+
+test("derives sidebar activity from task status and current view", () => {
+  const task: RecentTask = {
+    ...initialRecentTasks[0],
+    status: "running",
+  };
+  assert.equal(getTaskActivityIndicator(task, true), "spinner");
+  assert.equal(getTaskActivityIndicator(task, false), "attention");
+  assert.equal(
+    getTaskActivityIndicator(
+      { ...task, status: "completed", unreadCompletion: true },
+      false,
+    ),
+    "attention",
+  );
+  assert.equal(
+    getTaskActivityIndicator(
+      { ...task, status: "completed", unreadCompletion: false },
+      false,
+    ),
+    "time",
   );
 });
 

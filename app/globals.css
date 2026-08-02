@@ -442,6 +442,14 @@ button:disabled {
   animation: task-spin 850ms linear infinite;
 }
 
+.recent-task-attention {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #01c1c2;
+}
+
 .recent-section nav button.current {
   background: #e9e9e9;
   font-weight: 560;

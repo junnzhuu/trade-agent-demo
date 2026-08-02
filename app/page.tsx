@@ -45,12 +45,14 @@ import {
   filterRecentTasks,
   formatRelativeTaskTime,
   formatTaskTimestamp,
+  getTaskActivityIndicator,
   initialRecentTasks,
   prependRecentTask,
   type RecentTask,
   type TaskMessage,
   type TaskTraceStep,
 } from "@/lib/task-history";
+import { ConcurrentTaskScheduler } from "@/lib/task-scheduler";
 
 // 后续功能扩展会从这五类能力进入；首页先保持截图中的极简状态。
 const agentCapabilities = [
@@ -87,6 +89,14 @@ type ModelId = (typeof modelOptions)[number]["id"];
 
 type WorkspaceView = "chat" | "experts" | "automation";
 
+type DemoRunJob = {
+  taskId: string;
+  prompt: string;
+  assistantId: string;
+  startedAt: number;
+  controller: AbortController;
+};
+
 const createId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -97,6 +107,8 @@ function stopTaskSnapshot(task: RecentTask): RecentTask {
     ...task,
     metadata: "已停止",
     status: undefined,
+    startedAt: undefined,
+    unreadCompletion: false,
     updatedAt: Date.now(),
     messages: task.messages.map((message) =>
       message.pending
@@ -122,15 +134,13 @@ export default function Home() {
   const [thinking, setThinking] = useState(false);
   const [planMode, setPlanMode] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState<ModelId>("glm-5");
-  const [messages, setMessages] = useState<TaskMessage[]>([]);
   const [recentTasks, setRecentTasks] =
     useState<RecentTask[]>(initialRecentTasks);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeResultIndex, setActiveResultIndex] = useState(0);
-  const [running, setRunning] = useState(false);
-  const [elapsedMs, setElapsedMs] = useState(0);
+  const [elapsedNow, setElapsedNow] = useState(() => Date.now());
   const [relativeTimeNow, setRelativeTimeNow] = useState(() => Date.now());
   const [feedbackTargetId, setFeedbackTargetId] = useState<string | null>(null);
   const [selectedFeedbackReasons, setSelectedFeedbackReasons] = useState<
@@ -143,9 +153,10 @@ export default function Home() {
   const [taskMenuId, setTaskMenuId] = useState<string | null>(null);
   const [renamingTaskId, setRenamingTaskId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const abortRef = useRef<AbortController | null>(null);
-  const runTokenRef = useRef(0);
-  const runStartedAtRef = useRef(0);
+  const activeTaskIdRef = useRef<string | null>(null);
+  const activeViewRef = useRef<WorkspaceView>("chat");
+  const mountedRef = useRef(true);
+  const [scheduler] = useState(() => new ConcurrentTaskScheduler(3));
   const scrollEndRef = useRef<HTMLDivElement | null>(null);
   const searchButtonRef = useRef<HTMLButtonElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -163,6 +174,16 @@ export default function Home() {
     () => recentTasks.filter((task) => !task.pinned && !task.archived),
     [recentTasks],
   );
+  const activeTask = useMemo(
+    () => recentTasks.find((task) => task.id === activeTaskId),
+    [activeTaskId, recentTasks],
+  );
+  const messages = useMemo(() => activeTask?.messages ?? [], [activeTask]);
+  const running = activeTask?.status === "running";
+  const elapsedMs = running
+    ? Math.max(0, elapsedNow - (activeTask.startedAt ?? elapsedNow))
+    : 0;
+  const hasRunningTasks = recentTasks.some((task) => task.status === "running");
 
   useEffect(() => {
     if (!taskMenuId) return;
@@ -201,22 +222,21 @@ export default function Home() {
   }, []);
 
   const startNewChat = useCallback(() => {
-    if (running && activeTaskId) {
-      setRecentTasks((current) =>
-        current.map((task) =>
-          task.id === activeTaskId ? stopTaskSnapshot(task) : task,
-        ),
-      );
-    }
-    runTokenRef.current += 1;
-    abortRef.current?.abort();
-    setMessages([]);
     setInput("");
-    setRunning(false);
+    activeTaskIdRef.current = null;
+    activeViewRef.current = "chat";
     setActiveTaskId(null);
     setActiveView("chat");
     setMobileSidebarOpen(false);
-  }, [activeTaskId, running]);
+  }, []);
+
+  useEffect(() => {
+    activeTaskIdRef.current = activeTaskId;
+  }, [activeTaskId]);
+
+  useEffect(() => {
+    activeViewRef.current = activeView;
+  }, [activeView]);
 
   useEffect(() => {
     scrollEndRef.current?.scrollIntoView({
@@ -226,14 +246,12 @@ export default function Home() {
   }, [messages, running]);
 
   useEffect(() => {
-    if (!running) return;
-    const updateElapsed = () => {
-      setElapsedMs(performance.now() - runStartedAtRef.current);
-    };
+    if (!hasRunningTasks) return;
+    const updateElapsed = () => setElapsedNow(Date.now());
     updateElapsed();
-    const timer = window.setInterval(updateElapsed, 100);
+    const timer = window.setInterval(updateElapsed, 250);
     return () => window.clearInterval(timer);
-  }, [running]);
+  }, [hasRunningTasks]);
 
   useEffect(() => {
     const timer = window.setInterval(
@@ -243,39 +261,43 @@ export default function Home() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const sendPrompt = useCallback(
-    async (rawPrompt: string, baseMessagesOverride?: TaskMessage[]) => {
-      const prompt = rawPrompt.trim();
-      if (!prompt || running) return;
+  const updateTask = useCallback(
+    (
+      taskId: string,
+      updater: (task: RecentTask) => RecentTask,
+      promote = false,
+    ) => {
+      if (!mountedRef.current) return;
+      setRecentTasks((current) => {
+        const task = current.find((item) => item.id === taskId);
+        if (!task) return current;
+        const updatedTask = updater(task);
+        return promote
+          ? prependRecentTask(current, updatedTask)
+          : current.map((item) => (item.id === taskId ? updatedTask : item));
+      });
+    },
+    [],
+  );
 
-      const currentTask = activeTaskId
-        ? recentTasks.find((task) => task.id === activeTaskId)
-        : undefined;
-      const conversationMessages =
-        baseMessagesOverride ?? (activeTaskId ? messages : []);
-      const taskId = activeTaskId ?? createId();
-      const assistantId = createId();
-      const userMessage: TaskMessage = {
-        id: createId(),
-        role: "user",
-        content: prompt,
-      };
-      const runToken = runTokenRef.current + 1;
-      runTokenRef.current = runToken;
+  const executeRunJob = useCallback(
+    async (job: DemoRunJob) => {
+      const { taskId, prompt, assistantId, controller } = job;
       let assistantText = "";
       let assistantTrace: TaskTraceStep[] = [];
       let generationStarted = false;
       let traceSequence = 0;
-      const startedAt = performance.now();
-      const taskTitle = currentTask?.title ?? createTaskTitle(prompt);
-      const taskIcon = currentTask?.icon ?? "folder";
-      const taskPinned = currentTask?.pinned;
-      const pendingAssistantMessage: TaskMessage = {
-        id: assistantId,
-        role: "assistant",
-        content: "",
-        pending: true,
-        trace: [],
+      const startedAt = job.startedAt;
+
+      const updateAssistant = (
+        updater: (message: TaskMessage) => TaskMessage,
+      ) => {
+        updateTask(taskId, (task) => ({
+          ...task,
+          messages: task.messages.map((message) =>
+            message.id === assistantId ? updater(message) : message,
+          ),
+        }));
       };
 
       const appendTrace = (title: string, detail: string) => {
@@ -291,49 +313,15 @@ export default function Home() {
             status: "running",
           },
         ];
-        setMessages((current) =>
-          current.map((message) =>
-            message.id === assistantId
-              ? { ...message, trace: assistantTrace }
-              : message,
-          ),
-        );
+        updateAssistant((message) => ({ ...message, trace: assistantTrace }));
       };
-
-      const pendingConversation = [
-        ...conversationMessages,
-        userMessage,
-        pendingAssistantMessage,
-      ];
-      setMessages(pendingConversation);
-      setInput("");
-      setElapsedMs(0);
-      runStartedAtRef.current = startedAt;
-      setRunning(true);
-      setActiveTaskId(taskId);
-      setRecentTasks((current) =>
-        prependRecentTask(current, {
-          id: taskId,
-          title: taskTitle,
-          metadata: "处理中",
-          icon: taskIcon,
-          messages: pendingConversation,
-          updatedAt: Date.now(),
-          pinned: taskPinned,
-          status: "running",
-        }),
-      );
-
-      const controller = new AbortController();
-      abortRef.current = controller;
 
       try {
         await runDemoScenario({
           prompt,
           signal: controller.signal,
           onEvent: ({ name, data }) => {
-            if (runTokenRef.current !== runToken) return;
-
+            if (controller.signal.aborted) return;
             if (name === "run.started") {
               appendTrace(
                 "理解问题并规划执行路径",
@@ -379,102 +367,168 @@ export default function Home() {
               }
               const delta = String(data.delta ?? "");
               assistantText += delta;
-              setMessages((current) =>
-                current.map((message) =>
-                  message.id === assistantId
-                    ? {
-                        ...message,
-                        content: `${message.content}${delta}`,
-                      }
-                    : message,
-                ),
-              );
+              updateAssistant((message) => ({
+                ...message,
+                content: `${message.content}${delta}`,
+              }));
             }
           },
         });
 
-        if (runTokenRef.current === runToken && assistantText) {
-          const finalElapsedMs = performance.now() - startedAt;
-          const completedTrace = assistantTrace.map((step) => ({
-            ...step,
-            status: "completed" as const,
-          }));
-          const completedAssistantMessage: TaskMessage = {
-            id: assistantId,
-            role: "assistant",
-            content: assistantText,
-            elapsedMs: finalElapsedMs,
-            trace: completedTrace,
-          };
-          setElapsedMs(finalElapsedMs);
-          const completedConversation = [
-            ...conversationMessages,
-            userMessage,
-            completedAssistantMessage,
-          ];
-          setMessages(completedConversation);
-          const completedAt = new Date();
-          setRecentTasks((current) =>
-            prependRecentTask(current, {
-              id: taskId,
-              title: taskTitle,
-              metadata: formatTaskTimestamp(completedAt),
-              icon: taskIcon,
-              messages: completedConversation,
-              updatedAt: completedAt.getTime(),
-              pinned: taskPinned,
-              status: "completed",
-            }),
-          );
-        }
+        if (!assistantText) return;
+        const completedAt = new Date();
+        const finalElapsedMs = Date.now() - startedAt;
+        const isViewing =
+          activeViewRef.current === "chat" &&
+          activeTaskIdRef.current === taskId;
+        updateTask(
+          taskId,
+          (task) => ({
+            ...task,
+            metadata: formatTaskTimestamp(completedAt),
+            updatedAt: completedAt.getTime(),
+            status: "completed",
+            startedAt: undefined,
+            unreadCompletion: !isViewing,
+            messages: task.messages.map((message) =>
+              message.id === assistantId
+                ? {
+                    ...message,
+                    pending: false,
+                    content: assistantText,
+                    elapsedMs: finalElapsedMs,
+                    trace: assistantTrace.map((step) => ({
+                      ...step,
+                      status: "completed" as const,
+                    })),
+                  }
+                : message,
+            ),
+          }),
+          true,
+        );
       } catch (error) {
-        if (runTokenRef.current !== runToken) return;
         const stopped =
           error instanceof DOMException && error.name === "AbortError";
-        const failureText = stopped
-          ? "已停止生成。"
-          : "演示任务执行失败，请稍后重试。";
-        const finalElapsedMs = performance.now() - startedAt;
-        const failedAssistantMessage: TaskMessage = {
-          id: assistantId,
-          role: "assistant",
-          pending: false,
-          content: failureText,
-          elapsedMs: finalElapsedMs,
-          trace: assistantTrace.map((step) => ({
-            ...step,
-            status: "completed",
-          })),
-        };
-        setElapsedMs(finalElapsedMs);
-        setMessages((current) =>
-          current.map((message) =>
-            message.id === assistantId ? failedAssistantMessage : message,
-          ),
-        );
-        setRecentTasks((current) =>
-          prependRecentTask(current, {
-            id: taskId,
-            title: taskTitle,
+        const finalElapsedMs = Date.now() - startedAt;
+        const isViewing =
+          activeViewRef.current === "chat" &&
+          activeTaskIdRef.current === taskId;
+        updateTask(
+          taskId,
+          (task) => ({
+            ...task,
             metadata: stopped ? "已停止" : "执行失败",
-            icon: taskIcon,
-            messages: [
-              ...conversationMessages,
-              userMessage,
-              failedAssistantMessage,
-            ],
             updatedAt: Date.now(),
-            pinned: taskPinned,
+            status: stopped ? undefined : "completed",
+            startedAt: undefined,
+            unreadCompletion: stopped ? false : !isViewing,
+            messages: task.messages.map((message) =>
+              message.id === assistantId
+                ? {
+                    ...message,
+                    pending: false,
+                    content: stopped
+                      ? "已停止生成。"
+                      : "演示任务执行失败，请稍后重试。",
+                    elapsedMs: finalElapsedMs,
+                    trace: assistantTrace.map((step) => ({
+                      ...step,
+                      status: "completed" as const,
+                    })),
+                  }
+                : message,
+            ),
           }),
+          true,
         );
-      } finally {
-        if (runTokenRef.current === runToken) {
-          abortRef.current = null;
-          setRunning(false);
-        }
       }
     },
-    [activeTaskId, messages, recentTasks, running],
+    [updateTask],
+  );
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      scheduler.cancelAll();
+    };
+  }, [scheduler]);
+
+  const cancelTask = useCallback(
+    (taskId: string) => {
+      const result = scheduler.cancel(taskId);
+      if (!result) updateTask(taskId, stopTaskSnapshot);
+    },
+    [scheduler, updateTask],
+  );
+
+  const sendPrompt = useCallback(
+    (rawPrompt: string, baseMessagesOverride?: TaskMessage[]) => {
+      const prompt = rawPrompt.trim();
+      if (!prompt || running) return;
+
+      const currentTask = activeTask;
+      const conversationMessages =
+        baseMessagesOverride ?? currentTask?.messages ?? [];
+      const taskId = currentTask?.id ?? createId();
+      const assistantId = createId();
+      const userMessage: TaskMessage = {
+        id: createId(),
+        role: "user",
+        content: prompt,
+      };
+      const pendingAssistantMessage: TaskMessage = {
+        id: assistantId,
+        role: "assistant",
+        content: "",
+        pending: true,
+        trace: [],
+      };
+      const pendingConversation = [
+        ...conversationMessages,
+        userMessage,
+        pendingAssistantMessage,
+      ];
+      const submittedAt = Date.now();
+      const controller = new AbortController();
+
+      setInput("");
+      activeTaskIdRef.current = taskId;
+      activeViewRef.current = "chat";
+      setActiveTaskId(taskId);
+      setActiveView("chat");
+      setRecentTasks((current) =>
+        prependRecentTask(current, {
+          id: taskId,
+          title: currentTask?.title ?? createTaskTitle(prompt),
+          metadata: "处理中",
+          icon: currentTask?.icon ?? "folder",
+          messages: pendingConversation,
+          updatedAt: submittedAt,
+          pinned: currentTask?.pinned,
+          archived: false,
+          status: "running",
+          startedAt: submittedAt,
+          unreadCompletion: false,
+        }),
+      );
+
+      const job: DemoRunJob = {
+        taskId,
+        prompt,
+        assistantId,
+        startedAt: submittedAt,
+        controller,
+      };
+      scheduler.enqueue({
+        id: taskId,
+        cancel: () => controller.abort(),
+        execute: () => executeRunJob(job),
+        onQueuedCancel: () => updateTask(taskId, stopTaskSnapshot),
+      });
+    },
+    [activeTask, executeRunJob, running, scheduler, updateTask],
   );
 
   const regenerateMessage = useCallback(
@@ -490,7 +544,7 @@ export default function Home() {
       }
       const sourcePrompt = messages[userIndex]?.content;
       if (!sourcePrompt || userIndex < 0) return;
-      void sendPrompt(sourcePrompt, messages.slice(0, userIndex));
+      sendPrompt(sourcePrompt, messages.slice(0, userIndex));
     },
     [messages, running, sendPrompt],
   );
@@ -542,32 +596,19 @@ export default function Home() {
 
   const openTask = useCallback(
     (task: RecentTask) => {
-      if (running && activeTaskId === task.id) {
-        setMobileSidebarOpen(false);
-        closeSearch();
-        return;
-      }
-      if (running && activeTaskId) {
-        setRecentTasks((current) =>
-          current.map((currentTask) =>
-            currentTask.id === activeTaskId
-              ? stopTaskSnapshot(currentTask)
-              : currentTask,
-          ),
-        );
-      }
-      runTokenRef.current += 1;
-      abortRef.current?.abort();
-      abortRef.current = null;
-      setRunning(false);
-      setMessages(task.messages);
+      activeTaskIdRef.current = task.id;
+      activeViewRef.current = "chat";
       setActiveTaskId(task.id);
       setActiveView("chat");
+      updateTask(task.id, (currentTask) => ({
+        ...currentTask,
+        unreadCompletion: false,
+      }));
       setInput("");
       setMobileSidebarOpen(false);
       closeSearch();
     },
-    [activeTaskId, closeSearch, running],
+    [closeSearch, updateTask],
   );
 
   const commitTaskRename = (taskId: string) => {
@@ -591,14 +632,23 @@ export default function Home() {
   };
 
   const archiveTask = (taskId: string) => {
+    const taskToArchive = recentTasks.find((task) => task.id === taskId);
+    if (taskToArchive?.status === "running") cancelTask(taskId);
     setRecentTasks((current) =>
       current.map((task) =>
-        task.id === taskId ? { ...task, archived: true, pinned: false } : task,
+        task.id === taskId
+          ? {
+              ...(task.status === "running" ? stopTaskSnapshot(task) : task),
+              archived: true,
+              pinned: false,
+            }
+          : task,
       ),
     );
     setTaskMenuId(null);
     if (activeTaskId === taskId) {
-      setMessages([]);
+      activeTaskIdRef.current = null;
+      activeViewRef.current = "chat";
       setActiveTaskId(null);
       setActiveView("chat");
     }
@@ -606,13 +656,13 @@ export default function Home() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    void sendPrompt(input);
+    sendPrompt(input);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      void sendPrompt(input);
+      sendPrompt(input);
     }
   };
 
@@ -728,6 +778,7 @@ export default function Home() {
             aria-current={activeView === "experts" ? "page" : undefined}
             className={activeView === "experts" ? "active" : ""}
             onClick={() => {
+              activeViewRef.current = "experts";
               setActiveView("experts");
               setMobileSidebarOpen(false);
             }}
@@ -740,6 +791,7 @@ export default function Home() {
             aria-current={activeView === "automation" ? "page" : undefined}
             className={activeView === "automation" ? "active" : ""}
             onClick={() => {
+              activeViewRef.current = "automation";
               setActiveView("automation");
               setMobileSidebarOpen(false);
             }}
@@ -758,6 +810,7 @@ export default function Home() {
             tasks={pinnedTasks}
             {...{
               activeTaskId,
+              activeView,
               relativeTimeNow,
               taskMenuId,
               renamingTaskId,
@@ -779,6 +832,7 @@ export default function Home() {
           tasks={unpinnedTasks}
           {...{
             activeTaskId,
+            activeView,
             relativeTimeNow,
             taskMenuId,
             renamingTaskId,
@@ -827,12 +881,14 @@ export default function Home() {
               onInput={setInput}
               onKeyDown={handleKeyDown}
               onSubmit={submit}
-              onStop={() => abortRef.current?.abort()}
+              onStop={() => activeTaskId && cancelTask(activeTaskId)}
               openExperts={() => {
+                activeViewRef.current = "experts";
                 setActiveView("experts");
                 setMobileSidebarOpen(false);
               }}
               openSkills={() => {
+                activeViewRef.current = "experts";
                 setActiveView("experts");
                 setMobileSidebarOpen(false);
               }}
@@ -892,12 +948,14 @@ export default function Home() {
                 onInput={setInput}
                 onKeyDown={handleKeyDown}
                 onSubmit={submit}
-                onStop={() => abortRef.current?.abort()}
+                onStop={() => activeTaskId && cancelTask(activeTaskId)}
                 openExperts={() => {
+                  activeViewRef.current = "experts";
                   setActiveView("experts");
                   setMobileSidebarOpen(false);
                 }}
                 openSkills={() => {
+                  activeViewRef.current = "experts";
                   setActiveView("experts");
                   setMobileSidebarOpen(false);
                 }}
@@ -982,7 +1040,9 @@ export default function Home() {
                   <li key={task.id}>
                     <button
                       aria-current={
-                        activeTaskId === task.id ? "page" : undefined
+                        activeView === "chat" && activeTaskId === task.id
+                          ? "page"
+                          : undefined
                       }
                       className={`search-result ${
                         activeResultIndex === index ? "active" : ""
@@ -1129,6 +1189,7 @@ function SidebarTaskSection({
   onToggle,
   tasks,
   activeTaskId,
+  activeView,
   relativeTimeNow,
   taskMenuId,
   renamingTaskId,
@@ -1146,6 +1207,7 @@ function SidebarTaskSection({
   onToggle: () => void;
   tasks: RecentTask[];
   activeTaskId: string | null;
+  activeView: WorkspaceView;
   relativeTimeNow: number;
   taskMenuId: string | null;
   renamingTaskId: string | null;
@@ -1181,6 +1243,12 @@ function SidebarTaskSection({
               task.updatedAt,
               relativeTimeNow,
             );
+            const isViewing =
+              activeView === "chat" && activeTaskId === task.id;
+            const activityIndicator = getTaskActivityIndicator(
+              task,
+              isViewing,
+            );
             return (
               <div className="recent-task-row" key={task.id}>
                 {renamingTaskId === task.id ? (
@@ -1198,19 +1266,27 @@ function SidebarTaskSection({
                   />
                 ) : (
                   <button
-                    aria-current={activeTaskId === task.id ? "page" : undefined}
-                    className={`task-open-button ${activeTaskId === task.id ? "current" : ""}`}
+                    aria-current={isViewing ? "page" : undefined}
+                    className={`task-open-button ${isViewing ? "current" : ""}`}
                     onClick={() => openTask(task)}
                     type="button"
                   >
                     <span className="recent-task-title">{task.title}</span>
                     <span className="recent-task-meta">
-                      {task.status === "running" ? (
+                      {activityIndicator === "spinner" ? (
                         <LoaderCircle
                           aria-hidden="true"
                           className="recent-task-spinner"
                           size={14}
                         />
+                      ) : activityIndicator === "attention" ? (
+                        <span className="recent-task-attention">
+                          <span className="sr-only">
+                            {task.status === "running"
+                              ? "后台执行中"
+                              : "已完成，未查看"}
+                          </span>
+                        </span>
                       ) : (
                         <time dateTime={new Date(task.updatedAt).toISOString()}>
                           {relativeTime}
