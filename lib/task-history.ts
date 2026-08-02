@@ -21,6 +21,7 @@ export type RecentTask = {
   metadata: string;
   icon: "folder" | "project";
   messages: TaskMessage[];
+  createdAt: number;
   updatedAt: number;
   pinned?: boolean;
   archived?: boolean;
@@ -56,6 +57,7 @@ export const initialRecentTasks: RecentTask[] = [
     title: "出价上下限",
     metadata: "2026-07-29 10:20",
     icon: "folder",
+    createdAt: initialTaskTime - 2 * 60 * 60 * 1_000,
     updatedAt: initialTaskTime - 60 * 60 * 1_000,
     messages: [
       {
@@ -76,6 +78,7 @@ export const initialRecentTasks: RecentTask[] = [
     title: "飞书机器人默认标题",
     metadata: "项目新手指引",
     icon: "project",
+    createdAt: initialTaskTime - 5 * 24 * 60 * 60 * 1_000,
     updatedAt: initialTaskTime - 4 * 24 * 60 * 60 * 1_000,
     messages: [
       {
@@ -114,15 +117,17 @@ export function prependRecentTask(
 }
 
 export function getFavoriteTasks(tasks: RecentTask[]): RecentTask[] {
-  return tasks.filter((task) => task.favorited);
+  return tasks.filter((task) => task.favorited && !task.archived);
 }
 
 export function getFavoriteAnswers(tasks: RecentTask[]): FavoriteAnswer[] {
-  return tasks.flatMap((task) =>
-    task.messages
-      .filter((message) => message.role === "assistant" && message.favorited)
-      .map((message) => ({ taskId: task.id, taskTitle: task.title, message })),
-  );
+  return tasks
+    .filter((task) => !task.archived)
+    .flatMap((task) =>
+      task.messages
+        .filter((message) => message.role === "assistant" && message.favorited)
+        .map((message) => ({ taskId: task.id, taskTitle: task.title, message })),
+    );
 }
 
 export function createTaskTitle(prompt: string, maxLength = 28): string {

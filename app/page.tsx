@@ -11,6 +11,7 @@ import {
   Ellipsis,
   FilePlus2,
   Folder,
+  ImagePlus,
   LoaderCircle,
   MessageSquare,
   PanelLeftClose,
@@ -24,6 +25,7 @@ import {
   SlidersHorizontal,
   ThumbsDown,
   ThumbsUp,
+  Trash2,
   Users,
   WandSparkles,
   Workflow,
@@ -93,6 +95,8 @@ type ModelId = (typeof modelOptions)[number]["id"];
 
 type WorkspaceView = "chat" | "experts" | "automation";
 type LibraryDialog = "favorites" | "archive";
+type FeedbackMode = "answer" | "general";
+type FeedbackImage = { id: string; name: string; url: string };
 
 type DemoRunJob = {
   taskId: string;
@@ -148,10 +152,12 @@ export default function Home() {
   const [elapsedNow, setElapsedNow] = useState(() => Date.now());
   const [relativeTimeNow, setRelativeTimeNow] = useState(() => Date.now());
   const [feedbackTargetId, setFeedbackTargetId] = useState<string | null>(null);
+  const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>("answer");
   const [selectedFeedbackReasons, setSelectedFeedbackReasons] = useState<
     string[]
   >([]);
   const [feedbackDetail, setFeedbackDetail] = useState("");
+  const [feedbackImages, setFeedbackImages] = useState<FeedbackImage[]>([]);
   const [feedbackNotice, setFeedbackNotice] = useState("");
   const [pinnedExpanded, setPinnedExpanded] = useState(true);
   const [recentExpanded, setRecentExpanded] = useState(true);
@@ -168,6 +174,7 @@ export default function Home() {
   const searchButtonRef = useRef<HTMLButtonElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const feedbackCloseRef = useRef<HTMLButtonElement | null>(null);
+  const feedbackImageInputRef = useRef<HTMLInputElement | null>(null);
   const accountControlRef = useRef<HTMLDivElement | null>(null);
   const accountButtonRef = useRef<HTMLButtonElement | null>(null);
   const libraryCloseRef = useRef<HTMLButtonElement | null>(null);
@@ -562,6 +569,7 @@ export default function Home() {
           metadata: "处理中",
           icon: currentTask?.icon ?? "folder",
           messages: pendingConversation,
+          createdAt: currentTask?.createdAt ?? submittedAt,
           updatedAt: submittedAt,
           pinned: currentTask?.pinned,
           favorited: currentTask?.favorited,
@@ -611,14 +619,54 @@ export default function Home() {
     setFeedbackTargetId(null);
     setSelectedFeedbackReasons([]);
     setFeedbackDetail("");
+    setFeedbackImages((current) => {
+      current.forEach((image) => URL.revokeObjectURL(image.url));
+      return [];
+    });
   }, []);
 
   const openFeedback = useCallback((messageId: string) => {
+    setFeedbackMode("answer");
     setFeedbackTargetId(messageId);
     setSelectedFeedbackReasons([]);
     setFeedbackDetail("");
     requestAnimationFrame(() => feedbackCloseRef.current?.focus());
   }, []);
+
+  const openGeneralFeedback = useCallback(() => {
+    setFeedbackMode("general");
+    setFeedbackTargetId("general-feedback");
+    setSelectedFeedbackReasons([]);
+    setFeedbackDetail("");
+    setFeedbackImages([]);
+    requestAnimationFrame(() => feedbackCloseRef.current?.focus());
+  }, []);
+
+  const addFeedbackImages = (files: FileList | null) => {
+    if (!files) return;
+    const selected = Array.from(files).filter((file) =>
+      file.type.startsWith("image/"),
+    );
+    const remaining = Math.max(0, 6 - feedbackImages.length);
+    const accepted = selected.slice(0, remaining).map((file) => ({
+      id: createId(),
+      name: file.name,
+      url: URL.createObjectURL(file),
+    }));
+    setFeedbackImages((current) => [...current, ...accepted]);
+    if (selected.length > remaining) {
+      setFeedbackNotice("最多添加 6 张图片");
+      window.setTimeout(() => setFeedbackNotice(""), 2_000);
+    }
+  };
+
+  const removeFeedbackImage = (imageId: string) => {
+    setFeedbackImages((current) => {
+      const target = current.find((image) => image.id === imageId);
+      if (target) URL.revokeObjectURL(target.url);
+      return current.filter((image) => image.id !== imageId);
+    });
+  };
 
   const handleFeedbackKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") {
@@ -646,7 +694,11 @@ export default function Home() {
 
   const submitFeedback = (event: FormEvent) => {
     event.preventDefault();
-    if (!selectedFeedbackReasons.length && !feedbackDetail.trim()) return;
+    const canSubmit =
+      feedbackMode === "general"
+        ? Boolean(feedbackDetail.trim() || feedbackImages.length)
+        : Boolean(selectedFeedbackReasons.length || feedbackDetail.trim());
+    if (!canSubmit) return;
     closeFeedback();
     setFeedbackNotice("感谢反馈，我们会持续优化交易智能助手");
     window.setTimeout(() => setFeedbackNotice(""), 3_000);
@@ -713,6 +765,16 @@ export default function Home() {
     setRecentTasks((current) => restoreArchivedTask(current, taskId));
   };
 
+  const deleteArchivedTask = (taskId: string) => {
+    setRecentTasks((current) => current.filter((task) => task.id !== taskId));
+    if (activeTaskId === taskId) {
+      activeTaskIdRef.current = null;
+      activeViewRef.current = "chat";
+      setActiveTaskId(null);
+      setActiveView("chat");
+    }
+  };
+
   const copyRequestId = async (requestId: string) => {
     await navigator.clipboard.writeText(requestId);
     setFeedbackNotice("请求 ID 已复制");
@@ -739,6 +801,7 @@ export default function Home() {
   const archiveTask = (taskId: string) => {
     const taskToArchive = recentTasks.find((task) => task.id === taskId);
     if (taskToArchive?.status === "running") cancelTask(taskId);
+    const archivedAt = Date.now();
     setRecentTasks((current) =>
       current.map((task) =>
         task.id === taskId
@@ -746,6 +809,8 @@ export default function Home() {
               ...(task.status === "running" ? stopTaskSnapshot(task) : task),
               archived: true,
               pinned: false,
+              updatedAt: archivedAt,
+              metadata: formatTaskTimestamp(new Date(archivedAt)),
             }
           : task,
       ),
@@ -1000,7 +1065,7 @@ export default function Home() {
               <button
                 onClick={() => {
                   setAccountMenuOpen(false);
-                  openFeedback("account-feedback");
+                  openGeneralFeedback();
                 }}
                 role="menuitem"
                 type="button"
@@ -1397,21 +1462,39 @@ export default function Home() {
                 <div className="library-list archive-list">
                   {archivedTasks.map((task) => (
                     <article className="library-row archive-row" key={task.id}>
-                      <button
-                        className="library-row-main"
-                        onClick={() => openTaskFromLibrary(task)}
-                        type="button"
-                      >
+                      <div className="library-row-main archive-task-info">
                         <strong>{task.title}</strong>
-                        <span>{task.metadata}</span>
-                      </button>
-                      <button
-                        className="restore-task-button"
-                        onClick={() => restoreTask(task.id)}
-                        type="button"
-                      >
-                        恢复
-                      </button>
+                        <span>
+                          创建时间：
+                          <time dateTime={new Date(task.createdAt).toISOString()}>
+                            {formatTaskTimestamp(new Date(task.createdAt))}
+                          </time>
+                        </span>
+                        <span>
+                          最后更新：
+                          <time dateTime={new Date(task.updatedAt).toISOString()}>
+                            {formatTaskTimestamp(new Date(task.updatedAt))}
+                          </time>
+                        </span>
+                      </div>
+                      <div className="archive-row-actions">
+                        <button
+                          className="restore-task-button"
+                          onClick={() => restoreTask(task.id)}
+                          type="button"
+                        >
+                          恢复
+                        </button>
+                        <button
+                          aria-label={`删除归档任务：${task.title}`}
+                          className="delete-task-button"
+                          onClick={() => deleteArchivedTask(task.id)}
+                          type="button"
+                        >
+                          <Trash2 size={15} />
+                          删除
+                        </button>
+                      </div>
                     </article>
                   ))}
                 </div>
@@ -1444,7 +1527,9 @@ export default function Home() {
             role="dialog"
           >
             <header>
-              <h2 id="feedback-dialog-title">提交反馈</h2>
+              <h2 id="feedback-dialog-title">
+                {feedbackMode === "general" ? "意见反馈" : "提交反馈"}
+              </h2>
               <button
                 aria-label="关闭反馈"
                 onClick={closeFeedback}
@@ -1455,54 +1540,111 @@ export default function Home() {
               </button>
             </header>
 
-            <div aria-label="反馈原因" className="feedback-reasons">
-              {feedbackReasons.map((reason) => {
-                const selected = selectedFeedbackReasons.includes(reason);
-                return (
+            {feedbackMode === "answer" ? (
+              <>
+                <div aria-label="反馈原因" className="feedback-reasons">
+                  {feedbackReasons.map((reason) => {
+                    const selected = selectedFeedbackReasons.includes(reason);
+                    return (
+                      <button
+                        aria-pressed={selected}
+                        className={selected ? "selected" : ""}
+                        key={reason}
+                        onClick={() =>
+                          setSelectedFeedbackReasons((current) =>
+                            current.includes(reason)
+                              ? current.filter((item) => item !== reason)
+                              : [...current, reason],
+                          )
+                        }
+                        type="button"
+                      >
+                        <Plus size={15} strokeWidth={1.7} />
+                        {reason}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <textarea
+                  aria-label="反馈详情"
+                  onChange={(event) => setFeedbackDetail(event.target.value)}
+                  placeholder="填写详情（选填）"
+                  value={feedbackDetail}
+                />
+
+                <p className="feedback-help">
+                  您的反馈可帮助我们持续优化交易智能助手
                   <button
-                    aria-pressed={selected}
-                    className={selected ? "selected" : ""}
-                    key={reason}
-                    onClick={() =>
-                      setSelectedFeedbackReasons((current) =>
-                        current.includes(reason)
-                          ? current.filter((item) => item !== reason)
-                          : [...current, reason],
-                      )
-                    }
+                    onClick={() => {
+                      setFeedbackNotice("反馈群入口为演示功能");
+                      window.setTimeout(() => setFeedbackNotice(""), 3_000);
+                    }}
                     type="button"
                   >
-                    <Plus size={15} strokeWidth={1.7} />
-                    {reason}
+                    点击加入反馈群
                   </button>
-                );
-              })}
-            </div>
+                </p>
+              </>
+            ) : (
+              <div className="general-feedback-field">
+                <textarea
+                  aria-label="意见反馈内容"
+                  maxLength={10000}
+                  onChange={(event) => setFeedbackDetail(event.target.value)}
+                  placeholder="你可以描述你遇到的问题"
+                  value={feedbackDetail}
+                />
 
-            <textarea
-              aria-label="反馈详情"
-              onChange={(event) => setFeedbackDetail(event.target.value)}
-              placeholder="填写详情（选填）"
-              value={feedbackDetail}
-            />
+                {feedbackImages.length ? (
+                  <div aria-label="已添加图片" className="feedback-image-grid">
+                    {feedbackImages.map((image) => (
+                      <figure key={image.id}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img alt={image.name} src={image.url} />
+                        <button
+                          aria-label={`移除图片：${image.name}`}
+                          onClick={() => removeFeedbackImage(image.id)}
+                          type="button"
+                        >
+                          <X size={14} />
+                        </button>
+                      </figure>
+                    ))}
+                  </div>
+                ) : null}
 
-            <p className="feedback-help">
-              您的反馈可帮助我们持续优化交易智能助手
-              <button
-                onClick={() => {
-                  setFeedbackNotice("反馈群入口为演示功能");
-                  window.setTimeout(() => setFeedbackNotice(""), 3_000);
-                }}
-                type="button"
-              >
-                点击加入反馈群
-              </button>
-            </p>
+                <div className="general-feedback-footer">
+                  <input
+                    accept="image/*"
+                    hidden
+                    multiple
+                    onChange={(event) => {
+                      addFeedbackImages(event.currentTarget.files);
+                      event.currentTarget.value = "";
+                    }}
+                    ref={feedbackImageInputRef}
+                    type="file"
+                  />
+                  <button
+                    disabled={feedbackImages.length >= 6}
+                    onClick={() => feedbackImageInputRef.current?.click()}
+                    type="button"
+                  >
+                    <ImagePlus size={17} />
+                    上传图片 ({feedbackImages.length}/6)
+                  </button>
+                  <span>{feedbackDetail.length}/10000</span>
+                </div>
+              </div>
+            )}
 
             <button
               className="feedback-submit"
               disabled={
-                !selectedFeedbackReasons.length && !feedbackDetail.trim()
+                feedbackMode === "general"
+                  ? !feedbackDetail.trim() && !feedbackImages.length
+                  : !selectedFeedbackReasons.length && !feedbackDetail.trim()
               }
               type="submit"
             >

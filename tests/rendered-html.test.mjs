@@ -53,6 +53,12 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /Agent 回复/);
   assert.match(page, /回答操作/);
   assert.match(page, /提交反馈/);
+  assert.match(page, /意见反馈/);
+  assert.match(page, /你可以描述你遇到的问题/);
+  assert.match(page, /上传图片/);
+  assert.match(page, /创建时间/);
+  assert.match(page, /最后更新/);
+  assert.match(page, /删除归档任务/);
   assert.match(page, /不正确或不完整/);
   assert.match(page, /没有遵循我的指示/);
   assert.match(page, /偏题\/超出范围/);

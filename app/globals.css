@@ -1902,6 +1902,21 @@ button:disabled {
 
 .archive-row {
   grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 82px;
+}
+
+.archive-task-info {
+  cursor: default;
+}
+
+.archive-task-info span {
+  display: block;
+}
+
+.archive-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .restore-task-button {
@@ -1919,6 +1934,26 @@ button:disabled {
 .restore-task-button:focus-visible {
   border-color: #aaa;
   background: #eeeeee;
+}
+
+.delete-task-button {
+  display: flex;
+  height: 34px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  border: 1px solid #ead8d8;
+  border-radius: 9px;
+  background: #fffafa;
+  color: #a84c4c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.delete-task-button:hover,
+.delete-task-button:focus-visible {
+  border-color: #d8aaaa;
+  background: #fff0f0;
 }
 
 .library-empty {
@@ -2059,6 +2094,101 @@ button:disabled {
 
 .feedback-dialog textarea::placeholder {
   color: #999999;
+}
+
+.general-feedback-field {
+  overflow: hidden;
+  border: 1px solid #dddddd;
+  border-radius: 18px;
+  background: white;
+}
+
+.feedback-dialog .general-feedback-field textarea {
+  min-height: 280px;
+  resize: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.general-feedback-field:focus-within {
+  border-color: #333333;
+  box-shadow: 0 0 0 1px #333333;
+}
+
+.feedback-image-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+
+.feedback-image-grid figure {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1;
+  margin: 0;
+  border: 1px solid #dddddd;
+  border-radius: 10px;
+  background: #f4f4f4;
+}
+
+.feedback-image-grid img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.feedback-image-grid figure button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.76);
+  color: white;
+}
+
+.general-feedback-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px 14px;
+}
+
+.general-feedback-footer > button {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px;
+  border: 1px solid #d8d8d8;
+  border-radius: 11px;
+  background: #f8f8f8;
+  color: #505050;
+  font-size: 13px;
+}
+
+.general-feedback-footer > button:hover:not(:disabled),
+.general-feedback-footer > button:focus-visible {
+  border-color: #999;
+  background: #eeeeee;
+}
+
+.general-feedback-footer > button:disabled {
+  opacity: 0.45;
+}
+
+.general-feedback-footer > span {
+  color: #888888;
+  font-size: 12px;
 }
 
 .feedback-help {

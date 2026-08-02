@@ -23,7 +23,7 @@ test("filters recent tasks by title and metadata", () => {
   );
 });
 
-test("collects favorite tasks and assistant answers without losing archive state", () => {
+test("hides archived favorites until their task is restored", () => {
   const tasks: RecentTask[] = [
     {
       ...initialRecentTasks[0],
@@ -36,12 +36,16 @@ test("collects favorite tasks and assistant answers without losing archive state
     initialRecentTasks[1],
   ];
 
-  assert.deepEqual(getFavoriteTasks(tasks).map((task) => task.id), [
+  assert.equal(tasks[0].favorited, true);
+  assert.deepEqual(getFavoriteTasks(tasks), []);
+  assert.deepEqual(getFavoriteAnswers(tasks), []);
+
+  const restored = restoreArchivedTask(tasks, "preset-bid-limits", Date.now());
+  assert.deepEqual(getFavoriteTasks(restored).map((task) => task.id), [
     "preset-bid-limits",
   ]);
-  assert.equal(getFavoriteTasks(tasks)[0].archived, true);
   assert.deepEqual(
-    getFavoriteAnswers(tasks).map((answer) => answer.message.id),
+    getFavoriteAnswers(restored).map((answer) => answer.message.id),
     ["preset-bid-limits-assistant"],
   );
 });
@@ -117,6 +121,7 @@ test("prepends a completed task and replaces a duplicate id", () => {
     metadata: "2026-07-30 10:30",
     icon: "folder",
     messages: [],
+    createdAt: new Date("2026-07-30T09:30:00+08:00").getTime(),
     updatedAt: new Date("2026-07-30T10:30:00+08:00").getTime(),
     status: "completed",
   };
