@@ -49,6 +49,9 @@ const agentCapabilities = [
   "项目管理 Agent",
 ];
 
+const composerPlaceholder =
+  "今天帮你做些什么？@ 召唤专家，/ 调用技能";
+
 type WorkspaceView = "chat" | "experts" | "automation";
 
 const createId = () =>
@@ -614,11 +617,11 @@ function Composer({
   return (
     <form className="minimal-composer" onSubmit={onSubmit}>
       <textarea
-        aria-label="有什么可以帮你的？"
+        aria-label="任务输入框"
         maxLength={2000}
         onChange={(event) => onInput(event.target.value)}
         onKeyDown={onKeyDown}
-        placeholder="有什么可以帮你的？"
+        placeholder={composerPlaceholder}
         rows={2}
         value={input}
       />
