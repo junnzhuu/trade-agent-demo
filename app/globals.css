@@ -877,8 +877,8 @@ button:disabled {
   height: 34px;
   border: 0;
   border-radius: 999px;
-  background: #171717;
-  color: white;
+  padding: 0;
+  background: transparent;
   transition:
     opacity 140ms ease,
     transform 140ms ease;
@@ -890,6 +890,12 @@ button:disabled {
 
 .composer-send:disabled {
   opacity: 1;
+}
+
+.composer-send img {
+  display: block;
+  width: 24px;
+  height: 24px;
 }
 
 .chat-scroll {

@@ -32,7 +32,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /qwen3\.7-plus/);
   assert.match(page, /doubao-seed-2-0-lite/);
   assert.match(page, /图片理解/);
-  assert.match(page, /ArrowUp/);
+  assert.match(page, /\.\/send-empty\.svg/);
+  assert.match(page, /\.\/send-ready\.svg/);
+  assert.match(page, /\.\/send-loading\.svg/);
+  assert.doesNotMatch(page, /\n  ArrowUp,/);
+  assert.doesNotMatch(page, /\n  Square,/);
   assert.match(page, /添加文件/);
   assert.match(page, /计划模式/);
   assert.match(page, /深度思考/);

@@ -2,7 +2,6 @@
 
 import {
   ArrowLeft,
-  ArrowUp,
   ArrowDownUp,
   Archive,
   Check,
@@ -22,7 +21,6 @@ import {
   Search,
   Share2,
   SlidersHorizontal,
-  Square,
   ThumbsDown,
   ThumbsUp,
   Users,
@@ -1694,7 +1692,13 @@ function Composer({
               onClick={onStop}
               type="button"
             >
-              <Square fill="currentColor" size={12} />
+              <Image
+                alt=""
+                aria-hidden="true"
+                height={24}
+                src="./send-loading.svg"
+                width={24}
+              />
             </button>
           ) : (
             <button
@@ -1703,7 +1707,13 @@ function Composer({
               disabled={!input.trim()}
               type="submit"
             >
-              <ArrowUp size={19} strokeWidth={1.9} />
+              <Image
+                alt=""
+                aria-hidden="true"
+                height={24}
+                src={input.trim() ? "./send-ready.svg" : "./send-empty.svg"}
+                width={24}
+              />
             </button>
           )}
         </div>
