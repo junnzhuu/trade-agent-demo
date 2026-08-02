@@ -528,7 +528,7 @@ export default function Home() {
           <span className="brand-mark" aria-hidden="true">
             <Image alt="" height={23} src="./logo.svg" width={28} />
           </span>
-          <strong>交易只能助手</strong>
+          <strong>交易智能助手</strong>
           <div className="sidebar-header-actions">
             <button
               aria-label="收起侧栏"

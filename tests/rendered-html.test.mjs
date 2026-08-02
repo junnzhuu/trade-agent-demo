@@ -14,7 +14,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
 
   assert.match(layout, /title: "交易 Agent｜多智能体业务工作台"/);
   assert.match(page, /交易业务智能工作台/);
-  assert.match(page, /交易只能助手/);
+  assert.match(page, /交易智能助手/);
   assert.match(page, /\.\/logo\.svg/);
   assert.match(page, /日常运营 Agent/);
   assert.match(page, /营销活动 Agent/);
