@@ -22,6 +22,7 @@ import {
   Workflow,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import {
   type FormEvent,
   type KeyboardEvent,
@@ -525,9 +526,9 @@ export default function Home() {
       >
         <header className="sidebar-brand">
           <span className="brand-mark" aria-hidden="true">
-            <span>Ai</span>
+            <Image alt="" height={23} src="./logo.svg" width={28} />
           </span>
-          <strong>商家智能助手</strong>
+          <strong>交易只能助手</strong>
           <div className="sidebar-header-actions">
             <button
               aria-label="收起侧栏"

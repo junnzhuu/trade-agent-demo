@@ -107,35 +107,16 @@ button:disabled {
 }
 
 .brand-mark {
-  position: relative;
-  display: flex;
+  display: grid;
   width: 38px;
   height: 36px;
-  align-items: center;
-  justify-content: center;
-  color: #35b6d7;
+  place-items: center;
 }
 
-.brand-mark > span {
-  background: linear-gradient(145deg, #73aee8 5%, #43d0cf 58%, #289fc8 100%);
-  background-clip: text;
-  color: transparent;
-  font-size: 28px;
-  font-style: italic;
-  font-weight: 820;
-  letter-spacing: -0.12em;
-  line-height: 1;
-  -webkit-background-clip: text;
-}
-
-.brand-mark::after {
-  position: absolute;
-  top: 1px;
-  right: -1px;
-  color: #6ec8e4;
-  content: "✦";
-  font-size: 13px;
-  line-height: 1;
+.brand-mark img {
+  display: block;
+  width: 28px;
+  height: 23px;
 }
 
 .sidebar-brand strong {
