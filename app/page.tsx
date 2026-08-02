@@ -1,21 +1,24 @@
 "use client";
 
 import {
+  ArrowLeft,
   ArrowUp,
   ArrowDownUp,
-  BrainCircuit,
   Check,
   ChevronDown,
+  ChevronRight,
+  FilePlus2,
   Folder,
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
-  Paperclip,
   Plus,
   Search,
   Share2,
+  SlidersHorizontal,
   Square,
   Users,
+  WandSparkles,
   Workflow,
   X,
 } from "lucide-react";
@@ -78,6 +81,7 @@ export default function Home() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
+  const [planMode, setPlanMode] = useState(false);
   const [selectedModelId, setSelectedModelId] =
     useState<ModelId>("glm-5");
   const [messages, setMessages] = useState<TaskMessage[]>([]);
@@ -441,10 +445,20 @@ export default function Home() {
               onKeyDown={handleKeyDown}
               onSubmit={submit}
               onStop={() => abortRef.current?.abort()}
+              openExperts={() => {
+                setActiveView("experts");
+                setMobileSidebarOpen(false);
+              }}
+              openSkills={() => {
+                setActiveView("experts");
+                setMobileSidebarOpen(false);
+              }}
+              planMode={planMode}
               running={running}
               selectedModelId={selectedModelId}
               selectModel={setSelectedModelId}
               thinking={thinking}
+              togglePlanMode={() => setPlanMode((current) => !current)}
               toggleThinking={() => setThinking((current) => !current)}
             />
           </div>
@@ -485,10 +499,20 @@ export default function Home() {
                 onKeyDown={handleKeyDown}
                 onSubmit={submit}
                 onStop={() => abortRef.current?.abort()}
+                openExperts={() => {
+                  setActiveView("experts");
+                  setMobileSidebarOpen(false);
+                }}
+                openSkills={() => {
+                  setActiveView("experts");
+                  setMobileSidebarOpen(false);
+                }}
+                planMode={planMode}
                 running={running}
                 selectedModelId={selectedModelId}
                 selectModel={setSelectedModelId}
                 thinking={thinking}
+                togglePlanMode={() => setPlanMode((current) => !current)}
                 toggleThinking={() => setThinking((current) => !current)}
               />
             </div>
@@ -620,10 +644,14 @@ function Composer({
   onKeyDown,
   onSubmit,
   onStop,
+  openExperts,
+  openSkills,
+  planMode,
   running,
   selectedModelId,
   selectModel,
   thinking,
+  togglePlanMode,
   toggleThinking,
 }: {
   input: string;
@@ -631,28 +659,51 @@ function Composer({
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSubmit: (event: FormEvent) => void;
   onStop: () => void;
+  openExperts: () => void;
+  openSkills: () => void;
+  planMode: boolean;
   running: boolean;
   selectedModelId: ModelId;
   selectModel: (modelId: ModelId) => void;
   thinking: boolean;
+  togglePlanMode: () => void;
   toggleThinking: () => void;
 }) {
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [addMenuView, setAddMenuView] = useState<"main" | "mode">(
+    "main",
+  );
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const addControlRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const modelControlRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!modelMenuOpen) return;
+    if (!addMenuOpen && !modelMenuOpen) return;
 
     const closeOnOutsidePress = (event: PointerEvent) => {
-      if (
-        event.target instanceof Node &&
-        !modelControlRef.current?.contains(event.target)
-      ) {
-        setModelMenuOpen(false);
+      if (event.target instanceof Node) {
+        if (
+          addMenuOpen &&
+          !addControlRef.current?.contains(event.target)
+        ) {
+          setAddMenuOpen(false);
+          setAddMenuView("main");
+        }
+        if (
+          modelMenuOpen &&
+          !modelControlRef.current?.contains(event.target)
+        ) {
+          setModelMenuOpen(false);
+        }
       }
     };
     const closeOnEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") setModelMenuOpen(false);
+      if (event.key === "Escape") {
+        setAddMenuOpen(false);
+        setAddMenuView("main");
+        setModelMenuOpen(false);
+      }
     };
 
     document.addEventListener("pointerdown", closeOnOutsidePress);
@@ -661,7 +712,7 @@ function Composer({
       document.removeEventListener("pointerdown", closeOnOutsidePress);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [modelMenuOpen]);
+  }, [addMenuOpen, modelMenuOpen]);
 
   return (
     <form className="minimal-composer" onSubmit={onSubmit}>
@@ -676,20 +727,124 @@ function Composer({
       />
       <div className="composer-actions">
         <div className="composer-left-actions">
-          <button aria-label="添加附件" type="button">
-            <Paperclip size={18} strokeWidth={1.7} />
-            <span>附件</span>
-          </button>
-          <button
-            aria-pressed={thinking}
-            className={thinking ? "active" : ""}
-            onClick={toggleThinking}
-            type="button"
-          >
-            <BrainCircuit size={18} strokeWidth={1.7} />
-            <span>思考</span>
-            {thinking && <Check size={12} />}
-          </button>
+          <div className="add-control" ref={addControlRef}>
+            <input
+              hidden
+              multiple
+              onChange={() => {
+                setAddMenuOpen(false);
+                setAddMenuView("main");
+              }}
+              ref={fileInputRef}
+              type="file"
+            />
+            <button
+              aria-expanded={addMenuOpen}
+              aria-haspopup="menu"
+              aria-label="打开添加菜单"
+              className="composer-add-button"
+              onClick={() => {
+                setAddMenuOpen((current) => !current);
+                setAddMenuView("main");
+              }}
+              type="button"
+            >
+              <Plus size={19} strokeWidth={1.8} />
+            </button>
+
+            {addMenuOpen && addMenuView === "main" && (
+              <div aria-label="添加内容" className="add-menu" role="menu">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  role="menuitem"
+                  type="button"
+                >
+                  <FilePlus2 size={18} strokeWidth={1.7} />
+                  <span>添加文件</span>
+                </button>
+                <button
+                  onClick={() => setAddMenuView("mode")}
+                  role="menuitem"
+                  type="button"
+                >
+                  <SlidersHorizontal size={18} strokeWidth={1.7} />
+                  <span>模式</span>
+                  <ChevronRight className="menu-trailing-icon" size={15} />
+                </button>
+                <button
+                  onClick={() => {
+                    setAddMenuOpen(false);
+                    openExperts();
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  <Users size={18} strokeWidth={1.7} />
+                  <span>专家</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setAddMenuOpen(false);
+                    openSkills();
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  <WandSparkles size={18} strokeWidth={1.7} />
+                  <span>技能</span>
+                </button>
+              </div>
+            )}
+
+            {addMenuOpen && addMenuView === "mode" && (
+              <div
+                aria-label="模式设置"
+                className="add-menu mode-menu"
+                role="dialog"
+              >
+                <header>
+                  <button
+                    aria-label="返回添加菜单"
+                    onClick={() => setAddMenuView("main")}
+                    type="button"
+                  >
+                    <ArrowLeft size={17} strokeWidth={1.8} />
+                  </button>
+                  <strong>模式</strong>
+                </header>
+                <button
+                  aria-checked={planMode}
+                  className="mode-switch-row"
+                  onClick={togglePlanMode}
+                  role="switch"
+                  type="button"
+                >
+                  <span>
+                    <strong>计划模式</strong>
+                    <small>先制定计划，再执行任务</small>
+                  </span>
+                  <span className="switch-track" aria-hidden="true">
+                    <span />
+                  </span>
+                </button>
+                <button
+                  aria-checked={thinking}
+                  className="mode-switch-row"
+                  onClick={toggleThinking}
+                  role="switch"
+                  type="button"
+                >
+                  <span>
+                    <strong>深度思考</strong>
+                    <small>投入更多时间分析复杂问题</small>
+                  </span>
+                  <span className="switch-track" aria-hidden="true">
+                    <span />
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="composer-right-actions">

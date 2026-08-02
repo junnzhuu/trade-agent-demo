@@ -27,6 +27,12 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /doubao-seed-2-0-lite/);
   assert.match(page, /图片理解/);
   assert.match(page, /ArrowUp/);
+  assert.match(page, /添加文件/);
+  assert.match(page, /计划模式/);
+  assert.match(page, /深度思考/);
+  assert.match(page, /role="switch"/);
+  assert.doesNotMatch(page, /aria-label="添加附件"/);
+  assert.doesNotMatch(page, /BrainCircuit/);
   assert.match(css, /\.expert-grid/);
   assert.match(css, /\.skill-grid/);
   assert.match(css, /prefers-reduced-motion/);
