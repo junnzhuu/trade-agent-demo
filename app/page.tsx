@@ -183,7 +183,11 @@ export default function Home() {
       const prompt = rawPrompt.trim();
       if (!prompt || running) return;
 
-      const taskId = createId();
+      const currentTask = activeTaskId
+        ? recentTasks.find((task) => task.id === activeTaskId)
+        : undefined;
+      const conversationMessages = activeTaskId ? messages : [];
+      const taskId = activeTaskId ?? createId();
       const assistantId = createId();
       const userMessage: TaskMessage = {
         id: createId(),
@@ -197,7 +201,8 @@ export default function Home() {
       let generationStarted = false;
       let traceSequence = 0;
       const startedAt = performance.now();
-      const taskTitle = createTaskTitle(prompt);
+      const taskTitle = currentTask?.title ?? createTaskTitle(prompt);
+      const taskIcon = currentTask?.icon ?? "folder";
       const pendingAssistantMessage: TaskMessage = {
         id: assistantId,
         role: "assistant",
@@ -228,7 +233,12 @@ export default function Home() {
         );
       };
 
-      setMessages([userMessage, pendingAssistantMessage]);
+      const pendingConversation = [
+        ...conversationMessages,
+        userMessage,
+        pendingAssistantMessage,
+      ];
+      setMessages(pendingConversation);
       setInput("");
       setElapsedMs(0);
       runStartedAtRef.current = startedAt;
@@ -239,8 +249,8 @@ export default function Home() {
           id: taskId,
           title: taskTitle,
           metadata: "处理中",
-          icon: "folder",
-          messages: [userMessage, pendingAssistantMessage],
+          icon: taskIcon,
+          messages: pendingConversation,
           status: "running",
         }),
       );
@@ -285,6 +295,11 @@ export default function Home() {
                 `${String(data.name ?? "业务专家")} 完成分析`,
                 String(data.detail ?? "专家结果已返回交易主理人"),
               );
+            } else if (name === "reasoning.started") {
+              appendTrace(
+                "深度分析并核验结论",
+                String(data.detail ?? "检查数据证据与建议之间的逻辑一致性"),
+              );
             } else if (name === "message.delta") {
               if (!generationStarted) {
                 generationStarted = true;
@@ -323,14 +338,19 @@ export default function Home() {
             trace: completedTrace,
           };
           setElapsedMs(finalElapsedMs);
-          setMessages([userMessage, completedAssistantMessage]);
+          const completedConversation = [
+            ...conversationMessages,
+            userMessage,
+            completedAssistantMessage,
+          ];
+          setMessages(completedConversation);
           setRecentTasks((current) =>
             prependRecentTask(current, {
               id: taskId,
               title: taskTitle,
               metadata: formatTaskTimestamp(new Date()),
-              icon: "folder",
-              messages: [userMessage, completedAssistantMessage],
+              icon: taskIcon,
+              messages: completedConversation,
               status: "completed",
             }),
           );
@@ -367,8 +387,12 @@ export default function Home() {
             id: taskId,
             title: taskTitle,
             metadata: stopped ? "已停止" : "执行失败",
-            icon: "folder",
-            messages: [userMessage, failedAssistantMessage],
+            icon: taskIcon,
+            messages: [
+              ...conversationMessages,
+              userMessage,
+              failedAssistantMessage,
+            ],
           }),
         );
       } finally {
@@ -378,7 +402,7 @@ export default function Home() {
         }
       }
     },
-    [running],
+    [activeTaskId, messages, recentTasks, running],
   );
 
   const openTask = useCallback(

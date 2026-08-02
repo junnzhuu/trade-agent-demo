@@ -35,6 +35,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /BrainCircuit/);
   assert.match(page, /已处理/);
   assert.match(page, /思考与 Skill 调用步骤/);
+  assert.match(page, /深度分析并核验结论/);
   assert.match(page, /生成回复中/);
   assert.match(page, /recent-task-spinner/);
   assert.match(css, /\.recent-task-complete/);

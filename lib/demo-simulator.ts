@@ -199,6 +199,7 @@ export async function runDemoScenario(options: {
   signal: AbortSignal;
   onEvent: (event: DemoStreamEvent) => void;
   delayScale?: number;
+  minimumThinkingMs?: number;
 }) {
   const {
     prompt,
@@ -206,8 +207,16 @@ export async function runDemoScenario(options: {
     signal,
     onEvent,
     delayScale = 1,
+    minimumThinkingMs = 5_000,
   } = options;
+  const startedAt = performance.now();
   const pause = (ms: number) => wait(ms * delayScale, signal);
+  const finishVisibleThinking = async (detail: string) => {
+    onEvent({ name: "reasoning.started", data: { detail } });
+    const targetDuration = minimumThinkingMs * delayScale;
+    const remaining = targetDuration - (performance.now() - startedAt);
+    if (remaining > 0) await wait(remaining, signal);
+  };
   const selected = inferAgents(prompt, preferredAgent);
 
   onEvent({
@@ -217,6 +226,7 @@ export async function runDemoScenario(options: {
   await pause(260);
 
   if (!selected.length) {
+    await finishVisibleThinking("复核问题上下文，判断还需要补充哪些业务信息");
     const clarification =
       "我还不能确定要调用哪个业务 Agent。你可以补充一个方向：经营指标、具体商品、招商线索、营销活动，或项目计划。\n\n也可以直接点击左侧的演示任务开始体验。";
     for (const delta of chunks(clarification)) {
@@ -276,6 +286,8 @@ export async function runDemoScenario(options: {
     });
     await pause(180);
   }
+
+  await finishVisibleThinking("交叉核验数据证据、业务结论与行动建议");
 
   for (const delta of chunks(buildAnswer(results))) {
     onEvent({ name: "message.delta", data: { delta } });

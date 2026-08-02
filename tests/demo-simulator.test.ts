@@ -27,6 +27,7 @@ test("streams a complete single-agent demo with an artifact", async () => {
     1,
   );
   assert.ok(events.some((event) => event.name === "artifact.ready"));
+  assert.ok(events.some((event) => event.name === "reasoning.started"));
   assert.equal(events.at(-1)?.name, "run.completed");
 });
 
