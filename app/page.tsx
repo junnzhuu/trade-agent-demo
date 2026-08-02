@@ -7,16 +7,21 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Copy,
+  Ellipsis,
   FilePlus2,
   Folder,
   LoaderCircle,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  RotateCcw,
   Search,
   Share2,
   SlidersHorizontal,
   Square,
+  ThumbsDown,
+  ThumbsUp,
   Users,
   WandSparkles,
   Workflow,
@@ -69,6 +74,15 @@ const modelOptions = [
   { id: "glm-5.2", label: "glm-5.2" },
 ] as const;
 
+const feedbackReasons = [
+  "不正确或不完整",
+  "没有遵循我的指示",
+  "偏题/超出范围",
+  "丢失上下文",
+  "速度慢或有故障",
+  "其他",
+] as const;
+
 type ModelId = (typeof modelOptions)[number]["id"];
 
 type WorkspaceView = "chat" | "experts" | "automation";
@@ -119,12 +133,17 @@ export default function Home() {
   const [running, setRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [relativeTimeNow, setRelativeTimeNow] = useState(() => Date.now());
+  const [feedbackTargetId, setFeedbackTargetId] = useState<string | null>(null);
+  const [selectedFeedbackReasons, setSelectedFeedbackReasons] = useState<string[]>([]);
+  const [feedbackDetail, setFeedbackDetail] = useState("");
+  const [feedbackNotice, setFeedbackNotice] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const runTokenRef = useRef(0);
   const runStartedAtRef = useRef(0);
   const scrollEndRef = useRef<HTMLDivElement | null>(null);
   const searchButtonRef = useRef<HTMLButtonElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const feedbackCloseRef = useRef<HTMLButtonElement | null>(null);
 
   const filteredTasks = useMemo(
     () => filterRecentTasks(recentTasks, searchQuery),
@@ -190,14 +209,15 @@ export default function Home() {
   }, []);
 
   const sendPrompt = useCallback(
-    async (rawPrompt: string) => {
+    async (rawPrompt: string, baseMessagesOverride?: TaskMessage[]) => {
       const prompt = rawPrompt.trim();
       if (!prompt || running) return;
 
       const currentTask = activeTaskId
         ? recentTasks.find((task) => task.id === activeTaskId)
         : undefined;
-      const conversationMessages = activeTaskId ? messages : [];
+      const conversationMessages =
+        baseMessagesOverride ?? (activeTaskId ? messages : []);
       const taskId = activeTaskId ?? createId();
       const assistantId = createId();
       const userMessage: TaskMessage = {
@@ -419,6 +439,71 @@ export default function Home() {
     },
     [activeTaskId, messages, recentTasks, running],
   );
+
+  const regenerateMessage = useCallback(
+    (assistantMessageId: string) => {
+      if (running) return;
+      const assistantIndex = messages.findIndex(
+        (message) => message.id === assistantMessageId,
+      );
+      if (assistantIndex < 1) return;
+      let userIndex = assistantIndex - 1;
+      while (userIndex >= 0 && messages[userIndex].role !== "user") {
+        userIndex -= 1;
+      }
+      const sourcePrompt = messages[userIndex]?.content;
+      if (!sourcePrompt || userIndex < 0) return;
+      void sendPrompt(sourcePrompt, messages.slice(0, userIndex));
+    },
+    [messages, running, sendPrompt],
+  );
+
+  const closeFeedback = useCallback(() => {
+    setFeedbackTargetId(null);
+    setSelectedFeedbackReasons([]);
+    setFeedbackDetail("");
+  }, []);
+
+  const openFeedback = useCallback((messageId: string) => {
+    setFeedbackTargetId(messageId);
+    setSelectedFeedbackReasons([]);
+    setFeedbackDetail("");
+    requestAnimationFrame(() => feedbackCloseRef.current?.focus());
+  }, []);
+
+  const handleFeedbackKeyDown = (
+    event: KeyboardEvent<HTMLElement>,
+  ) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeFeedback();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  const submitFeedback = (event: FormEvent) => {
+    event.preventDefault();
+    if (!selectedFeedbackReasons.length && !feedbackDetail.trim()) return;
+    closeFeedback();
+    setFeedbackNotice("感谢反馈，我们会持续优化交易智能助手");
+    window.setTimeout(() => setFeedbackNotice(""), 3_000);
+  };
 
   const openTask = useCallback(
     (task: RecentTask) => {
@@ -705,14 +790,24 @@ export default function Home() {
                   >
                     <div className="chat-message-content">
                       {message.role === "assistant" ? (
-                        <AssistantExecution
-                          elapsedMs={
-                            message.pending
-                              ? elapsedMs
-                              : (message.elapsedMs ?? 0)
-                          }
-                          message={message}
-                        />
+                        <>
+                          <AssistantExecution
+                            elapsedMs={
+                              message.pending
+                                ? elapsedMs
+                                : (message.elapsedMs ?? 0)
+                            }
+                            message={message}
+                          />
+                          {!message.pending ? (
+                            <AnswerActions
+                              content={message.content}
+                              disabled={running}
+                              onDislike={() => openFeedback(message.id)}
+                              onRegenerate={() => regenerateMessage(message.id)}
+                            />
+                          ) : null}
+                        </>
                       ) : (
                         <p>{message.content}</p>
                       )}
@@ -851,6 +946,97 @@ export default function Home() {
           </section>
         </div>
       )}
+
+      {feedbackTargetId && (
+        <div className="feedback-modal-layer">
+          <button
+            aria-label="关闭反馈弹窗"
+            className="feedback-modal-scrim"
+            onClick={closeFeedback}
+            type="button"
+          />
+          <form
+            aria-labelledby="feedback-dialog-title"
+            aria-modal="true"
+            className="feedback-dialog"
+            onKeyDown={handleFeedbackKeyDown}
+            onSubmit={submitFeedback}
+            role="dialog"
+          >
+            <header>
+              <h2 id="feedback-dialog-title">提交反馈</h2>
+              <button
+                aria-label="关闭反馈"
+                onClick={closeFeedback}
+                ref={feedbackCloseRef}
+                type="button"
+              >
+                <X size={22} strokeWidth={1.7} />
+              </button>
+            </header>
+
+            <div aria-label="反馈原因" className="feedback-reasons">
+              {feedbackReasons.map((reason) => {
+                const selected = selectedFeedbackReasons.includes(reason);
+                return (
+                  <button
+                    aria-pressed={selected}
+                    className={selected ? "selected" : ""}
+                    key={reason}
+                    onClick={() =>
+                      setSelectedFeedbackReasons((current) =>
+                        current.includes(reason)
+                          ? current.filter((item) => item !== reason)
+                          : [...current, reason],
+                      )
+                    }
+                    type="button"
+                  >
+                    <Plus size={15} strokeWidth={1.7} />
+                    {reason}
+                  </button>
+                );
+              })}
+            </div>
+
+            <textarea
+              aria-label="反馈详情"
+              onChange={(event) => setFeedbackDetail(event.target.value)}
+              placeholder="填写详情（选填）"
+              value={feedbackDetail}
+            />
+
+            <p className="feedback-help">
+              您的反馈可帮助我们持续优化交易智能助手
+              <button
+                onClick={() => {
+                  setFeedbackNotice("反馈群入口为演示功能");
+                  window.setTimeout(() => setFeedbackNotice(""), 3_000);
+                }}
+                type="button"
+              >
+                点击加入反馈群
+              </button>
+            </p>
+
+            <button
+              className="feedback-submit"
+              disabled={
+                !selectedFeedbackReasons.length && !feedbackDetail.trim()
+              }
+              type="submit"
+            >
+              提交
+            </button>
+          </form>
+        </div>
+      )}
+
+      {feedbackNotice ? (
+        <div aria-live="polite" className="feedback-toast" role="status">
+          {feedbackNotice}
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -933,6 +1119,85 @@ function AssistantExecution({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function AnswerActions({
+  content,
+  disabled,
+  onDislike,
+  onRegenerate,
+}: {
+  content: string;
+  disabled: boolean;
+  onDislike: () => void;
+  onRegenerate: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [disliked, setDisliked] = useState(false);
+
+  const copyAnswer = async () => {
+    await navigator.clipboard.writeText(content);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1_800);
+  };
+
+  const shareAnswer = async () => {
+    if (navigator.share) {
+      await navigator.share({ title: "交易智能助手回答", text: content });
+    } else {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1_800);
+    }
+  };
+
+  return (
+    <div aria-label="回答操作" className="answer-actions" role="toolbar">
+      <button aria-label={copied ? "已复制" : "复制回答"} onClick={() => void copyAnswer()} type="button">
+        {copied ? <Check size={17} /> : <Copy size={17} />}
+      </button>
+      <button
+        aria-label="点赞"
+        aria-pressed={liked}
+        className={liked ? "active" : ""}
+        onClick={() => {
+          setLiked((current) => !current);
+          setDisliked(false);
+        }}
+        type="button"
+      >
+        <ThumbsUp size={17} />
+      </button>
+      <button
+        aria-label="点踩"
+        aria-pressed={disliked}
+        className={disliked ? "active" : ""}
+        onClick={() => {
+          setDisliked(true);
+          setLiked(false);
+          onDislike();
+        }}
+        type="button"
+      >
+        <ThumbsDown size={17} />
+      </button>
+      <button
+        aria-label="重新生成回答"
+        disabled={disabled}
+        onClick={onRegenerate}
+        type="button"
+      >
+        <RotateCcw size={17} />
+      </button>
+      <button aria-label="分享回答" onClick={() => void shareAnswer()} type="button">
+        <Share2 size={17} />
+      </button>
+      <button aria-label="更多操作" type="button">
+        <Ellipsis size={18} />
+      </button>
+    </div>
   );
 }
 

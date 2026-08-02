@@ -856,6 +856,36 @@ button:disabled {
   border-top: 1px solid #ededed;
 }
 
+.answer-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 13px;
+}
+
+.answer-actions button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #606060;
+}
+
+.answer-actions button:hover,
+.answer-actions button.active,
+.answer-actions button[aria-pressed="true"] {
+  background: #eeeeee;
+  color: #171717;
+}
+
+.answer-actions button:disabled {
+  opacity: 0.35;
+}
+
 .generating-reply {
   display: flex;
   width: fit-content;
@@ -1406,6 +1436,165 @@ button:disabled {
 .search-empty span {
   margin-top: 5px;
   font-size: 12px;
+}
+
+.feedback-modal-layer {
+  position: fixed;
+  z-index: 110;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.feedback-modal-scrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  background: rgba(24, 24, 24, 0.52);
+  backdrop-filter: blur(2px);
+}
+
+.feedback-dialog {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: min(760px, calc(100vw - 48px));
+  gap: 20px;
+  padding: 28px 32px 30px;
+  border: 1px solid #d7d7d7;
+  border-radius: 28px;
+  background: white;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.24);
+}
+
+.feedback-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.feedback-dialog h2 {
+  margin: 0;
+  font-size: 27px;
+  font-weight: 720;
+  letter-spacing: -0.03em;
+}
+
+.feedback-dialog > header button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+}
+
+.feedback-dialog > header button:hover {
+  background: #f1f1f1;
+}
+
+.feedback-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.feedback-reasons button {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 15px;
+  border: 1px solid #dedede;
+  border-radius: 999px;
+  background: white;
+  font-size: 14px;
+}
+
+.feedback-reasons button:hover,
+.feedback-reasons button.selected {
+  border-color: #282828;
+  background: #f1f1f1;
+}
+
+.feedback-reasons button.selected svg {
+  transform: rotate(45deg);
+}
+
+.feedback-dialog textarea {
+  width: 100%;
+  min-height: 170px;
+  resize: vertical;
+  padding: 16px 18px;
+  border: 1px solid #dddddd;
+  border-radius: 18px;
+  outline: 0;
+  background: white;
+  color: #222222;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.feedback-dialog textarea:focus {
+  border-color: #333333;
+  box-shadow: 0 0 0 1px #333333;
+}
+
+.feedback-dialog textarea::placeholder {
+  color: #999999;
+}
+
+.feedback-help {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -2px 0 0;
+  color: #888888;
+  font-size: 13px;
+}
+
+.feedback-help button {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #666666;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.feedback-submit {
+  min-height: 48px;
+  border: 0;
+  border-radius: 13px;
+  background: #1e1e1e;
+  color: white;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.feedback-submit:disabled {
+  background: #b6b6b6;
+  color: #eeeeee;
+}
+
+.feedback-toast {
+  position: fixed;
+  z-index: 120;
+  right: 24px;
+  bottom: 24px;
+  padding: 11px 15px;
+  border: 1px solid #dddddd;
+  border-radius: 12px;
+  background: #202020;
+  color: white;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.18);
+  font-size: 13px;
 }
 
 @media (max-width: 760px) {

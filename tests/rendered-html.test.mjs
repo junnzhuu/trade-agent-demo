@@ -40,6 +40,15 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /深度分析并核验结论/);
   assert.match(page, /formatRelativeTaskTime/);
   assert.match(page, /Agent 回复/);
+  assert.match(page, /回答操作/);
+  assert.match(page, /提交反馈/);
+  assert.match(page, /不正确或不完整/);
+  assert.match(page, /没有遵循我的指示/);
+  assert.match(page, /偏题\/超出范围/);
+  assert.match(page, /填写详情（选填）/);
+  assert.match(page, /点击加入反馈群/);
+  assert.match(css, /\.answer-actions/);
+  assert.match(css, /\.feedback-dialog/);
   assert.doesNotMatch(page, /className="chat-avatar"/);
   assert.match(page, /生成回复中/);
   assert.match(page, /recent-task-spinner/);
