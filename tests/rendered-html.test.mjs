@@ -48,7 +48,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /已处理/);
   assert.match(page, /思考与 Skill 调用步骤/);
   assert.match(page, /execution-details/);
-  assert.match(page, /open=\{message\.pending \|\| undefined\}/);
+  assert.match(page, /open=\{message\.pending \|\| forceOpen \|\| undefined\}/);
   assert.match(page, /展开或折叠思考过程/);
   assert.match(page, /深度分析并核验结论/);
   assert.match(page, /formatRelativeTaskTime/);
@@ -92,7 +92,15 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /我的收藏/);
   assert.match(page, /复制请求 ID/);
   assert.match(page, /ID: Manbo/);
+  assert.match(page, /新手指引/);
+  assert.match(page, /OnboardingTour/);
+  assert.match(page, /trade-agent-onboarding-v1|ONBOARDING_STORAGE_KEY/);
+  assert.match(page, /data-tour-id="workspace-navigation"/);
+  assert.match(page, /data-tour-id="task-composer"/);
+  assert.match(page, /data-tour-id="feedback"/);
   assert.match(css, /\.account-drawer/);
+  assert.match(css, /\.onboarding-bubble/);
+  assert.match(css, /\.onboarding-spotlight/);
   assert.match(css, /\.answer-more-menu/);
   assert.match(css, /\.library-dialog/);
   assert.match(css, /\.primary-sidebar-nav button:first-child/);

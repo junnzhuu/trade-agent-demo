@@ -43,6 +43,7 @@ import {
 } from "react";
 import { runDemoScenario } from "@/lib/demo-simulator";
 import { ExpertSkillWorkspace } from "@/components/expert-skill-workspace";
+import { OnboardingTour } from "@/components/onboarding-tour";
 import {
   createTaskTitle,
   filterRecentTasks,
@@ -64,6 +65,13 @@ import {
   homeSkillCategories,
   type HomeSkillCategoryId,
 } from "@/lib/home-skill-recommendations";
+import {
+  ONBOARDING_DISMISSED_VALUE,
+  ONBOARDING_STORAGE_KEY,
+  onboardingSteps,
+  shouldAutoStartOnboarding,
+  type OnboardingStepId,
+} from "@/lib/onboarding-tour";
 
 // 后续功能扩展会从这五类能力进入；首页先保持截图中的极简状态。
 const agentCapabilities = [
@@ -102,6 +110,13 @@ type WorkspaceView = "chat" | "experts" | "automation";
 type LibraryDialog = "favorites" | "archive";
 type FeedbackMode = "answer" | "general";
 type FeedbackImage = { id: string; name: string; url: string };
+type TourComposerPanel = "add" | "mode" | "model" | null;
+type TourOrigin = {
+  activeView: WorkspaceView;
+  activeTaskId: string | null;
+  sidebarOpen: boolean;
+  mobileSidebarOpen: boolean;
+};
 
 type DemoRunJob = {
   taskId: string;
@@ -173,6 +188,10 @@ export default function Home() {
   const [renameValue, setRenameValue] = useState("");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [libraryDialog, setLibraryDialog] = useState<LibraryDialog | null>(null);
+  const [tourActive, setTourActive] = useState(false);
+  const [tourStepIndex, setTourStepIndex] = useState(0);
+  const [tourComposerPanel, setTourComposerPanel] =
+    useState<TourComposerPanel>(null);
   const activeTaskIdRef = useRef<string | null>(null);
   const activeViewRef = useRef<WorkspaceView>("chat");
   const mountedRef = useRef(true);
@@ -185,6 +204,8 @@ export default function Home() {
   const accountControlRef = useRef<HTMLDivElement | null>(null);
   const accountButtonRef = useRef<HTMLButtonElement | null>(null);
   const libraryCloseRef = useRef<HTMLButtonElement | null>(null);
+  const tourOriginRef = useRef<TourOrigin | null>(null);
+  const tourInitializedRef = useRef(false);
 
   const filteredTasks = useMemo(
     () => filterRecentTasks(recentTasks, searchQuery),
@@ -835,6 +856,150 @@ export default function Home() {
     }
   };
 
+  const startOnboarding = useCallback(() => {
+    tourOriginRef.current = {
+      activeView,
+      activeTaskId,
+      sidebarOpen,
+      mobileSidebarOpen,
+    };
+    setSearchOpen(false);
+    setLibraryDialog(null);
+    setTaskMenuId(null);
+    setAccountMenuOpen(false);
+    setTourComposerPanel(null);
+    setTourStepIndex(0);
+    setTourActive(true);
+  }, [activeTaskId, activeView, mobileSidebarOpen, sidebarOpen]);
+
+  const dismissOnboarding = useCallback(() => {
+    try {
+      window.localStorage.setItem(
+        ONBOARDING_STORAGE_KEY,
+        ONBOARDING_DISMISSED_VALUE,
+      );
+    } catch {
+      // 隐私模式下存储可能不可用；不影响本次导览正常结束。
+    }
+    setTourActive(false);
+    setTourComposerPanel(null);
+    setTaskMenuId(null);
+    setAccountMenuOpen(false);
+    setSearchOpen(false);
+    setLibraryDialog(null);
+    closeFeedback();
+
+    const origin = tourOriginRef.current;
+    if (origin) {
+      activeViewRef.current = origin.activeView;
+      activeTaskIdRef.current = origin.activeTaskId;
+      setActiveView(origin.activeView);
+      setActiveTaskId(origin.activeTaskId);
+      setSidebarOpen(origin.sidebarOpen);
+      setMobileSidebarOpen(origin.mobileSidebarOpen);
+    }
+    tourOriginRef.current = null;
+    requestAnimationFrame(() => accountButtonRef.current?.focus());
+  }, [closeFeedback]);
+
+  useEffect(() => {
+    let shouldStart = true;
+    try {
+      shouldStart = shouldAutoStartOnboarding(
+        window.localStorage.getItem(ONBOARDING_STORAGE_KEY),
+      );
+    } catch {
+      shouldStart = true;
+    }
+    if (!shouldStart) return;
+    const timer = window.setTimeout(() => {
+      if (tourInitializedRef.current) return;
+      tourInitializedRef.current = true;
+      startOnboarding();
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [startOnboarding]);
+
+  useEffect(() => {
+    if (!tourActive) return;
+    const stepId: OnboardingStepId = onboardingSteps[tourStepIndex].id;
+    const frame = window.requestAnimationFrame(() => {
+      setSearchOpen(false);
+      setLibraryDialog(null);
+      setTaskMenuId(null);
+      setAccountMenuOpen(false);
+      setFeedbackTargetId(null);
+      setTourComposerPanel(null);
+
+      if (
+        [
+          "workspace-navigation",
+          "sidebar-tools",
+          "recent-tasks",
+          "task-management",
+          "account-content",
+        ].includes(stepId)
+      ) {
+        setSidebarOpen(true);
+        setMobileSidebarOpen(false);
+      }
+
+      if (
+        [
+          "workspace-navigation",
+          "sidebar-tools",
+          "recent-tasks",
+          "task-management",
+          "account-content",
+          "task-composer",
+          "add-menu",
+          "run-modes",
+          "model-and-send",
+          "quick-skills",
+        ].includes(stepId)
+      ) {
+        activeViewRef.current = "chat";
+        activeTaskIdRef.current = null;
+        setActiveView("chat");
+        setActiveTaskId(null);
+      }
+
+      if (stepId === "recent-tasks" || stepId === "task-management") {
+        setRecentExpanded(true);
+      }
+      if (stepId === "task-management") {
+        setTaskMenuId("preset-bid-limits");
+      } else if (stepId === "account-content") {
+        setAccountMenuOpen(true);
+      } else if (stepId === "add-menu") {
+        setTourComposerPanel("add");
+      } else if (stepId === "run-modes") {
+        setTourComposerPanel("mode");
+      } else if (stepId === "model-and-send") {
+        setTourComposerPanel("model");
+      } else if (
+        stepId === "agent-execution" ||
+        stepId === "answer-actions" ||
+        stepId === "feedback"
+      ) {
+        activeViewRef.current = "chat";
+        activeTaskIdRef.current = "preset-bid-limits";
+        setActiveView("chat");
+        setActiveTaskId("preset-bid-limits");
+        if (stepId === "feedback") {
+          openFeedback("preset-bid-limits-assistant");
+        }
+      } else if (stepId === "experts-and-skills") {
+        activeViewRef.current = "experts";
+        setActiveView("experts");
+      } else if (stepId === "automation") {
+        activeViewRef.current = "automation";
+        setActiveView("automation");
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [openFeedback, tourActive, tourStepIndex]);
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     sendPrompt(input);
@@ -942,7 +1107,7 @@ export default function Home() {
                 <Image alt="" height={23} src="./logo.svg" width={28} />
               </span>
               <strong>交易智能助手</strong>
-              <div className="sidebar-header-actions">
+              <div className="sidebar-header-actions" data-tour-id="sidebar-tools">
                 <button
                   aria-label="收起侧栏"
                   className="sidebar-toggle"
@@ -974,7 +1139,11 @@ export default function Home() {
           )}
         </header>
 
-        <nav aria-label="工作台导航" className="primary-sidebar-nav">
+        <nav
+          aria-label="工作台导航"
+          className="primary-sidebar-nav"
+          data-tour-id="workspace-navigation"
+        >
           <button aria-label="新建任务" onClick={startNewChat} type="button">
             <Plus size={19} strokeWidth={1.8} />
             <span>新建任务</span>
@@ -1056,7 +1225,12 @@ export default function Home() {
 
         <div className="account-control" ref={accountControlRef}>
           {accountMenuOpen ? (
-            <div aria-label="账号操作" className="account-drawer" role="menu">
+            <div
+              aria-label="账号操作"
+              className="account-drawer"
+              data-tour-id="account-content"
+              role="menu"
+            >
               <button
                 onClick={() => openLibrary("favorites")}
                 role="menuitem"
@@ -1095,6 +1269,18 @@ export default function Home() {
               >
                 <Users size={17} />
                 加入交流群
+              </button>
+              <span aria-hidden="true" className="account-drawer-divider" />
+              <button
+                onClick={() => {
+                  setAccountMenuOpen(false);
+                  startOnboarding();
+                }}
+                role="menuitem"
+                type="button"
+              >
+                <WandSparkles size={17} />
+                新手指引
               </button>
             </div>
           ) : null}
@@ -1163,6 +1349,7 @@ export default function Home() {
               thinking={thinking}
               togglePlanMode={() => setPlanMode((current) => !current)}
               toggleThinking={() => setThinking((current) => !current)}
+              tourPanel={tourComposerPanel}
             />
             <HomeSkillDiscovery
               onMore={() => {
@@ -1201,6 +1388,11 @@ export default function Home() {
                                 : (message.elapsedMs ?? 0)
                             }
                             message={message}
+                            forceOpen={
+                              tourActive &&
+                              onboardingSteps[tourStepIndex].id ===
+                                "agent-execution"
+                            }
                           />
                           {!message.pending ? (
                             <AnswerActions
@@ -1253,6 +1445,7 @@ export default function Home() {
                 thinking={thinking}
                 togglePlanMode={() => setPlanMode((current) => !current)}
                 toggleThinking={() => setThinking((current) => !current)}
+                tourPanel={tourComposerPanel}
               />
             </div>
           </>
@@ -1550,7 +1743,7 @@ export default function Home() {
             onSubmit={submitFeedback}
             role="dialog"
           >
-            <header>
+            <header data-tour-id="feedback">
               <h2 id="feedback-dialog-title">
                 {feedbackMode === "general" ? "意见反馈" : "提交反馈"}
               </h2>
@@ -1683,13 +1876,32 @@ export default function Home() {
           {feedbackNotice}
         </div>
       ) : null}
+
+      {tourActive ? (
+        <OnboardingTour
+          onBack={() =>
+            setTourStepIndex((current) => Math.max(0, current - 1))
+          }
+          onNext={() => {
+            if (tourStepIndex === onboardingSteps.length - 1) {
+              dismissOnboarding();
+            } else {
+              setTourStepIndex((current) => current + 1);
+            }
+          }}
+          onSkip={dismissOnboarding}
+          step={onboardingSteps[tourStepIndex]}
+          stepCount={onboardingSteps.length}
+          stepIndex={tourStepIndex}
+        />
+      ) : null}
     </main>
   );
 }
 
 function AutomationWorkspace() {
   return (
-    <div className="automation-workspace">
+    <div className="automation-workspace" data-tour-id="automation">
       <div className="automation-mark" aria-hidden="true">
         <Workflow size={26} strokeWidth={1.6} />
       </div>
@@ -1714,7 +1926,11 @@ function HomeSkillDiscovery({
   onMore: () => void;
 }) {
   return (
-    <section aria-label="快捷技能推荐" className="home-skill-discovery">
+    <section
+      aria-label="快捷技能推荐"
+      className="home-skill-discovery"
+      data-tour-id="quick-skills"
+    >
       <div aria-label="技能分类" className="home-skill-tabs" role="tablist">
         {homeSkillCategories.map((category, index) => (
           <button
@@ -1804,6 +2020,7 @@ function SidebarTaskSection({
   return (
     <section
       className={`recent-section ${title === "置顶任务" ? "pinned-section" : ""}`}
+      data-tour-id={title === "最近任务" ? "recent-tasks" : undefined}
     >
       <button
         aria-expanded={expanded}
@@ -1889,6 +2106,11 @@ function SidebarTaskSection({
                   <div
                     aria-label="任务操作"
                     className="task-context-menu"
+                    data-tour-id={
+                      task.id === "preset-bid-limits"
+                        ? "task-management"
+                        : undefined
+                    }
                     role="menu"
                   >
                     <button
@@ -1949,9 +2171,11 @@ function formatElapsedTime(elapsedMs: number) {
 
 function AssistantExecution({
   elapsedMs,
+  forceOpen = false,
   message,
 }: {
   elapsedMs: number;
+  forceOpen?: boolean;
   message: TaskMessage;
 }) {
   const hasExecutionTrace = Boolean(message.trace?.length || message.pending);
@@ -1962,10 +2186,11 @@ function AssistantExecution({
     <section
       aria-label="Agent 执行过程"
       className={`assistant-execution ${message.pending ? "running" : "completed"}`}
+      data-tour-id="agent-execution"
     >
       <details
         className="execution-details"
-        open={message.pending || undefined}
+        open={message.pending || forceOpen || undefined}
       >
         <summary aria-label="展开或折叠思考过程" className="execution-duration">
           <span aria-hidden="true" className="execution-duration-mark" />
@@ -2083,7 +2308,12 @@ function AnswerActions({
   };
 
   return (
-    <div aria-label="回答操作" className="answer-actions" role="toolbar">
+    <div
+      aria-label="回答操作"
+      className="answer-actions"
+      data-tour-id="answer-actions"
+      role="toolbar"
+    >
       <button
         aria-label={copied ? "已复制" : "复制回答"}
         onClick={() => void copyAnswer()}
@@ -2188,6 +2418,7 @@ function Composer({
   thinking,
   togglePlanMode,
   toggleThinking,
+  tourPanel,
 }: {
   input: string;
   onInput: (value: string) => void;
@@ -2203,6 +2434,7 @@ function Composer({
   thinking: boolean;
   togglePlanMode: () => void;
   toggleThinking: () => void;
+  tourPanel: TourComposerPanel;
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [addMenuView, setAddMenuView] = useState<"main" | "mode">("main");
@@ -2210,17 +2442,21 @@ function Composer({
   const addControlRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const modelControlRef = useRef<HTMLDivElement | null>(null);
+  const visibleAddMenuOpen =
+    tourPanel === "add" || tourPanel === "mode" || (!tourPanel && addMenuOpen);
+  const visibleAddMenuView = tourPanel === "mode" ? "mode" : addMenuView;
+  const visibleModelMenuOpen = tourPanel === "model" || (!tourPanel && modelMenuOpen);
 
   useEffect(() => {
-    if (!addMenuOpen && !modelMenuOpen) return;
+    if (!visibleAddMenuOpen && !visibleModelMenuOpen) return;
 
     const closeOnOutsidePress = (event: PointerEvent) => {
       if (event.target instanceof Node) {
-        if (addMenuOpen && !addControlRef.current?.contains(event.target)) {
+        if (visibleAddMenuOpen && !addControlRef.current?.contains(event.target)) {
           setAddMenuOpen(false);
           setAddMenuView("main");
         }
-        if (modelMenuOpen && !modelControlRef.current?.contains(event.target)) {
+        if (visibleModelMenuOpen && !modelControlRef.current?.contains(event.target)) {
           setModelMenuOpen(false);
         }
       }
@@ -2239,10 +2475,14 @@ function Composer({
       document.removeEventListener("pointerdown", closeOnOutsidePress);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [addMenuOpen, modelMenuOpen]);
+  }, [visibleAddMenuOpen, visibleModelMenuOpen]);
 
   return (
-    <form className="minimal-composer" onSubmit={onSubmit}>
+    <form
+      className="minimal-composer"
+      data-tour-id="task-composer"
+      onSubmit={onSubmit}
+    >
       <textarea
         aria-label="任务输入框"
         maxLength={2000}
@@ -2266,7 +2506,7 @@ function Composer({
               type="file"
             />
             <button
-              aria-expanded={addMenuOpen}
+              aria-expanded={visibleAddMenuOpen}
               aria-haspopup="menu"
               aria-label="打开添加菜单"
               className="composer-add-button"
@@ -2279,8 +2519,13 @@ function Composer({
               <Plus size={19} strokeWidth={1.8} />
             </button>
 
-            {addMenuOpen && addMenuView === "main" && (
-              <div aria-label="添加内容" className="add-menu" role="menu">
+            {visibleAddMenuOpen && visibleAddMenuView === "main" && (
+              <div
+                aria-label="添加内容"
+                className="add-menu"
+                data-tour-id="add-menu"
+                role="menu"
+              >
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   role="menuitem"
@@ -2323,10 +2568,11 @@ function Composer({
               </div>
             )}
 
-            {addMenuOpen && addMenuView === "mode" && (
+            {visibleAddMenuOpen && visibleAddMenuView === "mode" && (
               <div
                 aria-label="模式设置"
                 className="add-menu mode-menu"
+                data-tour-id="run-modes"
                 role="dialog"
               >
                 <header>
@@ -2375,19 +2621,23 @@ function Composer({
         </div>
 
         <div className="composer-right-actions">
-          <div className="model-control" ref={modelControlRef}>
+          <div
+            className="model-control"
+            data-tour-id="model-and-send"
+            ref={modelControlRef}
+          >
             <button
-              aria-expanded={modelMenuOpen}
+              aria-expanded={visibleModelMenuOpen}
               aria-haspopup="menu"
               className="model-selector"
               onClick={() => setModelMenuOpen((current) => !current)}
               type="button"
             >
               {selectedModelId}
-              <ChevronDown className={modelMenuOpen ? "open" : ""} size={13} />
+              <ChevronDown className={visibleModelMenuOpen ? "open" : ""} size={13} />
             </button>
 
-            {modelMenuOpen && (
+            {visibleModelMenuOpen && (
               <div aria-label="选择模型" className="model-menu" role="menu">
                 {modelOptions.map((model) => (
                   <button

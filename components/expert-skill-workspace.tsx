@@ -31,7 +31,11 @@ export function ExpertSkillWorkspace() {
     <div className="expert-workspace">
       <h1>专家</h1>
 
-      <ul aria-label="业务专家" className="expert-grid">
+      <ul
+        aria-label="业务专家"
+        className="expert-grid"
+        data-tour-id="experts-and-skills"
+      >
         {expertCatalog.map((expert) => {
           const selected = expert.id === selectedExpert.id;
           return (

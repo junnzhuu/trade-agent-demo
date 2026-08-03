@@ -49,7 +49,7 @@ export function getTaskActivityIndicator(
   return task.unreadCompletion && !isViewing ? "attention" : "time";
 }
 
-const initialTaskTime = Date.now();
+const initialTaskTime = new Date("2026-08-03T06:00:00.000Z").getTime();
 
 export const initialRecentTasks: RecentTask[] = [
   {
@@ -68,6 +68,33 @@ export const initialRecentTasks: RecentTask[] = [
       {
         id: "preset-bid-limits-assistant",
         role: "assistant",
+        elapsedMs: 5_000,
+        trace: [
+          {
+            id: "preset-route-merchant-operations",
+            title: "已路由至商家运营专家",
+            detail: "识别为出价规则与经营诊断问题，选择商家运营领域处理。",
+            status: "completed",
+          },
+          {
+            id: "preset-skill-bid-range",
+            title: "调用 Skill：出价上下限查询",
+            detail: "读取演示规则中的最低获客成本、目标毛利和风控边界。",
+            status: "completed",
+          },
+          {
+            id: "preset-analyse-performance",
+            title: "分析商品转化表现",
+            detail: "结合高、低转化商品的演示数据，生成分层调整建议。",
+            status: "completed",
+          },
+          {
+            id: "preset-compose-answer",
+            title: "汇总规则与行动建议",
+            detail: "将查询结果整理为可直接用于运营决策的结论。",
+            status: "completed",
+          },
+        ],
         content:
           "已基于演示规则完成梳理：建议最低出价覆盖基础获客成本，最高出价不超过目标毛利可承受范围；对高转化商品可上浮 10%，低转化商品应先优化素材与详情页，再逐步调整出价。",
       },
