@@ -101,10 +101,19 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.expert-grid/);
   assert.match(css, /\.home-skill-discovery/);
   assert.match(css, /\.home-skill-cards/);
+  assert.doesNotMatch(
+    css,
+    /\.home-skill-discovery\s*{[^}]*(?:background|backdrop-filter|border:)/s,
+  );
   assert.match(
     css,
-    /\.home-skill-discovery\s*{[^}]*backdrop-filter: blur\(22px\) saturate\(118%\)/s,
+    /\.home-skill-tabs button\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(120%\)/s,
   );
+  assert.match(
+    css,
+    /\.home-skill-card\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(118%\)/s,
+  );
+  assert.match(css, /grid-template-columns: repeat\(3, minmax\(0, 260px\)\)/);
   assert.match(css, /\.skill-grid/);
   assert.match(css, /\.brand-mark img/);
   assert.match(css, /prefers-reduced-motion/);
