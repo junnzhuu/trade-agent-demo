@@ -82,8 +82,10 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(css, /padding-right: 35px/);
   assert.match(css, /background: transparent !important/);
   assert.match(css, /\.main-background/);
-  assert.match(css, /background: rgba\(218, 220, 224, 0\.56\)/);
-  assert.match(css, /backdrop-filter: blur\(12px\)/);
+  assert.match(css, /\.main-background\s*{[^}]*z-index: 0/s);
+  assert.match(css, /background: rgba\(242, 244, 247, 0\.3\)/);
+  assert.match(css, /backdrop-filter: blur\(20px\) saturate\(116%\)/);
+  assert.match(css, /@supports not \(\(-webkit-backdrop-filter:/);
   assert.match(css, /\.task-context-menu/);
   assert.match(page, /我的收藏/);
   assert.match(page, /复制请求 ID/);
