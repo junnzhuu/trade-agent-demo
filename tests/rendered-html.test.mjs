@@ -94,7 +94,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /ID: Manbo/);
   assert.match(page, /新手指引/);
   assert.match(page, /OnboardingTour/);
-  assert.match(page, /trade-agent-onboarding-v1|ONBOARDING_STORAGE_KEY/);
+  assert.match(
+    page,
+    /useEffect\(\(\) => \{\s*const timer = window\.setTimeout\(\(\) => \{\s*if \(tourInitializedRef\.current\) return;\s*tourInitializedRef\.current = true;\s*startOnboarding\(\);\s*\}, 500\)/,
+  );
+  assert.doesNotMatch(page, /localStorage|ONBOARDING_STORAGE_KEY/);
   assert.match(page, /data-tour-id="workspace-navigation"/);
   assert.match(page, /data-tour-id="task-composer"/);
   assert.match(page, /data-tour-id="feedback"/);

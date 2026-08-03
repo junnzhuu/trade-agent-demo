@@ -66,10 +66,7 @@ import {
   type HomeSkillCategoryId,
 } from "@/lib/home-skill-recommendations";
 import {
-  ONBOARDING_DISMISSED_VALUE,
-  ONBOARDING_STORAGE_KEY,
   onboardingSteps,
-  shouldAutoStartOnboarding,
   type OnboardingStepId,
 } from "@/lib/onboarding-tour";
 
@@ -873,14 +870,6 @@ export default function Home() {
   }, [activeTaskId, activeView, mobileSidebarOpen, sidebarOpen]);
 
   const dismissOnboarding = useCallback(() => {
-    try {
-      window.localStorage.setItem(
-        ONBOARDING_STORAGE_KEY,
-        ONBOARDING_DISMISSED_VALUE,
-      );
-    } catch {
-      // 隐私模式下存储可能不可用；不影响本次导览正常结束。
-    }
     setTourActive(false);
     setTourComposerPanel(null);
     setTaskMenuId(null);
@@ -903,15 +892,6 @@ export default function Home() {
   }, [closeFeedback]);
 
   useEffect(() => {
-    let shouldStart = true;
-    try {
-      shouldStart = shouldAutoStartOnboarding(
-        window.localStorage.getItem(ONBOARDING_STORAGE_KEY),
-      );
-    } catch {
-      shouldStart = true;
-    }
-    if (!shouldStart) return;
     const timer = window.setTimeout(() => {
       if (tourInitializedRef.current) return;
       tourInitializedRef.current = true;

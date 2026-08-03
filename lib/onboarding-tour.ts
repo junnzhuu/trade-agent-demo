@@ -1,6 +1,3 @@
-export const ONBOARDING_STORAGE_KEY = "trade-agent-onboarding-v1";
-export const ONBOARDING_DISMISSED_VALUE = "dismissed";
-
 export type OnboardingPlacement =
   | "top"
   | "right"
@@ -163,7 +160,3 @@ export const onboardingSteps: OnboardingStep[] = [
     placement: "bottom",
   },
 ];
-
-export function shouldAutoStartOnboarding(storedValue: string | null) {
-  return storedValue !== ONBOARDING_DISMISSED_VALUE;
-}
