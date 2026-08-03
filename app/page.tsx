@@ -59,6 +59,11 @@ import {
   type TaskTraceStep,
 } from "@/lib/task-history";
 import { ConcurrentTaskScheduler } from "@/lib/task-scheduler";
+import {
+  getHomeSkills,
+  homeSkillCategories,
+  type HomeSkillCategoryId,
+} from "@/lib/home-skill-recommendations";
 
 // 后续功能扩展会从这五类能力进入；首页先保持截图中的极简状态。
 const agentCapabilities = [
@@ -143,6 +148,8 @@ export default function Home() {
   const [thinking, setThinking] = useState(false);
   const [planMode, setPlanMode] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState<ModelId>("glm-5");
+  const [selectedHomeSkillCategory, setSelectedHomeSkillCategory] =
+    useState<HomeSkillCategoryId>("recommended");
   const [recentTasks, setRecentTasks] =
     useState<RecentTask[]>(initialRecentTasks);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
@@ -212,6 +219,10 @@ export default function Home() {
   const archivedTasks = useMemo(
     () => recentTasks.filter((task) => task.archived),
     [recentTasks],
+  );
+  const homeSkills = useMemo(
+    () => getHomeSkills(selectedHomeSkillCategory),
+    [selectedHomeSkillCategory],
   );
 
   useEffect(() => {
@@ -1153,6 +1164,19 @@ export default function Home() {
               togglePlanMode={() => setPlanMode((current) => !current)}
               toggleThinking={() => setThinking((current) => !current)}
             />
+            <HomeSkillDiscovery
+              onMore={() => {
+                activeViewRef.current = "experts";
+                setActiveView("experts");
+                setMobileSidebarOpen(false);
+              }}
+              onSelectCategory={setSelectedHomeSkillCategory}
+              onSelectSkill={(skillName) =>
+                setInput(`使用「${skillName}」：`)
+              }
+              selectedCategory={selectedHomeSkillCategory}
+              skills={homeSkills}
+            />
           </div>
         ) : (
           <>
@@ -1673,6 +1697,68 @@ function AutomationWorkspace() {
       <p>把重复的运营任务交给 Agent 按计划自动执行。</p>
       <span>演示能力即将开放</span>
     </div>
+  );
+}
+
+function HomeSkillDiscovery({
+  selectedCategory,
+  skills,
+  onSelectCategory,
+  onSelectSkill,
+  onMore,
+}: {
+  selectedCategory: HomeSkillCategoryId;
+  skills: ReturnType<typeof getHomeSkills>;
+  onSelectCategory: (category: HomeSkillCategoryId) => void;
+  onSelectSkill: (skillName: string) => void;
+  onMore: () => void;
+}) {
+  return (
+    <section aria-label="快捷技能推荐" className="home-skill-discovery">
+      <div aria-label="技能分类" className="home-skill-tabs" role="tablist">
+        {homeSkillCategories.map((category, index) => (
+          <button
+            aria-controls="home-skill-cards"
+            aria-selected={selectedCategory === category.id}
+            className={selectedCategory === category.id ? "selected" : ""}
+            id={`home-skill-tab-${category.id}`}
+            key={category.id}
+            onClick={() => onSelectCategory(category.id)}
+            role="tab"
+            type="button"
+          >
+            {index === 0 ? <WandSparkles aria-hidden="true" size={16} /> : null}
+            {category.label}
+          </button>
+        ))}
+        <button className="home-skill-more" onClick={onMore} type="button">
+          更多
+          <ChevronRight aria-hidden="true" size={15} />
+        </button>
+      </div>
+
+      <div
+        aria-labelledby={`home-skill-tab-${selectedCategory}`}
+        className="home-skill-cards"
+        id="home-skill-cards"
+        role="tabpanel"
+      >
+        {skills.map((skill) => (
+          <button
+            className="home-skill-card"
+            key={skill.id}
+            onClick={() => onSelectSkill(skill.name)}
+            type="button"
+          >
+            <span className="home-skill-card-heading">
+              <WandSparkles aria-hidden="true" size={16} strokeWidth={1.7} />
+              <strong>{skill.name}</strong>
+            </span>
+            <span>{skill.description}</span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 

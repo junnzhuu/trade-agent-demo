@@ -636,6 +636,134 @@ button:disabled {
   text-align: center;
 }
 
+.home-skill-discovery {
+  position: absolute;
+  top: calc(100% + 24px);
+  left: 50%;
+  width: min(920px, calc(100vw - var(--sidebar-width) - 64px));
+  transform: translateX(-50%);
+}
+
+.home-skill-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.home-skill-tabs button {
+  display: inline-flex;
+  min-height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 15px;
+  border: 1px solid rgba(196, 199, 202, 0.68);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.58);
+  color: #666a6e;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68);
+  font-size: 13px;
+  white-space: nowrap;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.home-skill-tabs button:hover,
+.home-skill-tabs button:focus-visible {
+  border-color: #aeb2b5;
+  background: rgba(255, 255, 255, 0.82);
+  color: #222426;
+}
+
+.home-skill-tabs button.selected {
+  border-color: rgba(153, 157, 161, 0.74);
+  background: rgba(226, 228, 230, 0.76);
+  color: #202224;
+  font-weight: 620;
+}
+
+.home-skill-tabs .home-skill-more {
+  padding-right: 12px;
+}
+
+.home-skill-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.home-skill-card {
+  display: flex;
+  min-width: 0;
+  min-height: 112px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 17px;
+  border: 1px solid rgba(205, 208, 211, 0.72);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.64);
+  color: #282a2c;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 8px 22px rgba(78, 94, 105, 0.045);
+  text-align: left;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.home-skill-card:hover,
+.home-skill-card:focus-visible {
+  border-color: #aeb2b5;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 12px 28px rgba(78, 94, 105, 0.08);
+  transform: translateY(-1px);
+}
+
+.home-skill-card-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-skill-card-heading svg {
+  flex: 0 0 auto;
+  color: #6e7377;
+}
+
+.home-skill-card-heading strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-skill-card > span:last-child {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #777b7f;
+  font-size: 12px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .minimal-composer {
   width: 100%;
   overflow: visible;
@@ -2311,6 +2439,36 @@ button:disabled {
     margin-bottom: 23px;
     padding: 0 16px;
     font-size: 24px;
+  }
+
+  .home-skill-discovery {
+    width: calc(100vw - 28px);
+  }
+
+  .home-skill-tabs {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 2px 1px 5px;
+    scrollbar-width: none;
+  }
+
+  .home-skill-tabs::-webkit-scrollbar,
+  .home-skill-cards::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-skill-cards {
+    display: flex;
+    overflow-x: auto;
+    padding: 1px 1px 7px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .home-skill-card {
+    width: min(260px, 78vw);
+    flex: 0 0 auto;
+    scroll-snap-align: start;
   }
 
   .chat-scroll {

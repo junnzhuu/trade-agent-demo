@@ -27,6 +27,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /runDemoScenario/);
   assert.match(page, /专家 · 技能/);
   assert.match(page, /ExpertSkillWorkspace/);
+  assert.match(page, /HomeSkillDiscovery/);
+  assert.match(page, /快捷技能推荐/);
   assert.match(page, /AutomationWorkspace/);
   assert.match(page, /今天帮你做些什么？@ 召唤专家，\/ 调用技能/);
   assert.match(page, /qwen3\.7-plus/);
@@ -97,6 +99,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /@keyframes generating-dot/);
   assert.match(css, /\.execution-details\[open\] \.execution-chevron/);
   assert.match(css, /\.expert-grid/);
+  assert.match(css, /\.home-skill-discovery/);
+  assert.match(css, /\.home-skill-cards/);
   assert.match(css, /\.skill-grid/);
   assert.match(css, /\.brand-mark img/);
   assert.match(css, /prefers-reduced-motion/);
