@@ -83,7 +83,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /background: transparent !important/);
   assert.match(css, /\.main-background/);
   assert.match(css, /\.main-background\s*{[^}]*z-index: 0/s);
-  assert.match(css, /background: rgba\(242, 244, 247, 0\.3\)/);
+  assert.match(css, /background: rgba\(226, 228, 230, 0\.42\)/);
   assert.match(css, /backdrop-filter: blur\(20px\) saturate\(116%\)/);
   assert.match(css, /@supports not \(\(-webkit-backdrop-filter:/);
   assert.match(css, /\.task-context-menu/);
