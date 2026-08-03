@@ -113,6 +113,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
     css,
     /\.home-skill-card\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(118%\)/s,
   );
+  assert.match(css, /background: rgba\(255, 255, 255, 0\.64\)/);
+  assert.match(css, /background: rgba\(218, 222, 225, 0\.68\)/);
   assert.match(css, /grid-template-columns: repeat\(3, minmax\(0, 260px\)\)/);
   assert.match(css, /\.skill-grid/);
   assert.match(css, /\.brand-mark img/);

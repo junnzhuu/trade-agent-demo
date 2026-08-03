@@ -662,7 +662,7 @@ button:disabled {
   padding: 0 15px;
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 999px;
-  background: rgba(230, 233, 235, 0.42);
+  background: rgba(255, 255, 255, 0.68);
   color: #666a6e;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.76),
@@ -681,15 +681,21 @@ button:disabled {
 .home-skill-tabs button:hover,
 .home-skill-tabs button:focus-visible {
   border-color: #aeb2b5;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(218, 222, 225, 0.66);
   color: #222426;
 }
 
 .home-skill-tabs button.selected {
-  border-color: rgba(255, 255, 255, 0.82);
-  background: rgba(207, 211, 214, 0.58);
+  border-color: #aeb2b5;
+  background: rgba(255, 255, 255, 0.78);
   color: #202224;
   font-weight: 620;
+}
+
+.home-skill-tabs button.selected:hover,
+.home-skill-tabs button.selected:focus-visible {
+  border-color: #969b9f;
+  background: rgba(210, 214, 217, 0.7);
 }
 
 .home-skill-tabs .home-skill-more {
@@ -713,7 +719,7 @@ button:disabled {
   padding: 16px 17px;
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 15px;
-  background: rgba(235, 238, 240, 0.44);
+  background: rgba(255, 255, 255, 0.64);
   color: #282a2c;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.78),
@@ -731,7 +737,7 @@ button:disabled {
 .home-skill-card:hover,
 .home-skill-card:focus-visible {
   border-color: #aeb2b5;
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(218, 222, 225, 0.68);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.86),
     0 12px 28px rgba(78, 94, 105, 0.08);
