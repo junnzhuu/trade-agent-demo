@@ -33,7 +33,6 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import {
-  type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
   useCallback,
@@ -70,8 +69,6 @@ import {
   buildPromptWithSkills,
   composerSkillOptions,
   filterComposerSkills,
-  getSkillTrigger,
-  removeSkillTrigger,
   type ComposerSkillOption,
 } from "@/lib/composer-skills";
 import {
@@ -1002,10 +999,10 @@ export default function Home() {
     setSelectedComposerSkills([]);
   };
 
-  const toggleComposerSkill = (skill: ComposerSkillOption) => {
+  const addComposerSkill = (skill: ComposerSkillOption) => {
     setSelectedComposerSkills((current) =>
       current.some((item) => item.key === skill.key)
-        ? current.filter((item) => item.key !== skill.key)
+        ? current
         : [...current, skill],
     );
   };
@@ -1016,7 +1013,7 @@ export default function Home() {
     );
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       const prompt = buildPromptWithSkills(input, selectedComposerSkills);
@@ -1345,7 +1342,7 @@ export default function Home() {
               onInput={setInput}
               onKeyDown={handleKeyDown}
               onRemoveSkill={removeComposerSkill}
-              onToggleSkill={toggleComposerSkill}
+              onAddSkill={addComposerSkill}
               onSubmit={submit}
               onStop={() => activeTaskId && cancelTask(activeTaskId)}
               openExperts={() => {
@@ -1444,7 +1441,7 @@ export default function Home() {
                 onInput={setInput}
                 onKeyDown={handleKeyDown}
                 onRemoveSkill={removeComposerSkill}
-                onToggleSkill={toggleComposerSkill}
+                onAddSkill={addComposerSkill}
                 onSubmit={submit}
                 onStop={() => activeTaskId && cancelTask(activeTaskId)}
                 openExperts={() => {
@@ -2427,8 +2424,8 @@ function Composer({
   input,
   onInput,
   onKeyDown,
+  onAddSkill,
   onRemoveSkill,
-  onToggleSkill,
   onSubmit,
   onStop,
   openExperts,
@@ -2445,9 +2442,9 @@ function Composer({
 }: {
   input: string;
   onInput: (value: string) => void;
-  onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
+  onAddSkill: (skill: ComposerSkillOption) => void;
   onRemoveSkill: (skillKey: string) => void;
-  onToggleSkill: (skill: ComposerSkillOption) => void;
   onSubmit: (event: FormEvent) => void;
   onStop: () => void;
   openExperts: () => void;
@@ -2470,9 +2467,12 @@ function Composer({
   const [activeSkillIndex, setActiveSkillIndex] = useState(0);
   const addControlRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLFormElement | null>(null);
+  const editorRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const modelControlRef = useRef<HTMLDivElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const skillSearchRef = useRef<HTMLInputElement | null>(null);
+  const skillInsertionRangeRef = useRef<Range | null>(null);
+  const lastReportedInputRef = useRef(input);
   const filteredSkills = useMemo(
     () => filterComposerSkills(skillQuery),
     [skillQuery],
@@ -2484,11 +2484,112 @@ function Composer({
     () => new Set(selectedSkills.map((skill) => skill.key)),
     [selectedSkills],
   );
-  const pendingSkillTrigger = getSkillTrigger(input);
   const visibleAddMenuOpen =
     tourPanel === "add" || tourPanel === "mode" || (!tourPanel && addMenuOpen);
   const visibleAddMenuView = tourPanel === "mode" ? "mode" : addMenuView;
   const visibleModelMenuOpen = tourPanel === "model" || (!tourPanel && modelMenuOpen);
+
+  const readEditorInput = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return "";
+
+    const readNode = (node: Node): string => {
+      if (
+        node instanceof HTMLElement &&
+        node.classList.contains("composer-inline-skill")
+      ) {
+        return "";
+      }
+      if (node.nodeType === Node.TEXT_NODE) {
+        return (node.textContent ?? "").replaceAll("\u200B", "");
+      }
+      if (node instanceof HTMLBRElement) return "\n";
+
+      const content = Array.from(node.childNodes).map(readNode).join("");
+      return node instanceof HTMLElement &&
+        ["DIV", "P"].includes(node.tagName) &&
+        content &&
+        !content.endsWith("\n")
+        ? `${content}\n`
+        : content;
+    };
+
+    return Array.from(editor.childNodes)
+      .map(readNode)
+      .join("")
+      .replace(/\n$/, "");
+  }, []);
+
+  const reportEditorInput = useCallback(() => {
+    const value = readEditorInput().slice(0, 2000);
+    lastReportedInputRef.current = value;
+    onInput(value);
+  }, [onInput, readEditorInput]);
+
+  const syncRemovedSkillTokens = () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const presentKeys = new Set(
+      Array.from(
+        editor.querySelectorAll<HTMLElement>(".composer-inline-skill"),
+      )
+        .map((token) => token.dataset.skillKey)
+        .filter((key): key is string => Boolean(key)),
+    );
+    selectedSkills.forEach((skill) => {
+      if (!presentKeys.has(skill.key)) onRemoveSkill(skill.key);
+    });
+  };
+
+  const focusEditorAtInsertion = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+
+    const selection = window.getSelection();
+    const savedRange = skillInsertionRangeRef.current;
+    if (selection && savedRange?.startContainer.isConnected) {
+      selection.removeAllRanges();
+      selection.addRange(savedRange);
+      return;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    skillInsertionRangeRef.current = range.cloneRange();
+  }, []);
+
+  const closeSkillMenu = useCallback(
+    (restoreEditorFocus = false) => {
+      setSkillMenuOpen(false);
+      setSkillQuery("");
+      setActiveSkillIndex(0);
+      if (restoreEditorFocus) {
+        requestAnimationFrame(focusEditorAtInsertion);
+      }
+    },
+    [focusEditorAtInsertion],
+  );
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const inlineSkills = editor.querySelectorAll<HTMLElement>(
+      ".composer-inline-skill",
+    );
+    const hasExternalTextChange = input !== lastReportedInputRef.current;
+    const shouldClearRemovedSkills =
+      selectedSkills.length === 0 && inlineSkills.length > 0;
+    if (!hasExternalTextChange && !shouldClearRemovedSkills) return;
+
+    editor.replaceChildren(document.createTextNode(input));
+    lastReportedInputRef.current = input;
+    skillInsertionRangeRef.current = null;
+  }, [input, selectedSkills.length]);
 
   useEffect(() => {
     if (!visibleAddMenuOpen && !visibleModelMenuOpen && !skillMenuOpen) return;
@@ -2503,7 +2604,7 @@ function Composer({
           setModelMenuOpen(false);
         }
         if (skillMenuOpen && !composerRef.current?.contains(event.target)) {
-          setSkillMenuOpen(false);
+          closeSkillMenu();
         }
       }
     };
@@ -2512,7 +2613,7 @@ function Composer({
         setAddMenuOpen(false);
         setAddMenuView("main");
         setModelMenuOpen(false);
-        setSkillMenuOpen(false);
+        closeSkillMenu(true);
       }
     };
 
@@ -2522,76 +2623,169 @@ function Composer({
       document.removeEventListener("pointerdown", closeOnOutsidePress);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [skillMenuOpen, visibleAddMenuOpen, visibleModelMenuOpen]);
+  }, [closeSkillMenu, skillMenuOpen, visibleAddMenuOpen, visibleModelMenuOpen]);
 
-  const selectSkill = (skill: ComposerSkillOption) => {
-    const caret = textareaRef.current?.selectionStart ?? input.length;
-    const trigger = getSkillTrigger(input, caret);
-    onInput(trigger ? removeSkillTrigger(input, trigger) : input);
-    onToggleSkill(skill);
-    setSkillQuery("");
-    setSkillMenuOpen(true);
-    requestAnimationFrame(() => textareaRef.current?.focus());
-  };
-
-  const handleComposerInput = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    const value = event.target.value;
-    const trigger = getSkillTrigger(value, event.target.selectionStart);
-    onInput(value);
-    if (trigger) {
-      setSkillQuery(trigger.query);
-      setActiveSkillIndex(0);
-      setSkillMenuOpen(true);
-      setAddMenuOpen(false);
-      setModelMenuOpen(false);
-    } else {
-      setSkillMenuOpen(false);
-      setSkillQuery("");
-    }
-  };
-
-  const handleComposerKeyDown = (
-    event: KeyboardEvent<HTMLTextAreaElement>,
-  ) => {
-    if (skillMenuOpen) {
-      if (event.key === "ArrowDown") {
-        event.preventDefault();
-        setActiveSkillIndex((current) =>
-          filteredSkills.length
-            ? Math.min(current + 1, filteredSkills.length - 1)
-            : 0,
-        );
-        return;
-      }
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        setActiveSkillIndex((current) => Math.max(current - 1, 0));
-        return;
-      }
-      if (event.key === "Enter" && filteredSkills[visibleActiveSkillIndex]) {
-        event.preventDefault();
-        selectSkill(filteredSkills[visibleActiveSkillIndex]);
-        return;
-      }
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setSkillMenuOpen(false);
-        return;
-      }
-      if (event.key === "Tab") setSkillMenuOpen(false);
-    }
-
-    if (
-      event.key === "Backspace" &&
-      !input &&
-      selectedSkills.length > 0
-    ) {
-      event.preventDefault();
-      onRemoveSkill(selectedSkills[selectedSkills.length - 1].key);
+  const insertSkillToken = (skill: ComposerSkillOption) => {
+    if (selectedSkillKeys.has(skill.key)) {
+      closeSkillMenu(true);
       return;
     }
 
+    const editor = editorRef.current;
+    if (!editor) return;
+    const selection = window.getSelection();
+    let range = skillInsertionRangeRef.current;
+    if (!range?.startContainer.isConnected) {
+      range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+    }
+
+    const token = document.createElement("span");
+    token.className = "composer-inline-skill";
+    token.contentEditable = "false";
+    token.dataset.skillKey = skill.key;
+    token.setAttribute("aria-label", `已选技能：${skill.name}`);
+    token.setAttribute("title", skill.name);
+    token.textContent = skill.name;
+
+    range.deleteContents();
+    range.insertNode(token);
+    const caretNode = document.createTextNode("\u200B");
+    token.after(caretNode);
+
+    range = document.createRange();
+    range.setStart(caretNode, 1);
+    range.collapse(true);
+    skillInsertionRangeRef.current = range.cloneRange();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+
+    onAddSkill(skill);
+    closeSkillMenu(true);
+  };
+
+  const openSkillSearchFromSlash = () => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection?.rangeCount) return false;
+
+    const range = selection.getRangeAt(0);
+    const node = range.startContainer;
+    if (
+      !range.collapsed ||
+      node.nodeType !== Node.TEXT_NODE ||
+      !editor.contains(node)
+    ) {
+      return false;
+    }
+
+    const text = node.textContent ?? "";
+    const offset = range.startOffset;
+    if (offset < 1 || text[offset - 1] !== "/") return false;
+    if (offset > 1 && !/\s/u.test(text[offset - 2])) return false;
+
+    const insertionRange = range.cloneRange();
+    insertionRange.setStart(node, offset - 1);
+    insertionRange.deleteContents();
+    insertionRange.collapse(true);
+    skillInsertionRangeRef.current = insertionRange.cloneRange();
+    selection.removeAllRanges();
+    selection.addRange(insertionRange);
+
+    reportEditorInput();
+    setSkillQuery("");
+    setActiveSkillIndex(0);
+    setSkillMenuOpen(true);
+    setAddMenuOpen(false);
+    setModelMenuOpen(false);
+    requestAnimationFrame(() => skillSearchRef.current?.focus());
+    return true;
+  };
+
+  const handleComposerInput = () => {
+    syncRemovedSkillTokens();
+    if (openSkillSearchFromSlash()) return;
+    reportEditorInput();
+  };
+
+  const removeAdjacentSkill = () => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection?.rangeCount) return false;
+    const range = selection.getRangeAt(0);
+    if (!range.collapsed || !editor.contains(range.startContainer)) return false;
+
+    let token: HTMLElement | null = null;
+    const caretNode: Node = range.startContainer;
+    let caretOffset = range.startOffset;
+
+    if (caretNode.nodeType === Node.TEXT_NODE) {
+      const textNode = caretNode as Text;
+      const prefix = textNode.data.slice(0, caretOffset);
+      if (!/^[\u200B\s]*$/u.test(prefix)) return false;
+      token =
+        textNode.previousSibling instanceof HTMLElement &&
+        textNode.previousSibling.classList.contains("composer-inline-skill")
+          ? textNode.previousSibling
+          : null;
+      if (token) {
+        textNode.data = textNode.data.slice(caretOffset);
+        caretOffset = 0;
+      }
+    } else if (caretNode === editor && caretOffset > 0) {
+      const previous = editor.childNodes[caretOffset - 1];
+      token =
+        previous instanceof HTMLElement &&
+        previous.classList.contains("composer-inline-skill")
+          ? previous
+          : null;
+      caretOffset -= token ? 1 : 0;
+    }
+
+    const skillKey = token?.dataset.skillKey;
+    if (!token || !skillKey) return false;
+    token.remove();
+
+    const nextRange = document.createRange();
+    nextRange.setStart(caretNode, caretOffset);
+    nextRange.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(nextRange);
+    skillInsertionRangeRef.current = nextRange.cloneRange();
+    onRemoveSkill(skillKey);
+    reportEditorInput();
+    return true;
+  };
+
+  const handleComposerKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Backspace" && removeAdjacentSkill()) {
+      event.preventDefault();
+      return;
+    }
     onKeyDown(event);
+  };
+
+  const handleSkillSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveSkillIndex((current) =>
+        filteredSkills.length
+          ? Math.min(current + 1, filteredSkills.length - 1)
+          : 0,
+      );
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveSkillIndex((current) => Math.max(current - 1, 0));
+    } else if (event.key === "Enter" && filteredSkills[visibleActiveSkillIndex]) {
+      event.preventDefault();
+      insertSkillToken(filteredSkills[visibleActiveSkillIndex]);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closeSkillMenu(true);
+    } else if (event.key === "Tab") {
+      closeSkillMenu();
+    }
   };
 
   return (
@@ -2608,14 +2802,41 @@ function Composer({
           id="composer-skill-list"
         >
           <header>
-            <strong>技能</strong>
-            <span>
-              {filteredSkills.length === composerSkillOptions.length
-                ? composerSkillOptions.length
-                : `${filteredSkills.length}/${composerSkillOptions.length}`}
-            </span>
+            <label className="composer-skill-search">
+              <Search aria-hidden="true" size={17} strokeWidth={1.8} />
+              <span className="sr-only">搜索技能</span>
+              <input
+                aria-activedescendant={
+                  filteredSkills[visibleActiveSkillIndex]
+                    ? `composer-skill-${filteredSkills[visibleActiveSkillIndex].key}`
+                    : undefined
+                }
+                aria-autocomplete="list"
+                aria-controls="composer-skill-options"
+                aria-expanded="true"
+                onChange={(event) => {
+                  setSkillQuery(event.target.value);
+                  setActiveSkillIndex(0);
+                }}
+                onKeyDown={handleSkillSearchKeyDown}
+                placeholder="搜索技能"
+                ref={skillSearchRef}
+                role="combobox"
+                value={skillQuery}
+              />
+              <span className="composer-skill-count">
+                {filteredSkills.length === composerSkillOptions.length
+                  ? composerSkillOptions.length
+                  : `${filteredSkills.length}/${composerSkillOptions.length}`}
+              </span>
+            </label>
           </header>
-          <div aria-label="技能列表" className="composer-skill-list" role="listbox">
+          <div
+            aria-label="技能列表"
+            className="composer-skill-list"
+            id="composer-skill-options"
+            role="listbox"
+          >
             {filteredSkills.length ? (
               filteredSkills.map((skill, index) => {
                 const selected = selectedSkillKeys.has(skill.key);
@@ -2625,16 +2846,16 @@ function Composer({
                     className={index === visibleActiveSkillIndex ? "active" : ""}
                     id={`composer-skill-${skill.key}`}
                     key={skill.key}
-                    onClick={() => selectSkill(skill)}
+                    onClick={() => insertSkillToken(skill)}
                     onMouseEnter={() => setActiveSkillIndex(index)}
                     role="option"
                     type="button"
                   >
                     <WandSparkles aria-hidden="true" size={17} strokeWidth={1.7} />
                     <span className="composer-skill-copy">
-                      <span className="composer-skill-heading">
-                        <strong>{skill.name}</strong>
-                        <span>{skill.expertLabel}</span>
+                      <strong>{skill.name}</strong>
+                      <span className="composer-skill-expert">
+                        {skill.expertLabel}
                       </span>
                       <small>{skill.description}</small>
                     </span>
@@ -2655,41 +2876,17 @@ function Composer({
           </div>
         </section>
       )}
-      {selectedSkills.length > 0 && (
-        <div aria-label="已选技能" className="selected-skill-chips">
-          {selectedSkills.map((skill) => (
-            <button
-              aria-label={`移除技能：${skill.name}`}
-              key={skill.key}
-              onClick={() => onRemoveSkill(skill.key)}
-              title={`移除 ${skill.name}`}
-              type="button"
-            >
-              <WandSparkles aria-hidden="true" size={14} strokeWidth={1.8} />
-              <span>{skill.name}</span>
-              <X aria-hidden="true" size={13} strokeWidth={1.8} />
-            </button>
-          ))}
-        </div>
-      )}
-      <textarea
-        aria-activedescendant={
-          skillMenuOpen && filteredSkills[visibleActiveSkillIndex]
-            ? `composer-skill-${filteredSkills[visibleActiveSkillIndex].key}`
-            : undefined
-        }
-        aria-autocomplete="list"
-        aria-controls="composer-skill-list"
-        aria-expanded={skillMenuOpen}
+      <div
         aria-label="任务输入框"
-        maxLength={2000}
-        onChange={handleComposerInput}
+        aria-multiline="true"
+        className="composer-editor"
+        contentEditable
+        data-placeholder={composerPlaceholder}
+        onInput={handleComposerInput}
         onKeyDown={handleComposerKeyDown}
-        placeholder={composerPlaceholder}
-        ref={textareaRef}
-        role="combobox"
-        rows={2}
-        value={input}
+        ref={editorRef}
+        role="textbox"
+        suppressContentEditableWarning
       />
       <div className="composer-actions">
         <div className="composer-left-actions">
@@ -2887,10 +3084,7 @@ function Composer({
             <button
               aria-label="发送"
               className="composer-send"
-              disabled={
-                Boolean(pendingSkillTrigger) ||
-                (!input.trim() && !selectedSkills.length)
-              }
+              disabled={skillMenuOpen || (!input.trim() && !selectedSkills.length)}
               type="submit"
             >
               <Image
@@ -2898,7 +3092,7 @@ function Composer({
                 aria-hidden="true"
                 height={24}
                 src={
-                  !pendingSkillTrigger && (input.trim() || selectedSkills.length)
+                  !skillMenuOpen && (input.trim() || selectedSkills.length)
                     ? "./send-ready.svg"
                     : "./send-empty.svg"
                 }

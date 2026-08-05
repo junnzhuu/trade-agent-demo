@@ -34,16 +34,19 @@ test("recognizes and removes a slash skill trigger at the caret", () => {
   assert.equal(getSkillTrigger("https://example.com"), null);
 });
 
-test("filters by title, expert label, and description", () => {
+test("filters by title and description without matching expert labels", () => {
+  assert.equal(filterComposerSkills("商家专家").length, 0);
   assert.ok(
-    filterComposerSkills("商家专家").every(
-      (skill) => skill.expertLabel === "商家专家",
+    filterComposerSkills("商家资质").some(
+      (skill) => skill.name === "商家资质查询",
     ),
   );
   assert.deepEqual(
     filterComposerSkills("资质是否过期").map((skill) => skill.name),
     ["商家资质查询"],
   );
+  assert.equal(filterComposerSkills("  资质是否过期  ").length, 1);
+  assert.equal(filterComposerSkills("").length, composerSkillOptions.length);
 });
 
 test("builds one prompt from multiple selected skills and free text", () => {

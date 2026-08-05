@@ -56,8 +56,8 @@ export function filterComposerSkills(
   if (!normalizedQuery) return options;
 
   return options.filter((skill) =>
-    [skill.name, skill.expertLabel, skill.expertName, skill.description].some(
-      (value) => value.toLocaleLowerCase().includes(normalizedQuery),
+    [skill.name, skill.description].some((value) =>
+      value.toLocaleLowerCase().includes(normalizedQuery),
     ),
   );
 }
