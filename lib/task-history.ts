@@ -34,6 +34,7 @@ export type RecentTask = {
 export type FavoriteAnswer = {
   taskId: string;
   taskTitle: string;
+  question: string;
   message: TaskMessage;
 };
 
@@ -155,9 +156,23 @@ export function getFavoriteAnswers(tasks: RecentTask[]): FavoriteAnswer[] {
   return tasks
     .filter((task) => !task.archived)
     .flatMap((task) =>
-      task.messages
-        .filter((message) => message.role === "assistant" && message.favorited)
-        .map((message) => ({ taskId: task.id, taskTitle: task.title, message })),
+      task.messages.flatMap((message, messageIndex) => {
+        if (message.role !== "assistant" || !message.favorited) return [];
+
+        const precedingQuestion = task.messages
+          .slice(0, messageIndex)
+          .toReversed()
+          .find((candidate) => candidate.role === "user");
+
+        return [
+          {
+            taskId: task.id,
+            taskTitle: task.title,
+            question: precedingQuestion?.content ?? "未找到关联问题",
+            message,
+          },
+        ];
+      }),
     );
 }
 

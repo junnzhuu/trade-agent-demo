@@ -67,6 +67,28 @@ test("hides archived favorites until their task is restored", () => {
   );
 });
 
+test("favorite answers include their nearest preceding user question", () => {
+  const task: RecentTask = {
+    ...initialRecentTasks[0],
+    messages: [
+      { id: "question-one", role: "user", content: "第一个问题" },
+      { id: "answer-one", role: "assistant", content: "第一个答案" },
+      { id: "question-two", role: "user", content: "第二个问题" },
+      {
+        id: "answer-two",
+        role: "assistant",
+        content: "第二个答案",
+        favorited: true,
+      },
+    ],
+  };
+
+  const [favorite] = getFavoriteAnswers([task]);
+  assert.equal(favorite.taskTitle, task.title);
+  assert.equal(favorite.question, "第二个问题");
+  assert.equal(favorite.message.content, "第二个答案");
+});
+
 test("restores an archived task to the top without pinning it", () => {
   const restoredAt = new Date("2026-08-03T12:00:00+08:00").getTime();
   const archived = initialRecentTasks.map((task, index) =>

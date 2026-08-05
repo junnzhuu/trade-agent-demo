@@ -2535,6 +2535,39 @@ button:disabled {
   color: #222;
 }
 
+.favorite-task-row,
+.favorite-answer-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.favorite-answer-row {
+  min-height: 86px;
+}
+
+.favorite-answer-main {
+  gap: 6px;
+}
+
+.favorite-cancel-button {
+  display: flex;
+  width: auto;
+  min-width: 96px;
+  padding: 0 11px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #e1e1e1;
+  background: #f7f7f7;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.favorite-cancel-button:hover,
+.favorite-cancel-button:focus-visible {
+  border-color: #d4d4d4;
+  background: #ededed;
+}
+
 .archive-row {
   grid-template-columns: minmax(0, 1fr) auto;
   min-height: 82px;

@@ -120,6 +120,13 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /@supports not \(\(-webkit-backdrop-filter:/);
   assert.match(css, /\.task-context-menu/);
   assert.match(page, /我的收藏/);
+  assert.match(page, /收藏的任务/);
+  assert.match(page, /收藏的答案/);
+  assert.match(page, /创建时间：/);
+  assert.match(page, /问题：\{answer\.question\}/);
+  assert.match(page, /答案：\{answer\.message\.content\}/);
+  assert.match(page, /取消收藏/);
+  assert.match(page, /block: "end"/);
   assert.match(page, /收藏成功，可前往/);
   assert.match(page, /favorite-toast/);
   assert.match(page, /openLibrary\("favorites"\)/);
@@ -144,6 +151,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.onboarding-spotlight/);
   assert.match(css, /\.answer-more-menu/);
   assert.match(css, /\.library-dialog/);
+  assert.match(css, /\.favorite-answer-row/);
+  assert.match(css, /\.favorite-cancel-button/);
   assert.match(css, /\.favorite-toast/);
   assert.match(css, /\.delete-confirmation-dialog/);
   assert.match(css, /\.primary-sidebar-nav button:first-child/);

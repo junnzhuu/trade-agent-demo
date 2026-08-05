@@ -892,6 +892,12 @@ export default function Home() {
   const openTaskFromLibrary = (task: RecentTask) => {
     closeLibrary();
     openTask(task);
+    window.setTimeout(() => {
+      scrollEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    }, 80);
   };
 
   const openFavoriteAnswer = (taskId: string, messageId: string) => {
@@ -902,7 +908,7 @@ export default function Home() {
     window.setTimeout(() => {
       document
         .getElementById(`message-${messageId}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        ?.scrollIntoView({ behavior: "smooth", block: "end" });
     }, 80);
   };
 
@@ -1692,7 +1698,10 @@ export default function Home() {
                     {favoriteTasks.length ? (
                       <div className="library-list">
                         {favoriteTasks.map((task) => (
-                          <article className="library-row" key={task.id}>
+                          <article
+                            className="library-row favorite-task-row"
+                            key={task.id}
+                          >
                             <button
                               className="library-row-main"
                               onClick={() => openTaskFromLibrary(task)}
@@ -1700,20 +1709,26 @@ export default function Home() {
                             >
                               <strong>{task.title}</strong>
                               <span>
-                                {task.archived ? "已归档 · " : ""}
-                                {formatRelativeTaskTime(
-                                  task.updatedAt,
-                                  relativeTimeNow,
-                                )}
+                                创建时间：
+                                <time
+                                  dateTime={new Date(
+                                    task.createdAt,
+                                  ).toISOString()}
+                                >
+                                  {formatTaskTimestamp(
+                                    new Date(task.createdAt),
+                                  )}
+                                </time>
                               </span>
                             </button>
                             <button
                               aria-label={`取消收藏任务：${task.title}`}
-                              className="library-row-action selected"
+                              className="library-row-action favorite-cancel-button selected"
                               onClick={() => toggleTaskFavorite(task.id)}
                               type="button"
                             >
                               <Bookmark size={17} fill="currentColor" />
+                              <span>取消收藏</span>
                             </button>
                           </article>
                         ))}
@@ -1731,11 +1746,11 @@ export default function Home() {
                       <div className="library-list">
                         {favoriteAnswers.map((answer) => (
                           <article
-                            className="library-row answer-row"
+                            className="library-row answer-row favorite-answer-row"
                             key={`${answer.taskId}-${answer.message.id}`}
                           >
                             <button
-                              className="library-row-main"
+                              className="library-row-main favorite-answer-main"
                               onClick={() =>
                                 openFavoriteAnswer(
                                   answer.taskId,
@@ -1745,11 +1760,16 @@ export default function Home() {
                               type="button"
                             >
                               <strong>{answer.taskTitle}</strong>
-                              <span>{answer.message.content}</span>
+                              <span title={answer.question}>
+                                问题：{answer.question}
+                              </span>
+                              <span title={answer.message.content}>
+                                答案：{answer.message.content}
+                              </span>
                             </button>
                             <button
                               aria-label="取消收藏答案"
-                              className="library-row-action selected"
+                              className="library-row-action favorite-cancel-button selected"
                               onClick={() =>
                                 toggleAnswerFavorite(
                                   answer.taskId,
@@ -1759,6 +1779,7 @@ export default function Home() {
                               type="button"
                             >
                               <Bookmark size={17} fill="currentColor" />
+                              <span>取消收藏</span>
                             </button>
                           </article>
                         ))}
