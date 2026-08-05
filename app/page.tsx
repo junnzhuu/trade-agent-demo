@@ -2431,10 +2431,10 @@ function Composer({
   const [skillQuery, setSkillQuery] = useState("");
   const [activeSkillIndex, setActiveSkillIndex] = useState(0);
   const addControlRef = useRef<HTMLDivElement | null>(null);
-  const composerRef = useRef<HTMLFormElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const modelControlRef = useRef<HTMLDivElement | null>(null);
+  const skillMenuRef = useRef<HTMLElement | null>(null);
   const skillSearchRef = useRef<HTMLInputElement | null>(null);
   const skillInsertionRangeRef = useRef<Range | null>(null);
   const lastReportedInputRef = useRef(input);
@@ -2594,7 +2594,7 @@ function Composer({
         if (visibleModelMenuOpen && !modelControlRef.current?.contains(event.target)) {
           setModelMenuOpen(false);
         }
-        if (skillMenuOpen && !composerRef.current?.contains(event.target)) {
+        if (skillMenuOpen && !skillMenuRef.current?.contains(event.target)) {
           closeSkillMenu();
         }
       }
@@ -2783,13 +2783,13 @@ function Composer({
       className="minimal-composer"
       data-tour-id="task-composer"
       onSubmit={onSubmit}
-      ref={composerRef}
     >
       {skillMenuOpen && (
         <section
           aria-label="选择技能"
           className="composer-skill-menu"
           id="composer-skill-list"
+          ref={skillMenuRef}
         >
           <header>
             <label className="composer-skill-search">

@@ -33,6 +33,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /今天帮你做些什么？\/ 调用技能/);
   assert.match(page, /composerSkillOptions/);
   assert.match(page, /composer-skill-list/);
+  assert.match(page, /skillMenuRef\.current\?\.contains/);
   assert.match(page, /composer-skill-search/);
   assert.match(page, /contentEditable/);
   assert.match(page, /composer-inline-skill/);
