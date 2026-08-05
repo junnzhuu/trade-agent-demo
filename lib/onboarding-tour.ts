@@ -92,15 +92,15 @@ export const onboardingSteps: OnboardingStep[] = [
     targetId: "add-menu",
     title: "添加内容与能力",
     description:
-      "加号菜单包含添加文件、运行模式、专家和技能入口。当前为前端演示，文件不会上传到真实业务系统。",
+      "加号菜单包含添加文件、技能搜索和计划模式。点击技能会打开完整技能面板，文件功能当前不会上传到真实业务系统。",
     placement: "right",
   },
   {
     id: "run-modes",
     targetId: "run-modes",
-    title: "计划模式与深度思考",
+    title: "计划模式",
     description:
-      "计划模式会先拆解步骤再执行；深度思考会投入更多分析时间，适合复杂诊断和跨领域任务。",
+      "开启后，Agent 会先拆解任务、形成执行计划，再依次完成各步骤。开关可直接在加号菜单中设置。",
     placement: "right",
   },
   {

@@ -12,4 +12,14 @@ test("defines a stable sixteen-step full product tour", () => {
       .filter((step) => step.id !== "welcome")
       .every((step) => Boolean(step.targetId)),
   );
+  assert.match(
+    onboardingSteps.find((step) => step.id === "add-menu")?.description ?? "",
+    /添加文件、技能搜索和计划模式/,
+  );
+  assert.equal(
+    onboardingSteps.some((step) =>
+      `${step.title}${step.description}`.includes("深度思考"),
+    ),
+    false,
+  );
 });

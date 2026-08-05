@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowLeft,
   Archive,
   Bookmark,
   Check,
@@ -22,7 +21,6 @@ import {
   RotateCcw,
   Search,
   Share2,
-  SlidersHorizontal,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -113,7 +111,7 @@ type WorkspaceView = "chat" | "experts" | "automation";
 type LibraryDialog = "favorites" | "archive";
 type FeedbackMode = "answer" | "general";
 type FeedbackImage = { id: string; name: string; url: string };
-type TourComposerPanel = "add" | "mode" | "model" | null;
+type TourComposerPanel = "add" | "model" | null;
 type TourOrigin = {
   activeView: WorkspaceView;
   activeTaskId: string | null;
@@ -166,7 +164,6 @@ export default function Home() {
   const [selectedComposerSkills, setSelectedComposerSkills] = useState<
     ComposerSkillOption[]
   >([]);
-  const [thinking, setThinking] = useState(false);
   const [planMode, setPlanMode] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState<ModelId>("glm-5");
   const [selectedHomeSkillCategory, setSelectedHomeSkillCategory] =
@@ -965,7 +962,7 @@ export default function Home() {
       } else if (stepId === "add-menu") {
         setTourComposerPanel("add");
       } else if (stepId === "run-modes") {
-        setTourComposerPanel("mode");
+        setTourComposerPanel("add");
       } else if (stepId === "model-and-send") {
         setTourComposerPanel("model");
       } else if (
@@ -1345,24 +1342,12 @@ export default function Home() {
               onAddSkill={addComposerSkill}
               onSubmit={submit}
               onStop={() => activeTaskId && cancelTask(activeTaskId)}
-              openExperts={() => {
-                activeViewRef.current = "experts";
-                setActiveView("experts");
-                setMobileSidebarOpen(false);
-              }}
-              openSkills={() => {
-                activeViewRef.current = "experts";
-                setActiveView("experts");
-                setMobileSidebarOpen(false);
-              }}
               planMode={planMode}
               running={running}
               selectedSkills={selectedComposerSkills}
               selectedModelId={selectedModelId}
               selectModel={setSelectedModelId}
-              thinking={thinking}
               togglePlanMode={() => setPlanMode((current) => !current)}
-              toggleThinking={() => setThinking((current) => !current)}
               tourPanel={tourComposerPanel}
             />
             <HomeSkillDiscovery
@@ -1444,24 +1429,12 @@ export default function Home() {
                 onAddSkill={addComposerSkill}
                 onSubmit={submit}
                 onStop={() => activeTaskId && cancelTask(activeTaskId)}
-                openExperts={() => {
-                  activeViewRef.current = "experts";
-                  setActiveView("experts");
-                  setMobileSidebarOpen(false);
-                }}
-                openSkills={() => {
-                  activeViewRef.current = "experts";
-                  setActiveView("experts");
-                  setMobileSidebarOpen(false);
-                }}
                 planMode={planMode}
                 running={running}
                 selectedSkills={selectedComposerSkills}
                 selectedModelId={selectedModelId}
                 selectModel={setSelectedModelId}
-                thinking={thinking}
                 togglePlanMode={() => setPlanMode((current) => !current)}
-                toggleThinking={() => setThinking((current) => !current)}
                 tourPanel={tourComposerPanel}
               />
             </div>
@@ -2428,16 +2401,12 @@ function Composer({
   onRemoveSkill,
   onSubmit,
   onStop,
-  openExperts,
-  openSkills,
   planMode,
   running,
   selectedSkills,
   selectedModelId,
   selectModel,
-  thinking,
   togglePlanMode,
-  toggleThinking,
   tourPanel,
 }: {
   input: string;
@@ -2447,20 +2416,15 @@ function Composer({
   onRemoveSkill: (skillKey: string) => void;
   onSubmit: (event: FormEvent) => void;
   onStop: () => void;
-  openExperts: () => void;
-  openSkills: () => void;
   planMode: boolean;
   running: boolean;
   selectedSkills: ComposerSkillOption[];
   selectedModelId: ModelId;
   selectModel: (modelId: ModelId) => void;
-  thinking: boolean;
   togglePlanMode: () => void;
-  toggleThinking: () => void;
   tourPanel: TourComposerPanel;
 }) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
-  const [addMenuView, setAddMenuView] = useState<"main" | "mode">("main");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [skillMenuOpen, setSkillMenuOpen] = useState(false);
   const [skillQuery, setSkillQuery] = useState("");
@@ -2484,9 +2448,7 @@ function Composer({
     () => new Set(selectedSkills.map((skill) => skill.key)),
     [selectedSkills],
   );
-  const visibleAddMenuOpen =
-    tourPanel === "add" || tourPanel === "mode" || (!tourPanel && addMenuOpen);
-  const visibleAddMenuView = tourPanel === "mode" ? "mode" : addMenuView;
+  const visibleAddMenuOpen = tourPanel === "add" || (!tourPanel && addMenuOpen);
   const visibleModelMenuOpen = tourPanel === "model" || (!tourPanel && modelMenuOpen);
 
   const readEditorInput = useCallback(() => {
@@ -2574,6 +2536,35 @@ function Composer({
     [focusEditorAtInsertion],
   );
 
+  const rememberEditorInsertion = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const selection = window.getSelection();
+    if (selection?.rangeCount) {
+      const range = selection.getRangeAt(0);
+      if (range.collapsed && editor.contains(range.startContainer)) {
+        skillInsertionRangeRef.current = range.cloneRange();
+        return;
+      }
+    }
+    if (skillInsertionRangeRef.current?.startContainer.isConnected) return;
+
+    const endRange = document.createRange();
+    endRange.selectNodeContents(editor);
+    endRange.collapse(false);
+    skillInsertionRangeRef.current = endRange;
+  }, []);
+
+  const openSkillMenuFromAdd = useCallback(() => {
+    rememberEditorInsertion();
+    setAddMenuOpen(false);
+    setModelMenuOpen(false);
+    setSkillQuery("");
+    setActiveSkillIndex(0);
+    setSkillMenuOpen(true);
+    requestAnimationFrame(() => skillSearchRef.current?.focus());
+  }, [rememberEditorInsertion]);
+
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -2598,7 +2589,6 @@ function Composer({
       if (event.target instanceof Node) {
         if (visibleAddMenuOpen && !addControlRef.current?.contains(event.target)) {
           setAddMenuOpen(false);
-          setAddMenuView("main");
         }
         if (visibleModelMenuOpen && !modelControlRef.current?.contains(event.target)) {
           setModelMenuOpen(false);
@@ -2611,7 +2601,6 @@ function Composer({
     const closeOnEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
         setAddMenuOpen(false);
-        setAddMenuView("main");
         setModelMenuOpen(false);
         closeSkillMenu(true);
       }
@@ -2896,7 +2885,6 @@ function Composer({
               multiple
               onChange={() => {
                 setAddMenuOpen(false);
-                setAddMenuView("main");
               }}
               ref={fileInputRef}
               type="file"
@@ -2908,14 +2896,14 @@ function Composer({
               className="composer-add-button"
               onClick={() => {
                 setAddMenuOpen((current) => !current);
-                setAddMenuView("main");
               }}
+              onPointerDown={rememberEditorInsertion}
               type="button"
             >
               <Plus size={19} strokeWidth={1.8} />
             </button>
 
-            {visibleAddMenuOpen && visibleAddMenuView === "main" && (
+            {visibleAddMenuOpen && (
               <div
                 aria-label="添加内容"
                 className="add-menu"
@@ -2931,59 +2919,17 @@ function Composer({
                   <span>添加文件</span>
                 </button>
                 <button
-                  onClick={() => setAddMenuView("mode")}
-                  role="menuitem"
-                  type="button"
-                >
-                  <SlidersHorizontal size={18} strokeWidth={1.7} />
-                  <span>模式</span>
-                  <ChevronRight className="menu-trailing-icon" size={15} />
-                </button>
-                <button
-                  onClick={() => {
-                    setAddMenuOpen(false);
-                    openExperts();
-                  }}
-                  role="menuitem"
-                  type="button"
-                >
-                  <Users size={18} strokeWidth={1.7} />
-                  <span>专家</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setAddMenuOpen(false);
-                    openSkills();
-                  }}
+                  onClick={openSkillMenuFromAdd}
                   role="menuitem"
                   type="button"
                 >
                   <WandSparkles size={18} strokeWidth={1.7} />
                   <span>技能</span>
                 </button>
-              </div>
-            )}
-
-            {visibleAddMenuOpen && visibleAddMenuView === "mode" && (
-              <div
-                aria-label="模式设置"
-                className="add-menu mode-menu"
-                data-tour-id="run-modes"
-                role="dialog"
-              >
-                <header>
-                  <button
-                    aria-label="返回添加菜单"
-                    onClick={() => setAddMenuView("main")}
-                    type="button"
-                  >
-                    <ArrowLeft size={17} strokeWidth={1.8} />
-                  </button>
-                  <strong>模式</strong>
-                </header>
                 <button
                   aria-checked={planMode}
                   className="mode-switch-row"
+                  data-tour-id="run-modes"
                   onClick={togglePlanMode}
                   role="switch"
                   type="button"
@@ -2991,21 +2937,6 @@ function Composer({
                   <span>
                     <strong>计划模式</strong>
                     <small>先制定计划，再执行任务</small>
-                  </span>
-                  <span className="switch-track" aria-hidden="true">
-                    <span />
-                  </span>
-                </button>
-                <button
-                  aria-checked={thinking}
-                  className="mode-switch-row"
-                  onClick={toggleThinking}
-                  role="switch"
-                  type="button"
-                >
-                  <span>
-                    <strong>深度思考</strong>
-                    <small>投入更多时间分析复杂问题</small>
                   </span>
                   <span className="switch-track" aria-hidden="true">
                     <span />

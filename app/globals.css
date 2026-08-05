@@ -1282,44 +1282,6 @@ button:disabled {
   background: #f3f3f3;
 }
 
-.menu-trailing-icon {
-  margin-left: auto;
-  color: #888888;
-}
-
-.mode-menu {
-  width: 286px;
-}
-
-.mode-menu header {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 34px;
-  align-items: center;
-  min-height: 42px;
-  padding: 0 2px 5px;
-  border-bottom: 1px solid #eeeeee;
-}
-
-.mode-menu header > button {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-}
-
-.mode-menu header > button:hover {
-  background: #f2f2f2;
-}
-
-.mode-menu header strong {
-  font-size: 14px;
-  text-align: center;
-}
-
 .mode-switch-row {
   justify-content: space-between;
   min-height: 66px !important;
@@ -3005,10 +2967,6 @@ button:disabled {
 
   .add-menu {
     width: min(220px, calc(100vw - 24px));
-  }
-
-  .mode-menu {
-    width: min(286px, calc(100vw - 24px));
   }
 
   .empty-state h1 {

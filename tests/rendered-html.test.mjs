@@ -48,8 +48,13 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /\n  Square,/);
   assert.match(page, /添加文件/);
   assert.match(page, /计划模式/);
-  assert.match(page, /深度思考/);
+  assert.doesNotMatch(page, /深度思考/);
   assert.match(page, /role="switch"/);
+  assert.match(
+    page,
+    /<span>添加文件<\/span>[\s\S]*<span>技能<\/span>[\s\S]*<strong>计划模式<\/strong>/,
+  );
+  assert.doesNotMatch(page, /addMenuView|mode-menu|openExperts|openSkills/);
   assert.doesNotMatch(page, /aria-label="添加附件"/);
   assert.doesNotMatch(page, /BrainCircuit/);
   assert.match(page, /已处理/);
