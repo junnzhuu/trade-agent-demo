@@ -30,7 +30,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /HomeSkillDiscovery/);
   assert.match(page, /快捷技能推荐/);
   assert.match(page, /AutomationWorkspace/);
-  assert.match(page, /今天帮你做些什么？@ 召唤专家，\/ 调用技能/);
+  assert.match(page, /今天帮你做些什么？\/ 调用技能/);
+  assert.match(page, /composerSkillOptions/);
+  assert.match(page, /composer-skill-list/);
+  assert.match(page, /未找到相关技能/);
+  assert.match(page, /已选技能/);
   assert.match(page, /qwen3\.7-plus/);
   assert.match(page, /doubao-seed-2-0-lite/);
   assert.match(page, /图片理解/);
@@ -129,6 +133,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /background: rgba\(218, 222, 225, 0\.68\)/);
   assert.match(css, /grid-template-columns: repeat\(3, minmax\(0, 260px\)\)/);
   assert.match(css, /\.skill-grid/);
+  assert.match(css, /\.composer-skill-menu/);
+  assert.match(css, /\.selected-skill-chips/);
   assert.match(css, /\.brand-mark img/);
   assert.match(css, /prefers-reduced-motion/);
   assert.match(nextConfig, /output: "export"/);

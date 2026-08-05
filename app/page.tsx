@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import {
+  type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
   useCallback,
@@ -66,6 +67,14 @@ import {
   type HomeSkillCategoryId,
 } from "@/lib/home-skill-recommendations";
 import {
+  buildPromptWithSkills,
+  composerSkillOptions,
+  filterComposerSkills,
+  getSkillTrigger,
+  removeSkillTrigger,
+  type ComposerSkillOption,
+} from "@/lib/composer-skills";
+import {
   onboardingSteps,
   type OnboardingStepId,
 } from "@/lib/onboarding-tour";
@@ -79,7 +88,7 @@ const agentCapabilities = [
   "项目管理 Agent",
 ];
 
-const composerPlaceholder = "今天帮你做些什么？@ 召唤专家，/ 调用技能";
+const composerPlaceholder = "今天帮你做些什么？/ 调用技能";
 
 const modelOptions = [
   { id: "glm-5", label: "glm-5" },
@@ -157,6 +166,9 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [selectedComposerSkills, setSelectedComposerSkills] = useState<
+    ComposerSkillOption[]
+  >([]);
   const [thinking, setThinking] = useState(false);
   const [planMode, setPlanMode] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState<ModelId>("glm-5");
@@ -316,6 +328,7 @@ export default function Home() {
 
   const startNewChat = useCallback(() => {
     setInput("");
+    setSelectedComposerSkills([]);
     activeTaskIdRef.current = null;
     activeViewRef.current = "chat";
     setActiveTaskId(null);
@@ -744,6 +757,7 @@ export default function Home() {
         unreadCompletion: false,
       }));
       setInput("");
+      setSelectedComposerSkills([]);
       setMobileSidebarOpen(false);
       closeSearch();
     },
@@ -982,13 +996,33 @@ export default function Home() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    sendPrompt(input);
+    const prompt = buildPromptWithSkills(input, selectedComposerSkills);
+    if (!prompt || running) return;
+    sendPrompt(prompt);
+    setSelectedComposerSkills([]);
+  };
+
+  const toggleComposerSkill = (skill: ComposerSkillOption) => {
+    setSelectedComposerSkills((current) =>
+      current.some((item) => item.key === skill.key)
+        ? current.filter((item) => item.key !== skill.key)
+        : [...current, skill],
+    );
+  };
+
+  const removeComposerSkill = (skillKey: string) => {
+    setSelectedComposerSkills((current) =>
+      current.filter((skill) => skill.key !== skillKey),
+    );
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      sendPrompt(input);
+      const prompt = buildPromptWithSkills(input, selectedComposerSkills);
+      if (!prompt || running) return;
+      sendPrompt(prompt);
+      setSelectedComposerSkills([]);
     }
   };
 
@@ -1310,6 +1344,8 @@ export default function Home() {
               input={input}
               onInput={setInput}
               onKeyDown={handleKeyDown}
+              onRemoveSkill={removeComposerSkill}
+              onToggleSkill={toggleComposerSkill}
               onSubmit={submit}
               onStop={() => activeTaskId && cancelTask(activeTaskId)}
               openExperts={() => {
@@ -1324,6 +1360,7 @@ export default function Home() {
               }}
               planMode={planMode}
               running={running}
+              selectedSkills={selectedComposerSkills}
               selectedModelId={selectedModelId}
               selectModel={setSelectedModelId}
               thinking={thinking}
@@ -1406,6 +1443,8 @@ export default function Home() {
                 input={input}
                 onInput={setInput}
                 onKeyDown={handleKeyDown}
+                onRemoveSkill={removeComposerSkill}
+                onToggleSkill={toggleComposerSkill}
                 onSubmit={submit}
                 onStop={() => activeTaskId && cancelTask(activeTaskId)}
                 openExperts={() => {
@@ -1420,6 +1459,7 @@ export default function Home() {
                 }}
                 planMode={planMode}
                 running={running}
+                selectedSkills={selectedComposerSkills}
                 selectedModelId={selectedModelId}
                 selectModel={setSelectedModelId}
                 thinking={thinking}
@@ -2387,12 +2427,15 @@ function Composer({
   input,
   onInput,
   onKeyDown,
+  onRemoveSkill,
+  onToggleSkill,
   onSubmit,
   onStop,
   openExperts,
   openSkills,
   planMode,
   running,
+  selectedSkills,
   selectedModelId,
   selectModel,
   thinking,
@@ -2403,12 +2446,15 @@ function Composer({
   input: string;
   onInput: (value: string) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+  onRemoveSkill: (skillKey: string) => void;
+  onToggleSkill: (skill: ComposerSkillOption) => void;
   onSubmit: (event: FormEvent) => void;
   onStop: () => void;
   openExperts: () => void;
   openSkills: () => void;
   planMode: boolean;
   running: boolean;
+  selectedSkills: ComposerSkillOption[];
   selectedModelId: ModelId;
   selectModel: (modelId: ModelId) => void;
   thinking: boolean;
@@ -2419,16 +2465,33 @@ function Composer({
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [addMenuView, setAddMenuView] = useState<"main" | "mode">("main");
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [skillMenuOpen, setSkillMenuOpen] = useState(false);
+  const [skillQuery, setSkillQuery] = useState("");
+  const [activeSkillIndex, setActiveSkillIndex] = useState(0);
   const addControlRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLFormElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const modelControlRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const filteredSkills = useMemo(
+    () => filterComposerSkills(skillQuery),
+    [skillQuery],
+  );
+  const visibleActiveSkillIndex = filteredSkills.length
+    ? Math.min(activeSkillIndex, filteredSkills.length - 1)
+    : 0;
+  const selectedSkillKeys = useMemo(
+    () => new Set(selectedSkills.map((skill) => skill.key)),
+    [selectedSkills],
+  );
+  const pendingSkillTrigger = getSkillTrigger(input);
   const visibleAddMenuOpen =
     tourPanel === "add" || tourPanel === "mode" || (!tourPanel && addMenuOpen);
   const visibleAddMenuView = tourPanel === "mode" ? "mode" : addMenuView;
   const visibleModelMenuOpen = tourPanel === "model" || (!tourPanel && modelMenuOpen);
 
   useEffect(() => {
-    if (!visibleAddMenuOpen && !visibleModelMenuOpen) return;
+    if (!visibleAddMenuOpen && !visibleModelMenuOpen && !skillMenuOpen) return;
 
     const closeOnOutsidePress = (event: PointerEvent) => {
       if (event.target instanceof Node) {
@@ -2439,6 +2502,9 @@ function Composer({
         if (visibleModelMenuOpen && !modelControlRef.current?.contains(event.target)) {
           setModelMenuOpen(false);
         }
+        if (skillMenuOpen && !composerRef.current?.contains(event.target)) {
+          setSkillMenuOpen(false);
+        }
       }
     };
     const closeOnEscape = (event: globalThis.KeyboardEvent) => {
@@ -2446,6 +2512,7 @@ function Composer({
         setAddMenuOpen(false);
         setAddMenuView("main");
         setModelMenuOpen(false);
+        setSkillMenuOpen(false);
       }
     };
 
@@ -2455,20 +2522,172 @@ function Composer({
       document.removeEventListener("pointerdown", closeOnOutsidePress);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [visibleAddMenuOpen, visibleModelMenuOpen]);
+  }, [skillMenuOpen, visibleAddMenuOpen, visibleModelMenuOpen]);
+
+  const selectSkill = (skill: ComposerSkillOption) => {
+    const caret = textareaRef.current?.selectionStart ?? input.length;
+    const trigger = getSkillTrigger(input, caret);
+    onInput(trigger ? removeSkillTrigger(input, trigger) : input);
+    onToggleSkill(skill);
+    setSkillQuery("");
+    setSkillMenuOpen(true);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  const handleComposerInput = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    const value = event.target.value;
+    const trigger = getSkillTrigger(value, event.target.selectionStart);
+    onInput(value);
+    if (trigger) {
+      setSkillQuery(trigger.query);
+      setActiveSkillIndex(0);
+      setSkillMenuOpen(true);
+      setAddMenuOpen(false);
+      setModelMenuOpen(false);
+    } else {
+      setSkillMenuOpen(false);
+      setSkillQuery("");
+    }
+  };
+
+  const handleComposerKeyDown = (
+    event: KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
+    if (skillMenuOpen) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActiveSkillIndex((current) =>
+          filteredSkills.length
+            ? Math.min(current + 1, filteredSkills.length - 1)
+            : 0,
+        );
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActiveSkillIndex((current) => Math.max(current - 1, 0));
+        return;
+      }
+      if (event.key === "Enter" && filteredSkills[visibleActiveSkillIndex]) {
+        event.preventDefault();
+        selectSkill(filteredSkills[visibleActiveSkillIndex]);
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setSkillMenuOpen(false);
+        return;
+      }
+      if (event.key === "Tab") setSkillMenuOpen(false);
+    }
+
+    if (
+      event.key === "Backspace" &&
+      !input &&
+      selectedSkills.length > 0
+    ) {
+      event.preventDefault();
+      onRemoveSkill(selectedSkills[selectedSkills.length - 1].key);
+      return;
+    }
+
+    onKeyDown(event);
+  };
 
   return (
     <form
       className="minimal-composer"
       data-tour-id="task-composer"
       onSubmit={onSubmit}
+      ref={composerRef}
     >
+      {skillMenuOpen && (
+        <section
+          aria-label="选择技能"
+          className="composer-skill-menu"
+          id="composer-skill-list"
+        >
+          <header>
+            <strong>技能</strong>
+            <span>
+              {filteredSkills.length === composerSkillOptions.length
+                ? composerSkillOptions.length
+                : `${filteredSkills.length}/${composerSkillOptions.length}`}
+            </span>
+          </header>
+          <div aria-label="技能列表" className="composer-skill-list" role="listbox">
+            {filteredSkills.length ? (
+              filteredSkills.map((skill, index) => {
+                const selected = selectedSkillKeys.has(skill.key);
+                return (
+                  <button
+                    aria-selected={selected}
+                    className={index === visibleActiveSkillIndex ? "active" : ""}
+                    id={`composer-skill-${skill.key}`}
+                    key={skill.key}
+                    onClick={() => selectSkill(skill)}
+                    onMouseEnter={() => setActiveSkillIndex(index)}
+                    role="option"
+                    type="button"
+                  >
+                    <WandSparkles aria-hidden="true" size={17} strokeWidth={1.7} />
+                    <span className="composer-skill-copy">
+                      <span className="composer-skill-heading">
+                        <strong>{skill.name}</strong>
+                        <span>{skill.expertLabel}</span>
+                      </span>
+                      <small>{skill.description}</small>
+                    </span>
+                    {selected && (
+                      <Check
+                        aria-hidden="true"
+                        className="composer-skill-check"
+                        size={17}
+                        strokeWidth={2.2}
+                      />
+                    )}
+                  </button>
+                );
+              })
+            ) : (
+              <p className="composer-skill-empty">未找到相关技能</p>
+            )}
+          </div>
+        </section>
+      )}
+      {selectedSkills.length > 0 && (
+        <div aria-label="已选技能" className="selected-skill-chips">
+          {selectedSkills.map((skill) => (
+            <button
+              aria-label={`移除技能：${skill.name}`}
+              key={skill.key}
+              onClick={() => onRemoveSkill(skill.key)}
+              title={`移除 ${skill.name}`}
+              type="button"
+            >
+              <WandSparkles aria-hidden="true" size={14} strokeWidth={1.8} />
+              <span>{skill.name}</span>
+              <X aria-hidden="true" size={13} strokeWidth={1.8} />
+            </button>
+          ))}
+        </div>
+      )}
       <textarea
+        aria-activedescendant={
+          skillMenuOpen && filteredSkills[visibleActiveSkillIndex]
+            ? `composer-skill-${filteredSkills[visibleActiveSkillIndex].key}`
+            : undefined
+        }
+        aria-autocomplete="list"
+        aria-controls="composer-skill-list"
+        aria-expanded={skillMenuOpen}
         aria-label="任务输入框"
         maxLength={2000}
-        onChange={(event) => onInput(event.target.value)}
-        onKeyDown={onKeyDown}
+        onChange={handleComposerInput}
+        onKeyDown={handleComposerKeyDown}
         placeholder={composerPlaceholder}
+        ref={textareaRef}
+        role="combobox"
         rows={2}
         value={input}
       />
@@ -2668,14 +2887,21 @@ function Composer({
             <button
               aria-label="发送"
               className="composer-send"
-              disabled={!input.trim()}
+              disabled={
+                Boolean(pendingSkillTrigger) ||
+                (!input.trim() && !selectedSkills.length)
+              }
               type="submit"
             >
               <Image
                 alt=""
                 aria-hidden="true"
                 height={24}
-                src={input.trim() ? "./send-ready.svg" : "./send-empty.svg"}
+                src={
+                  !pendingSkillTrigger && (input.trim() || selectedSkills.length)
+                    ? "./send-ready.svg"
+                    : "./send-empty.svg"
+                }
                 width={24}
               />
             </button>

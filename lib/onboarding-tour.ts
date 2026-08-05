@@ -84,7 +84,7 @@ export const onboardingSteps: OnboardingStep[] = [
     targetId: "task-composer",
     title: "用自然语言下达任务",
     description:
-      "直接输入业务问题，也可使用 @ 召唤专家、使用 / 调用技能。Enter 发送，Shift + Enter 换行。",
+      "直接输入业务问题，输入 / 可搜索并多选技能，选中后可继续补充需求。Enter 发送，Shift + Enter 换行。",
     placement: "top",
   },
   {
