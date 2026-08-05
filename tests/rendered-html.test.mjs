@@ -35,6 +35,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /composer-skill-list/);
   assert.match(page, /skillMenuRef\.current\?\.contains/);
   assert.match(page, /composer-skill-search/);
+  assert.match(page, /search-result-created-at/);
+  assert.match(page, /创建时间/);
+  assert.doesNotMatch(page, /<span>\{task\.metadata\}<\/span>/);
   assert.match(page, /contentEditable/);
   assert.match(page, /composer-inline-skill/);
   assert.match(page, /standardQuestion/);
@@ -152,6 +155,10 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.skill-grid/);
   assert.match(css, /\.composer-skill-menu/);
   assert.match(css, /\.composer-skill-search/);
+  assert.match(
+    css,
+    /\.task-search-field input\s*{[^}]*font-size: 14px/s,
+  );
   assert.match(css, /\.composer-inline-skill/);
   assert.match(css, /\.composer-editor\[data-empty="true"\]::before/);
   assert.match(css, /\.plan-mode-tag/);

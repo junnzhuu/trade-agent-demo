@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   filterRecentTasks,
   formatRelativeTaskTime,
+  formatTaskTimestamp,
   getFavoriteAnswers,
   getFavoriteTasks,
   getTaskActivityIndicator,
@@ -12,14 +13,30 @@ import {
   type RecentTask,
 } from "../lib/task-history";
 
-test("filters recent tasks by title and metadata", () => {
+test("filters recent tasks by title and creation time", () => {
   assert.deepEqual(
     filterRecentTasks(initialRecentTasks, "出价").map((task) => task.id),
     ["preset-bid-limits"],
   );
+  const creationTime = formatTaskTimestamp(
+    new Date(initialRecentTasks[1].createdAt),
+  );
   assert.deepEqual(
-    filterRecentTasks(initialRecentTasks, "新手指引").map((task) => task.id),
+    filterRecentTasks(initialRecentTasks, creationTime).map((task) => task.id),
     ["preset-feishu-title"],
+  );
+  assert.deepEqual(filterRecentTasks(initialRecentTasks, "新手指引"), []);
+});
+
+test("search includes pinned tasks and sorts all results by last update", () => {
+  const tasks: RecentTask[] = [
+    { ...initialRecentTasks[1], pinned: true },
+    { ...initialRecentTasks[0], pinned: false },
+  ];
+
+  assert.deepEqual(
+    filterRecentTasks(tasks, "").map((task) => task.id),
+    ["preset-bid-limits", "preset-feishu-title"],
   );
 });
 

@@ -10,7 +10,6 @@ import {
   Copy,
   Ellipsis,
   FilePlus2,
-  Folder,
   ImagePlus,
   LoaderCircle,
   MessageSquare,
@@ -768,8 +767,13 @@ export default function Home() {
   const commitTaskRename = (taskId: string) => {
     const title = renameValue.trim();
     if (title) {
+      const renamedAt = Date.now();
       setRecentTasks((current) =>
-        current.map((task) => (task.id === taskId ? { ...task, title } : task)),
+        current.map((task) =>
+          task.id === taskId
+            ? { ...task, title, updatedAt: renamedAt }
+            : task,
+        ),
       );
     }
     setRenamingTaskId(null);
@@ -1537,13 +1541,11 @@ export default function Home() {
                       type="button"
                     >
                       <strong>{task.title}</strong>
-                      <span>
-                        {task.icon === "project" ? (
-                          <Share2 size={17} strokeWidth={1.7} />
-                        ) : (
-                          <Folder size={17} strokeWidth={1.7} />
-                        )}
-                        <span>{task.metadata}</span>
+                      <span className="search-result-created-at">
+                        <span>创建时间</span>
+                        <time dateTime={new Date(task.createdAt).toISOString()}>
+                          {formatTaskTimestamp(new Date(task.createdAt))}
+                        </time>
                       </span>
                     </button>
                   </li>

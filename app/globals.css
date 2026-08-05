@@ -2188,7 +2188,7 @@ button:disabled {
   outline: 0;
   background: transparent;
   color: #181818;
-  font-size: 20px;
+  font-size: 14px;
 }
 
 .task-search-field input::placeholder {
@@ -2275,11 +2275,16 @@ button:disabled {
   color: #898989;
 }
 
-.search-result > span > span {
+.search-result-created-at > span,
+.search-result-created-at > time {
   overflow: hidden;
   font-size: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.search-result-created-at > span {
+  flex: 0 0 auto;
 }
 
 .search-empty {
@@ -2979,7 +2984,7 @@ button:disabled {
   }
 
   .task-search-field input {
-    font-size: 18px;
+    font-size: 14px;
   }
 
   .search-dialog > h2 {
@@ -2997,7 +3002,8 @@ button:disabled {
     font-size: 15px;
   }
 
-  .search-result > span > span {
+  .search-result-created-at > span,
+  .search-result-created-at > time {
     font-size: 13px;
   }
 }

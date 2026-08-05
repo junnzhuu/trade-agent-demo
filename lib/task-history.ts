@@ -103,7 +103,7 @@ export const initialRecentTasks: RecentTask[] = [
   {
     id: "preset-feishu-title",
     title: "飞书机器人默认标题",
-    metadata: "项目新手指引",
+    metadata: "2026-07-29 14:00",
     icon: "project",
     createdAt: initialTaskTime - 5 * 24 * 60 * 60 * 1_000,
     updatedAt: initialTaskTime - 4 * 24 * 60 * 60 * 1_000,
@@ -128,11 +128,15 @@ export function filterRecentTasks(
   rawQuery: string,
 ): RecentTask[] {
   const query = rawQuery.trim().toLocaleLowerCase("zh-CN");
-  const visibleTasks = tasks.filter((task) => !task.archived);
+  const visibleTasks = tasks
+    .filter((task) => !task.archived)
+    .sort((left, right) => right.updatedAt - left.updatedAt);
   if (!query) return visibleTasks;
 
   return visibleTasks.filter((task) =>
-    `${task.title} ${task.metadata}`.toLocaleLowerCase("zh-CN").includes(query),
+    `${task.title} ${formatTaskTimestamp(new Date(task.createdAt))}`
+      .toLocaleLowerCase("zh-CN")
+      .includes(query),
   );
 }
 
