@@ -75,6 +75,10 @@ import {
   onboardingSteps,
   type OnboardingStepId,
 } from "@/lib/onboarding-tour";
+import {
+  getQuestionSuggestions,
+  type QuestionSuggestion,
+} from "@/lib/question-suggestions";
 
 // 后续功能扩展会从这五类能力进入；首页先保持截图中的极简状态。
 const agentCapabilities = [
@@ -2445,13 +2449,17 @@ const Composer = forwardRef<ComposerHandle, {
   const [skillMenuOpen, setSkillMenuOpen] = useState(false);
   const [skillQuery, setSkillQuery] = useState("");
   const [activeSkillIndex, setActiveSkillIndex] = useState(0);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
   const addControlRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const modelControlRef = useRef<HTMLDivElement | null>(null);
   const skillMenuRef = useRef<HTMLElement | null>(null);
   const skillSearchRef = useRef<HTMLInputElement | null>(null);
+  const suggestionMenuRef = useRef<HTMLElement | null>(null);
   const skillInsertionRangeRef = useRef<Range | null>(null);
+  const composingRef = useRef(false);
   const lastReportedInputRef = useRef(input);
   const filteredSkills = useMemo(
     () => filterComposerSkills(skillQuery),
@@ -2460,12 +2468,25 @@ const Composer = forwardRef<ComposerHandle, {
   const visibleActiveSkillIndex = filteredSkills.length
     ? Math.min(activeSkillIndex, filteredSkills.length - 1)
     : 0;
+  const questionSuggestions = useMemo(
+    () => getQuestionSuggestions(input),
+    [input],
+  );
+  const visibleActiveSuggestionIndex = questionSuggestions.length
+    ? Math.min(activeSuggestionIndex, questionSuggestions.length - 1)
+    : 0;
   const selectedSkillKeys = useMemo(
     () => new Set(selectedSkills.map((skill) => skill.key)),
     [selectedSkills],
   );
   const visibleAddMenuOpen = tourPanel === "add" || (!tourPanel && addMenuOpen);
   const visibleModelMenuOpen = tourPanel === "model" || (!tourPanel && modelMenuOpen);
+  const visibleSuggestionsOpen =
+    suggestionsOpen &&
+    questionSuggestions.length > 0 &&
+    !skillMenuOpen &&
+    !visibleAddMenuOpen &&
+    !visibleModelMenuOpen;
   const composerIsEmpty = input.trim().length === 0 && selectedSkills.length === 0;
 
   const readEditorInput = useCallback(() => {
@@ -2511,6 +2532,7 @@ const Composer = forwardRef<ComposerHandle, {
     }
     lastReportedInputRef.current = value;
     onInput(value);
+    return value;
   }, [onInput, readEditorInput]);
 
   const syncRemovedSkillTokens = () => {
@@ -2561,6 +2583,11 @@ const Composer = forwardRef<ComposerHandle, {
     [focusEditorAtInsertion],
   );
 
+  const closeQuestionSuggestions = useCallback(() => {
+    setSuggestionsOpen(false);
+    setActiveSuggestionIndex(0);
+  }, []);
+
   const rememberEditorInsertion = useCallback(() => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -2582,13 +2609,14 @@ const Composer = forwardRef<ComposerHandle, {
 
   const openSkillMenuFromAdd = useCallback(() => {
     rememberEditorInsertion();
+    closeQuestionSuggestions();
     setAddMenuOpen(false);
     setModelMenuOpen(false);
     setSkillQuery("");
     setActiveSkillIndex(0);
     setSkillMenuOpen(true);
     requestAnimationFrame(() => skillSearchRef.current?.focus());
-  }, [rememberEditorInsertion]);
+  }, [closeQuestionSuggestions, rememberEditorInsertion]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -2612,7 +2640,12 @@ const Composer = forwardRef<ComposerHandle, {
   }, [input, selectedSkills.length]);
 
   useEffect(() => {
-    if (!visibleAddMenuOpen && !visibleModelMenuOpen && !skillMenuOpen) return;
+    if (
+      !visibleAddMenuOpen &&
+      !visibleModelMenuOpen &&
+      !skillMenuOpen &&
+      !suggestionsOpen
+    ) return;
 
     const closeOnOutsidePress = (event: PointerEvent) => {
       if (event.target instanceof Node) {
@@ -2625,6 +2658,12 @@ const Composer = forwardRef<ComposerHandle, {
         if (skillMenuOpen && !skillMenuRef.current?.contains(event.target)) {
           closeSkillMenu();
         }
+        if (
+          suggestionsOpen &&
+          !suggestionMenuRef.current?.contains(event.target)
+        ) {
+          closeQuestionSuggestions();
+        }
       }
     };
     const closeOnEscape = (event: globalThis.KeyboardEvent) => {
@@ -2632,6 +2671,7 @@ const Composer = forwardRef<ComposerHandle, {
         setAddMenuOpen(false);
         setModelMenuOpen(false);
         closeSkillMenu(true);
+        closeQuestionSuggestions();
       }
     };
 
@@ -2641,7 +2681,14 @@ const Composer = forwardRef<ComposerHandle, {
       document.removeEventListener("pointerdown", closeOnOutsidePress);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [closeSkillMenu, skillMenuOpen, visibleAddMenuOpen, visibleModelMenuOpen]);
+  }, [
+    closeQuestionSuggestions,
+    closeSkillMenu,
+    skillMenuOpen,
+    suggestionsOpen,
+    visibleAddMenuOpen,
+    visibleModelMenuOpen,
+  ]);
 
   const insertSkillToken = useCallback((skill: ComposerSkillOption) => {
     if (selectedSkillKeys.has(skill.key)) {
@@ -2681,8 +2728,15 @@ const Composer = forwardRef<ComposerHandle, {
 
     onAddSkill(skill);
     reportEditorInput();
+    closeQuestionSuggestions();
     closeSkillMenu(true);
-  }, [closeSkillMenu, onAddSkill, reportEditorInput, selectedSkillKeys]);
+  }, [
+    closeQuestionSuggestions,
+    closeSkillMenu,
+    onAddSkill,
+    reportEditorInput,
+    selectedSkillKeys,
+  ]);
 
   useImperativeHandle(
     ref,
@@ -2719,6 +2773,7 @@ const Composer = forwardRef<ComposerHandle, {
     selection.addRange(insertionRange);
 
     reportEditorInput();
+    closeQuestionSuggestions();
     setSkillQuery("");
     setActiveSkillIndex(0);
     setSkillMenuOpen(true);
@@ -2731,9 +2786,43 @@ const Composer = forwardRef<ComposerHandle, {
   const handleComposerInput = () => {
     syncRemovedSkillTokens();
     if (openSkillSearchFromSlash()) return;
-    reportEditorInput();
+    const value = reportEditorInput();
     rememberEditorInsertion();
+    if (composingRef.current) return;
+    const suggestions = getQuestionSuggestions(value);
+    setActiveSuggestionIndex(0);
+    setSuggestionsOpen(suggestions.length > 0);
   };
+
+  const selectQuestionSuggestion = useCallback(
+    (suggestion: QuestionSuggestion) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+
+      const tokens = Array.from(
+        editor.querySelectorAll<HTMLElement>(".composer-inline-skill"),
+      );
+      const fragment = document.createDocumentFragment();
+      tokens.forEach((token) => fragment.append(token));
+      const questionNode = document.createTextNode(suggestion.question);
+      fragment.append(questionNode);
+      editor.replaceChildren(fragment);
+
+      lastReportedInputRef.current = suggestion.question;
+      onInput(suggestion.question);
+      closeQuestionSuggestions();
+
+      editor.focus();
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.setStart(questionNode, questionNode.data.length);
+      range.collapse(true);
+      skillInsertionRangeRef.current = range.cloneRange();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    },
+    [closeQuestionSuggestions, onInput],
+  );
 
   const removeAdjacentSkill = () => {
     const editor = editorRef.current;
@@ -2785,6 +2874,36 @@ const Composer = forwardRef<ComposerHandle, {
   };
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (visibleSuggestionsOpen) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActiveSuggestionIndex((current) =>
+          Math.min(current + 1, questionSuggestions.length - 1),
+        );
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActiveSuggestionIndex((current) => Math.max(current - 1, 0));
+        return;
+      }
+      if (
+        event.key === "Enter" &&
+        questionSuggestions[visibleActiveSuggestionIndex]
+      ) {
+        event.preventDefault();
+        selectQuestionSuggestion(
+          questionSuggestions[visibleActiveSuggestionIndex],
+        );
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeQuestionSuggestions();
+        return;
+      }
+      if (event.key === "Tab") closeQuestionSuggestions();
+    }
     if (event.key === "Backspace" && removeAdjacentSkill()) {
       event.preventDefault();
       return;
@@ -2820,6 +2939,41 @@ const Composer = forwardRef<ComposerHandle, {
       data-tour-id="task-composer"
       onSubmit={onSubmit}
     >
+      {visibleSuggestionsOpen && (
+        <section
+          aria-label="问题联想"
+          className="composer-question-suggestions"
+          ref={suggestionMenuRef}
+        >
+          <header>
+            <WandSparkles aria-hidden="true" size={15} strokeWidth={1.7} />
+            <span>猜你想问</span>
+          </header>
+          <div
+            aria-label="联想问题列表"
+            id="composer-question-suggestion-list"
+            role="listbox"
+          >
+            {questionSuggestions.map((suggestion, index) => (
+              <button
+                aria-selected={index === visibleActiveSuggestionIndex}
+                className={
+                  index === visibleActiveSuggestionIndex ? "active" : ""
+                }
+                id={`composer-question-suggestion-${suggestion.id}`}
+                key={suggestion.id}
+                onClick={() => selectQuestionSuggestion(suggestion)}
+                onMouseEnter={() => setActiveSuggestionIndex(index)}
+                role="option"
+                title={suggestion.question}
+                type="button"
+              >
+                <span>{suggestion.question}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       {skillMenuOpen && (
         <section
           aria-label="选择技能"
@@ -2903,6 +3057,19 @@ const Composer = forwardRef<ComposerHandle, {
         </section>
       )}
       <div
+        aria-activedescendant={
+          visibleSuggestionsOpen &&
+          questionSuggestions[visibleActiveSuggestionIndex]
+            ? `composer-question-suggestion-${questionSuggestions[visibleActiveSuggestionIndex].id}`
+            : undefined
+        }
+        aria-autocomplete="list"
+        aria-controls={
+          visibleSuggestionsOpen
+            ? "composer-question-suggestion-list"
+            : undefined
+        }
+        aria-haspopup="listbox"
         aria-label="任务输入框"
         aria-multiline="true"
         className="composer-editor"
@@ -2910,6 +3077,14 @@ const Composer = forwardRef<ComposerHandle, {
         data-empty={composerIsEmpty}
         data-placeholder={composerPlaceholder}
         onBlur={rememberEditorInsertion}
+        onCompositionEnd={() => {
+          composingRef.current = false;
+          handleComposerInput();
+        }}
+        onCompositionStart={() => {
+          composingRef.current = true;
+          closeQuestionSuggestions();
+        }}
         onInput={handleComposerInput}
         onKeyDown={handleComposerKeyDown}
         onKeyUp={rememberEditorInsertion}
@@ -2936,6 +3111,8 @@ const Composer = forwardRef<ComposerHandle, {
               aria-label="打开添加菜单"
               className="composer-add-button"
               onClick={() => {
+                closeQuestionSuggestions();
+                setModelMenuOpen(false);
                 setAddMenuOpen((current) => !current);
               }}
               onPointerDown={rememberEditorInsertion}
@@ -3013,7 +3190,11 @@ const Composer = forwardRef<ComposerHandle, {
               aria-expanded={visibleModelMenuOpen}
               aria-haspopup="menu"
               className="model-selector"
-              onClick={() => setModelMenuOpen((current) => !current)}
+              onClick={() => {
+                closeQuestionSuggestions();
+                setAddMenuOpen(false);
+                setModelMenuOpen((current) => !current);
+              }}
               type="button"
             >
               {selectedModelId}

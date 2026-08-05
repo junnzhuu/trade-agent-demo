@@ -1057,6 +1057,72 @@ button:disabled {
   font-size: 11px;
 }
 
+.composer-question-suggestions {
+  position: absolute;
+  z-index: 69;
+  right: 0;
+  bottom: calc(100% + 10px);
+  left: 0;
+  overflow: hidden;
+  border: 1px solid rgba(196, 199, 202, 0.82);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 20px 54px rgba(39, 47, 53, 0.14);
+  -webkit-backdrop-filter: blur(24px) saturate(122%);
+  backdrop-filter: blur(24px) saturate(122%);
+}
+
+.composer-question-suggestions > header {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border-bottom: 1px solid rgba(229, 230, 232, 0.72);
+  color: #74787c;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.composer-question-suggestions > div {
+  display: grid;
+  gap: 2px;
+  max-height: min(270px, 36dvh);
+  overflow-y: auto;
+  padding: 7px 8px 9px;
+  scrollbar-color: #d4d6d8 transparent;
+  scrollbar-width: thin;
+}
+
+.composer-question-suggestions button {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: #292c2f;
+  text-align: left;
+}
+
+.composer-question-suggestions button:hover,
+.composer-question-suggestions button:focus-visible,
+.composer-question-suggestions button.active {
+  background: rgba(225, 227, 229, 0.62);
+}
+
+.composer-question-suggestions button > span {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .composer-skill-menu {
   position: absolute;
   z-index: 70;

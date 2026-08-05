@@ -41,6 +41,12 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /contentEditable/);
   assert.match(page, /composer-inline-skill/);
   assert.match(page, /standardQuestion/);
+  assert.match(page, /getQuestionSuggestions/);
+  assert.match(page, /composer-question-suggestions/);
+  assert.match(page, /猜你想问/);
+  assert.match(page, /onCompositionStart/);
+  assert.match(page, /onCompositionEnd/);
+  assert.match(page, /aria-haspopup="listbox"/);
   assert.match(page, /data-empty=\{composerIsEmpty\}/);
   assert.match(page, /useImperativeHandle/);
   assert.match(page, /onSelectSkill\(skill\)/);
@@ -160,6 +166,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
     /\.task-search-field input\s*{[^}]*font-size: 14px/s,
   );
   assert.match(css, /\.composer-inline-skill/);
+  assert.match(css, /\.composer-question-suggestions/);
   assert.match(css, /\.composer-editor\[data-empty="true"\]::before/);
   assert.match(css, /\.plan-mode-tag/);
   assert.match(css, /\.plan-mode-tag:hover \.plan-mode-tag-close-icon/);
