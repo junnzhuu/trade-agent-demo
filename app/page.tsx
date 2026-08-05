@@ -173,6 +173,8 @@ export default function Home() {
   const [selectedComposerSkills, setSelectedComposerSkills] = useState<
     ComposerSkillOption[]
   >([]);
+  const [pendingComposerSkill, setPendingComposerSkill] =
+    useState<ComposerSkillOption | null>(null);
   const [planMode, setPlanMode] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState<ModelId>("glm-5");
   const [selectedHomeSkillCategory, setSelectedHomeSkillCategory] =
@@ -377,12 +379,24 @@ export default function Home() {
   const startNewChat = useCallback(() => {
     setInput("");
     setSelectedComposerSkills([]);
+    setPendingComposerSkill(null);
     activeTaskIdRef.current = null;
     activeViewRef.current = "chat";
     setActiveTaskId(null);
     setActiveView("chat");
     setMobileSidebarOpen(false);
   }, []);
+
+  const useExpertSkill = useCallback(
+    (expertId: string, skillId: string) => {
+      const skill = composerSkillOptions.find(
+        (option) => option.expertId === expertId && option.id === skillId,
+      );
+      startNewChat();
+      setPendingComposerSkill(skill ?? null);
+    },
+    [startNewChat],
+  );
 
   useEffect(() => {
     activeTaskIdRef.current = activeTaskId;
@@ -391,6 +405,18 @@ export default function Home() {
   useEffect(() => {
     activeViewRef.current = activeView;
   }, [activeView]);
+
+  useEffect(() => {
+    if (activeView !== "chat" || !pendingComposerSkill) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const composer = composerHandleRef.current;
+      if (!composer) return;
+      composer.insertSkill(pendingComposerSkill);
+      setPendingComposerSkill(null);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeView, pendingComposerSkill]);
 
   useEffect(() => {
     scrollEndRef.current?.scrollIntoView({
@@ -1431,7 +1457,7 @@ export default function Home() {
         </button>
 
         {activeView === "experts" ? (
-          <ExpertSkillWorkspace />
+          <ExpertSkillWorkspace onUseSkill={useExpertSkill} />
         ) : activeView === "automation" ? (
           <AutomationWorkspace />
         ) : messages.length === 0 ? (

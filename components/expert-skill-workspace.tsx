@@ -4,7 +4,11 @@ import { Bot, Check, ClipboardList } from "lucide-react";
 import { useMemo, useState } from "react";
 import { expertCatalog } from "@/lib/expert-catalog";
 
-export function ExpertSkillWorkspace() {
+export function ExpertSkillWorkspace({
+  onUseSkill,
+}: {
+  onUseSkill: (expertId: string, skillId: string) => void;
+}) {
   const [selectedExpertId, setSelectedExpertId] = useState(
     expertCatalog[0].id,
   );
@@ -92,14 +96,21 @@ export function ExpertSkillWorkspace() {
             return (
               <li key={skill.id}>
                 <button
+                  aria-label={`使用技能：${skill.name}`}
                   aria-pressed={selected}
                   className={`skill-card ${selected ? "selected" : ""}`}
                   data-testid={`skill-card-${skill.id}`}
-                  onClick={() => setSelectedSkillId(skill.id)}
+                  onClick={() => {
+                    setSelectedSkillId(skill.id);
+                    onUseSkill(selectedExpert.id, skill.id);
+                  }}
                   type="button"
                 >
                   <strong>{skill.name}</strong>
                   <span>{skill.description}</span>
+                  <span className="skill-use-overlay" aria-hidden="true">
+                    使用该技能
+                  </span>
                   {selected && (
                     <span
                       className="selection-check skill-check"

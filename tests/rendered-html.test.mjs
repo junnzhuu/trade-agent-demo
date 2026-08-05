@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 test("ships the trading agent workspace instead of the starter preview", async () => {
-  const [page, layout, css, packageJson, nextConfig, workflow] =
+  const [page, layout, css, packageJson, nextConfig, workflow, expertWorkspace] =
     await Promise.all([
       readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
       readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -12,6 +12,10 @@ test("ships the trading agent workspace instead of the starter preview", async (
       readFile(new URL("../next.config.ts", import.meta.url), "utf8"),
       readFile(
         new URL("../.github/workflows/deploy-pages.yml", import.meta.url),
+        "utf8",
+      ),
+      readFile(
+        new URL("../components/expert-skill-workspace.tsx", import.meta.url),
         "utf8",
       ),
     ]);
@@ -27,6 +31,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /runDemoScenario/);
   assert.match(page, /专家 · 技能/);
   assert.match(page, /ExpertSkillWorkspace/);
+  assert.match(page, /onUseSkill=\{useExpertSkill\}/);
+  assert.match(page, /pendingComposerSkill/);
+  assert.match(expertWorkspace, /使用技能：\$\{skill\.name\}/);
+  assert.match(expertWorkspace, /className="skill-use-overlay"/);
+  assert.match(expertWorkspace, /使用该技能/);
   assert.match(page, /HomeSkillDiscovery/);
   assert.match(page, /快捷技能推荐/);
   assert.match(page, /AutomationWorkspace/);
@@ -177,6 +186,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /background: rgba\(218, 222, 225, 0\.68\)/);
   assert.match(css, /grid-template-columns: repeat\(3, minmax\(0, 260px\)\)/);
   assert.match(css, /\.skill-grid/);
+  assert.match(css, /\.skill-use-overlay/);
+  assert.match(css, /\.skill-card:focus-visible \.skill-use-overlay/);
   assert.match(css, /\.composer-skill-menu/);
   assert.match(css, /\.composer-skill-search/);
   assert.match(
