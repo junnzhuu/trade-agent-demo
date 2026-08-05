@@ -20,6 +20,10 @@ test("exposes every skill with its expert label and canonical description", () =
     qualification.description,
     "查询资质是否过期、出价权限、品牌直发资格等",
   );
+  assert.equal(
+    qualification.standardQuestion,
+    "请查询商家【商家ID】的资质是否过期、出价权限和品牌直发资格。",
+  );
 });
 
 test("recognizes and removes a slash skill trigger at the caret", () => {

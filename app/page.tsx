@@ -34,8 +34,10 @@ import Image from "next/image";
 import {
   type FormEvent,
   type KeyboardEvent,
+  forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -113,6 +115,9 @@ type LibraryDialog = "favorites" | "archive";
 type FeedbackMode = "answer" | "general";
 type FeedbackImage = { id: string; name: string; url: string };
 type TourComposerPanel = "add" | "model" | null;
+type ComposerHandle = {
+  insertSkill: (skill: ComposerSkillOption) => void;
+};
 type TourOrigin = {
   activeView: WorkspaceView;
   activeTaskId: string | null;
@@ -210,6 +215,7 @@ export default function Home() {
   const libraryCloseRef = useRef<HTMLButtonElement | null>(null);
   const tourOriginRef = useRef<TourOrigin | null>(null);
   const tourInitializedRef = useRef(false);
+  const composerHandleRef = useRef<ComposerHandle | null>(null);
 
   const filteredTasks = useMemo(
     () => filterRecentTasks(recentTasks, searchQuery),
@@ -1350,6 +1356,7 @@ export default function Home() {
               selectModel={setSelectedModelId}
               togglePlanMode={() => setPlanMode((current) => !current)}
               tourPanel={tourComposerPanel}
+              ref={composerHandleRef}
             />
             <HomeSkillDiscovery
               onMore={() => {
@@ -1358,9 +1365,14 @@ export default function Home() {
                 setMobileSidebarOpen(false);
               }}
               onSelectCategory={setSelectedHomeSkillCategory}
-              onSelectSkill={(skillName) =>
-                setInput(`使用「${skillName}」：`)
-              }
+              onSelectSkill={(skill) => {
+                const composerSkill = composerSkillOptions.find(
+                  (option) => option.id === skill.id,
+                );
+                if (composerSkill) {
+                  composerHandleRef.current?.insertSkill(composerSkill);
+                }
+              }}
               selectedCategory={selectedHomeSkillCategory}
               skills={homeSkills}
             />
@@ -1437,6 +1449,7 @@ export default function Home() {
                 selectModel={setSelectedModelId}
                 togglePlanMode={() => setPlanMode((current) => !current)}
                 tourPanel={tourComposerPanel}
+                ref={composerHandleRef}
               />
             </div>
           </>
@@ -1913,7 +1926,7 @@ function HomeSkillDiscovery({
   selectedCategory: HomeSkillCategoryId;
   skills: ReturnType<typeof getHomeSkills>;
   onSelectCategory: (category: HomeSkillCategoryId) => void;
-  onSelectSkill: (skillName: string) => void;
+  onSelectSkill: (skill: ReturnType<typeof getHomeSkills>[number]) => void;
   onMore: () => void;
 }) {
   return (
@@ -1954,7 +1967,7 @@ function HomeSkillDiscovery({
           <button
             className="home-skill-card"
             key={skill.id}
-            onClick={() => onSelectSkill(skill.name)}
+            onClick={() => onSelectSkill(skill)}
             type="button"
           >
             <span className="home-skill-card-heading">
@@ -2394,22 +2407,7 @@ function AnswerActions({
   );
 }
 
-function Composer({
-  input,
-  onInput,
-  onKeyDown,
-  onAddSkill,
-  onRemoveSkill,
-  onSubmit,
-  onStop,
-  planMode,
-  running,
-  selectedSkills,
-  selectedModelId,
-  selectModel,
-  togglePlanMode,
-  tourPanel,
-}: {
+const Composer = forwardRef<ComposerHandle, {
   input: string;
   onInput: (value: string) => void;
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
@@ -2424,7 +2422,22 @@ function Composer({
   selectModel: (modelId: ModelId) => void;
   togglePlanMode: () => void;
   tourPanel: TourComposerPanel;
-}) {
+}>(function Composer({
+  input,
+  onInput,
+  onKeyDown,
+  onAddSkill,
+  onRemoveSkill,
+  onSubmit,
+  onStop,
+  planMode,
+  running,
+  selectedSkills,
+  selectedModelId,
+  selectModel,
+  togglePlanMode,
+  tourPanel,
+}, ref) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [skillMenuOpen, setSkillMenuOpen] = useState(false);
@@ -2451,6 +2464,7 @@ function Composer({
   );
   const visibleAddMenuOpen = tourPanel === "add" || (!tourPanel && addMenuOpen);
   const visibleModelMenuOpen = tourPanel === "model" || (!tourPanel && modelMenuOpen);
+  const composerIsEmpty = input.trim().length === 0 && selectedSkills.length === 0;
 
   const readEditorInput = useCallback(() => {
     const editor = editorRef.current;
@@ -2484,7 +2498,15 @@ function Composer({
   }, []);
 
   const reportEditorInput = useCallback(() => {
-    const value = readEditorInput().slice(0, 2000);
+    const editor = editorRef.current;
+    let value = readEditorInput().slice(0, 2000);
+    const hasSkillToken = Boolean(
+      editor?.querySelector(".composer-inline-skill"),
+    );
+    if (!hasSkillToken && value.replace(/[\u200B\s]/gu, "") === "") {
+      editor?.replaceChildren();
+      value = "";
+    }
     lastReportedInputRef.current = value;
     onInput(value);
   }, [onInput, readEditorInput]);
@@ -2578,7 +2600,11 @@ function Composer({
       selectedSkills.length === 0 && inlineSkills.length > 0;
     if (!hasExternalTextChange && !shouldClearRemovedSkills) return;
 
-    editor.replaceChildren(document.createTextNode(input));
+    if (input) {
+      editor.replaceChildren(document.createTextNode(input));
+    } else {
+      editor.replaceChildren();
+    }
     lastReportedInputRef.current = input;
     skillInsertionRangeRef.current = null;
   }, [input, selectedSkills.length]);
@@ -2615,7 +2641,7 @@ function Composer({
     };
   }, [closeSkillMenu, skillMenuOpen, visibleAddMenuOpen, visibleModelMenuOpen]);
 
-  const insertSkillToken = (skill: ComposerSkillOption) => {
+  const insertSkillToken = useCallback((skill: ComposerSkillOption) => {
     if (selectedSkillKeys.has(skill.key)) {
       closeSkillMenu(true);
       return;
@@ -2641,19 +2667,26 @@ function Composer({
 
     range.deleteContents();
     range.insertNode(token);
-    const caretNode = document.createTextNode("\u200B");
-    token.after(caretNode);
+    const questionNode = document.createTextNode(` ${skill.standardQuestion} `);
+    token.after(questionNode);
 
     range = document.createRange();
-    range.setStart(caretNode, 1);
+    range.setStart(questionNode, questionNode.data.length);
     range.collapse(true);
     skillInsertionRangeRef.current = range.cloneRange();
     selection?.removeAllRanges();
     selection?.addRange(range);
 
     onAddSkill(skill);
+    reportEditorInput();
     closeSkillMenu(true);
-  };
+  }, [closeSkillMenu, onAddSkill, reportEditorInput, selectedSkillKeys]);
+
+  useImperativeHandle(
+    ref,
+    () => ({ insertSkill: insertSkillToken }),
+    [insertSkillToken],
+  );
 
   const openSkillSearchFromSlash = () => {
     const editor = editorRef.current;
@@ -2697,6 +2730,7 @@ function Composer({
     syncRemovedSkillTokens();
     if (openSkillSearchFromSlash()) return;
     reportEditorInput();
+    rememberEditorInsertion();
   };
 
   const removeAdjacentSkill = () => {
@@ -2871,9 +2905,13 @@ function Composer({
         aria-multiline="true"
         className="composer-editor"
         contentEditable
+        data-empty={composerIsEmpty}
         data-placeholder={composerPlaceholder}
+        onBlur={rememberEditorInsertion}
         onInput={handleComposerInput}
         onKeyDown={handleComposerKeyDown}
+        onKeyUp={rememberEditorInsertion}
+        onMouseUp={rememberEditorInsertion}
         ref={editorRef}
         role="textbox"
         suppressContentEditableWarning
@@ -3051,4 +3089,4 @@ function Composer({
       </div>
     </form>
   );
-}
+});

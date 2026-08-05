@@ -21,7 +21,8 @@ test("uses the requested merchant skills for the default recommendations", () =>
       merchantSkills.some(
         (skill) =>
           skill.id === recommendation.id &&
-          skill.description === recommendation.description,
+          skill.description === recommendation.description &&
+          skill.standardQuestion === recommendation.standardQuestion,
       ),
     ),
   );

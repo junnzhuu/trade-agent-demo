@@ -35,6 +35,10 @@ test("uses merchant operations as the default 24-card catalog", () => {
 });
 
 test("defines selectable demo skills for every expert", () => {
+  assert.equal(
+    expertCatalog.reduce((total, expert) => total + expert.skills.length, 0),
+    44,
+  );
   for (const expert of expertCatalog) {
     assert.ok(expert.skills.length > 0);
     assert.equal(
@@ -42,5 +46,25 @@ test("defines selectable demo skills for every expert", () => {
       expert.skills.length,
     );
     assert.ok(expert.skills.every((skill) => skill.description.length > 0));
+    assert.ok(expert.skills.every((skill) => skill.standardQuestion.length > 0));
   }
+});
+
+test("defines the requested standard questions for home recommendations", () => {
+  const merchantSkills = expertCatalog[0].skills;
+  const standardQuestionFor = (name: string) =>
+    merchantSkills.find((skill) => skill.name === name)?.standardQuestion;
+
+  assert.equal(
+    standardQuestionFor("商家资质查询"),
+    "请查询商家【商家ID】的资质是否过期、出价权限和品牌直发资格。",
+  );
+  assert.equal(
+    standardQuestionFor("商家违规单查询"),
+    "请查询商家【商家ID】的违规处罚记录。",
+  );
+  assert.equal(
+    standardQuestionFor("商家直发资格查询"),
+    "请查询商家【商家ID】的直发资格和近期绩效。",
+  );
 });

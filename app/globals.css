@@ -1025,7 +1025,7 @@ button:disabled {
   white-space: pre-wrap;
 }
 
-.composer-editor:empty::before {
+.composer-editor[data-empty="true"]::before {
   color: #858585;
   content: attr(data-placeholder);
   pointer-events: none;

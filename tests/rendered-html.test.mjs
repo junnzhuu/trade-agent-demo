@@ -37,6 +37,12 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /composer-skill-search/);
   assert.match(page, /contentEditable/);
   assert.match(page, /composer-inline-skill/);
+  assert.match(page, /standardQuestion/);
+  assert.match(page, /data-empty=\{composerIsEmpty\}/);
+  assert.match(page, /useImperativeHandle/);
+  assert.match(page, /onSelectSkill\(skill\)/);
+  assert.doesNotMatch(page, /onSelectSkill\(skill\.name\)/);
+  assert.doesNotMatch(page, /使用「\$\{skillName\}」/);
   assert.match(page, /未找到相关技能/);
   assert.match(page, /搜索技能/);
   assert.match(page, /qwen3\.7-plus/);
@@ -147,6 +153,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.composer-skill-menu/);
   assert.match(css, /\.composer-skill-search/);
   assert.match(css, /\.composer-inline-skill/);
+  assert.match(css, /\.composer-editor\[data-empty="true"\]::before/);
   assert.match(css, /\.plan-mode-tag/);
   assert.match(css, /\.plan-mode-tag:hover \.plan-mode-tag-close-icon/);
   assert.doesNotMatch(css, /\.selected-skill-chips/);
