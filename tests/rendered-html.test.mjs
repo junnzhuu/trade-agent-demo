@@ -48,6 +48,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /\n  Square,/);
   assert.match(page, /添加文件/);
   assert.match(page, /计划模式/);
+  assert.match(page, /className="plan-mode-tag"/);
+  assert.match(page, /aria-label="关闭计划模式"/);
   assert.doesNotMatch(page, /深度思考/);
   assert.match(page, /role="switch"/);
   assert.match(
@@ -144,6 +146,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.composer-skill-menu/);
   assert.match(css, /\.composer-skill-search/);
   assert.match(css, /\.composer-inline-skill/);
+  assert.match(css, /\.plan-mode-tag/);
+  assert.match(css, /\.plan-mode-tag:hover \.plan-mode-tag-close-icon/);
   assert.doesNotMatch(css, /\.selected-skill-chips/);
   assert.match(css, /\.brand-mark img/);
   assert.match(css, /prefers-reduced-motion/);

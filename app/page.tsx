@@ -6,6 +6,7 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  ClipboardList,
   Copy,
   Ellipsis,
   FilePlus2,
@@ -2945,6 +2946,21 @@ function Composer({
               </div>
             )}
           </div>
+          {planMode ? (
+            <button
+              aria-label="关闭计划模式"
+              className="plan-mode-tag"
+              onClick={togglePlanMode}
+              title="关闭计划模式"
+              type="button"
+            >
+              <span className="plan-mode-tag-icons" aria-hidden="true">
+                <ClipboardList className="plan-mode-tag-default-icon" size={18} />
+                <X className="plan-mode-tag-close-icon" size={19} />
+              </span>
+              <span>计划</span>
+            </button>
+          ) : null}
         </div>
 
         <div className="composer-right-actions">

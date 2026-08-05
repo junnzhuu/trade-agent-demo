@@ -1223,7 +1223,7 @@ button:disabled {
 .composer-left-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 5px;
 }
 
 .add-control {
@@ -1246,6 +1246,60 @@ button:disabled {
 .composer-add-button[aria-expanded="true"] {
   background: #f2f2f2;
   color: #222222;
+}
+
+.plan-mode-tag {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 8px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: #45484a;
+  font-size: 14px;
+  font-weight: 560;
+  line-height: 1;
+}
+
+.plan-mode-tag:hover,
+.plan-mode-tag:focus-visible {
+  background: #f0f1f2;
+  color: #181a1b;
+}
+
+.plan-mode-tag-icons {
+  position: relative;
+  display: grid;
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.plan-mode-tag-icons svg {
+  position: absolute;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.plan-mode-tag-close-icon {
+  opacity: 0;
+  transform: scale(0.82);
+}
+
+.plan-mode-tag:hover .plan-mode-tag-default-icon,
+.plan-mode-tag:focus-visible .plan-mode-tag-default-icon {
+  opacity: 0;
+  transform: scale(0.82);
+}
+
+.plan-mode-tag:hover .plan-mode-tag-close-icon,
+.plan-mode-tag:focus-visible .plan-mode-tag-close-icon {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .add-menu {
