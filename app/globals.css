@@ -2591,6 +2591,87 @@ button:disabled {
   background: #fff0f0;
 }
 
+.delete-confirmation-layer {
+  position: fixed;
+  z-index: 130;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.delete-confirmation-scrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  background: rgba(20, 20, 20, 0.62);
+  backdrop-filter: blur(2px);
+}
+
+.delete-confirmation-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(440px, calc(100vw - 48px));
+  padding: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 22px;
+  background: #fbfbfb;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
+}
+
+.delete-confirmation-dialog h2 {
+  margin: 0;
+  color: #1f1f1f;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.delete-confirmation-dialog p {
+  margin: 12px 0 24px;
+  color: #666666;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.delete-confirmation-dialog > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.delete-confirmation-dialog button:not(.delete-confirmation-scrim) {
+  min-width: 92px;
+  min-height: 40px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.delete-confirmation-cancel {
+  border: 1px solid #d7d7d7;
+  background: white;
+  color: #444444;
+}
+
+.delete-confirmation-cancel:hover,
+.delete-confirmation-cancel:focus-visible {
+  border-color: #aaaaaa;
+  background: #f3f3f3;
+}
+
+.delete-confirmation-submit {
+  border: 1px solid #b33f3f;
+  background: #b33f3f;
+  color: white;
+}
+
+.delete-confirmation-submit:hover,
+.delete-confirmation-submit:focus-visible {
+  border-color: #963333;
+  background: #963333;
+}
+
 .library-empty {
   margin: 0;
   padding: 22px 14px;
@@ -2872,6 +2953,27 @@ button:disabled {
   color: white;
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.18);
   font-size: 13px;
+}
+
+.favorite-toast {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.favorite-toast button {
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: white;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.favorite-toast button:hover,
+.favorite-toast button:focus-visible {
+  color: #8ee9e9;
 }
 
 @media (max-width: 760px) {

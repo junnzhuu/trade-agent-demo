@@ -120,6 +120,13 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /@supports not \(\(-webkit-backdrop-filter:/);
   assert.match(css, /\.task-context-menu/);
   assert.match(page, /我的收藏/);
+  assert.match(page, /收藏成功，可前往/);
+  assert.match(page, /favorite-toast/);
+  assert.match(page, /openLibrary\("favorites"\)/);
+  assert.match(page, /该任务将被永久删除，无法恢复，是否确认删除？/);
+  assert.match(page, /确认删除任务/);
+  assert.match(page, /role="alertdialog"/);
+  assert.match(page, /deleteConfirmationTaskId/);
   assert.match(page, /复制请求 ID/);
   assert.match(page, /ID: Manbo/);
   assert.match(page, /新手指引/);
@@ -137,6 +144,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.onboarding-spotlight/);
   assert.match(css, /\.answer-more-menu/);
   assert.match(css, /\.library-dialog/);
+  assert.match(css, /\.favorite-toast/);
+  assert.match(css, /\.delete-confirmation-dialog/);
   assert.match(css, /\.primary-sidebar-nav button:first-child/);
   assert.match(css, /@keyframes generating-dot/);
   assert.match(css, /\.execution-details\[open\] \.execution-chevron/);

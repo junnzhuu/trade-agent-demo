@@ -193,6 +193,7 @@ export default function Home() {
   const [feedbackDetail, setFeedbackDetail] = useState("");
   const [feedbackImages, setFeedbackImages] = useState<FeedbackImage[]>([]);
   const [feedbackNotice, setFeedbackNotice] = useState("");
+  const [favoriteToastOpen, setFavoriteToastOpen] = useState(false);
   const [pinnedExpanded, setPinnedExpanded] = useState(true);
   const [recentExpanded, setRecentExpanded] = useState(true);
   const [taskMenuId, setTaskMenuId] = useState<string | null>(null);
@@ -200,6 +201,9 @@ export default function Home() {
   const [renameValue, setRenameValue] = useState("");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [libraryDialog, setLibraryDialog] = useState<LibraryDialog | null>(null);
+  const [deleteConfirmationTaskId, setDeleteConfirmationTaskId] = useState<
+    string | null
+  >(null);
   const [tourActive, setTourActive] = useState(false);
   const [tourStepIndex, setTourStepIndex] = useState(0);
   const [tourComposerPanel, setTourComposerPanel] =
@@ -216,6 +220,9 @@ export default function Home() {
   const accountControlRef = useRef<HTMLDivElement | null>(null);
   const accountButtonRef = useRef<HTMLButtonElement | null>(null);
   const libraryCloseRef = useRef<HTMLButtonElement | null>(null);
+  const deleteCancelRef = useRef<HTMLButtonElement | null>(null);
+  const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const favoriteToastTimerRef = useRef<number | null>(null);
   const tourOriginRef = useRef<TourOrigin | null>(null);
   const tourInitializedRef = useRef(false);
   const composerHandleRef = useRef<ComposerHandle | null>(null);
@@ -235,6 +242,11 @@ export default function Home() {
   const activeTask = useMemo(
     () => recentTasks.find((task) => task.id === activeTaskId),
     [activeTaskId, recentTasks],
+  );
+  const deleteConfirmationTask = useMemo(
+    () =>
+      recentTasks.find((task) => task.id === deleteConfirmationTaskId) ?? null,
+    [deleteConfirmationTaskId, recentTasks],
   );
   const messages = useMemo(() => activeTask?.messages ?? [], [activeTask]);
   const running = activeTask?.status === "running";
@@ -320,6 +332,7 @@ export default function Home() {
   }, []);
 
   const closeLibrary = useCallback(() => {
+    setDeleteConfirmationTaskId(null);
     setLibraryDialog(null);
     requestAnimationFrame(() => accountButtonRef.current?.focus());
   }, []);
@@ -329,6 +342,37 @@ export default function Home() {
     setLibraryDialog(dialog);
     requestAnimationFrame(() => libraryCloseRef.current?.focus());
   }, []);
+
+  const closeDeleteConfirmation = useCallback(() => {
+    setDeleteConfirmationTaskId(null);
+    requestAnimationFrame(() => {
+      if (deleteTriggerRef.current?.isConnected) {
+        deleteTriggerRef.current.focus();
+      } else {
+        libraryCloseRef.current?.focus();
+      }
+    });
+  }, []);
+
+  const openDeleteConfirmation = (
+    taskId: string,
+    trigger: HTMLButtonElement,
+  ) => {
+    deleteTriggerRef.current = trigger;
+    setDeleteConfirmationTaskId(taskId);
+    requestAnimationFrame(() => deleteCancelRef.current?.focus());
+  };
+
+  const showFavoriteToast = () => {
+    if (favoriteToastTimerRef.current) {
+      window.clearTimeout(favoriteToastTimerRef.current);
+    }
+    setFavoriteToastOpen(true);
+    favoriteToastTimerRef.current = window.setTimeout(() => {
+      setFavoriteToastOpen(false);
+      favoriteToastTimerRef.current = null;
+    }, 4_000);
+  };
 
   const startNewChat = useCallback(() => {
     setInput("");
@@ -562,6 +606,9 @@ export default function Home() {
     return () => {
       mountedRef.current = false;
       scheduler.cancelAll();
+      if (favoriteToastTimerRef.current) {
+        window.clearTimeout(favoriteToastTimerRef.current);
+      }
     };
   }, [scheduler]);
 
@@ -771,7 +818,7 @@ export default function Home() {
   const commitTaskRename = (taskId: string) => {
     const title = renameValue.trim();
     if (title) {
-      const renamedAt = Date.now();
+      const renamedAt = new Date().getTime();
       setRecentTasks((current) =>
         current.map((task) =>
           task.id === taskId
@@ -794,15 +841,21 @@ export default function Home() {
   };
 
   const toggleTaskFavorite = (taskId: string) => {
+    const addingFavorite = !recentTasks.find((task) => task.id === taskId)
+      ?.favorited;
     setRecentTasks((current) =>
       current.map((task) =>
         task.id === taskId ? { ...task, favorited: !task.favorited } : task,
       ),
     );
     setTaskMenuId(null);
+    if (addingFavorite) showFavoriteToast();
   };
 
   const toggleAnswerFavorite = (taskId: string, messageId: string) => {
+    const addingFavorite = !recentTasks
+      .find((task) => task.id === taskId)
+      ?.messages.find((message) => message.id === messageId)?.favorited;
     updateTask(taskId, (task) => ({
       ...task,
       messages: task.messages.map((message) =>
@@ -811,6 +864,7 @@ export default function Home() {
           : message,
       ),
     }));
+    if (addingFavorite) showFavoriteToast();
   };
 
   const restoreTask = (taskId: string) => {
@@ -825,6 +879,8 @@ export default function Home() {
       setActiveTaskId(null);
       setActiveView("chat");
     }
+    setDeleteConfirmationTaskId(null);
+    requestAnimationFrame(() => libraryCloseRef.current?.focus());
   };
 
   const copyRequestId = async (requestId: string) => {
@@ -853,7 +909,7 @@ export default function Home() {
   const archiveTask = (taskId: string) => {
     const taskToArchive = recentTasks.find((task) => task.id === taskId);
     if (taskToArchive?.status === "running") cancelTask(taskId);
-    const archivedAt = Date.now();
+    const archivedAt = new Date().getTime();
     setRecentTasks((current) =>
       current.map((task) =>
         task.id === taskId
@@ -1082,6 +1138,32 @@ export default function Home() {
     if (event.key === "Escape") {
       event.preventDefault();
       closeLibrary();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(
+      event.currentTarget.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  const handleDeleteConfirmationKeyDown = (
+    event: KeyboardEvent<HTMLElement>,
+  ) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeDeleteConfirmation();
       return;
     }
     if (event.key !== "Tab") return;
@@ -1578,6 +1660,7 @@ export default function Home() {
             aria-labelledby="library-dialog-title"
             aria-modal="true"
             className="library-dialog"
+            inert={deleteConfirmationTask ? true : undefined}
             onKeyDown={handleLibraryKeyDown}
             role="dialog"
           >
@@ -1715,7 +1798,12 @@ export default function Home() {
                         <button
                           aria-label={`删除归档任务：${task.title}`}
                           className="delete-task-button"
-                          onClick={() => deleteArchivedTask(task.id)}
+                          onClick={(event) =>
+                            openDeleteConfirmation(
+                              task.id,
+                              event.currentTarget,
+                            )
+                          }
                           type="button"
                         >
                           <Trash2 size={15} />
@@ -1736,6 +1824,47 @@ export default function Home() {
           </section>
         </div>
       )}
+
+      {deleteConfirmationTask ? (
+        <div className="delete-confirmation-layer">
+          <button
+            aria-label="取消删除"
+            className="delete-confirmation-scrim"
+            onClick={closeDeleteConfirmation}
+            type="button"
+          />
+          <section
+            aria-describedby="delete-confirmation-description"
+            aria-labelledby="delete-confirmation-title"
+            aria-modal="true"
+            className="delete-confirmation-dialog"
+            onKeyDown={handleDeleteConfirmationKeyDown}
+            role="alertdialog"
+          >
+            <h2 id="delete-confirmation-title">确认删除任务</h2>
+            <p id="delete-confirmation-description">
+              该任务将被永久删除，无法恢复，是否确认删除？
+            </p>
+            <div>
+              <button
+                className="delete-confirmation-cancel"
+                onClick={closeDeleteConfirmation}
+                ref={deleteCancelRef}
+                type="button"
+              >
+                取消
+              </button>
+              <button
+                className="delete-confirmation-submit"
+                onClick={() => deleteArchivedTask(deleteConfirmationTask.id)}
+                type="button"
+              >
+                确认删除
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {feedbackTargetId && (
         <div className="feedback-modal-layer">
@@ -1881,7 +2010,29 @@ export default function Home() {
         </div>
       )}
 
-      {feedbackNotice ? (
+      {favoriteToastOpen ? (
+        <div
+          aria-live="polite"
+          className="feedback-toast favorite-toast"
+          role="status"
+        >
+          <span>收藏成功，可前往</span>
+          <button
+            onClick={() => {
+              if (favoriteToastTimerRef.current) {
+                window.clearTimeout(favoriteToastTimerRef.current);
+                favoriteToastTimerRef.current = null;
+              }
+              setFavoriteToastOpen(false);
+              openLibrary("favorites");
+            }}
+            type="button"
+          >
+            “我的收藏”
+          </button>
+          <span>中查看</span>
+        </div>
+      ) : feedbackNotice ? (
         <div aria-live="polite" className="feedback-toast" role="status">
           {feedbackNotice}
         </div>
