@@ -32,10 +32,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /audienceHistoryStorageKey/);
   assert.match(page, /recoverPersistedTasks/);
   assert.match(page, /权限场景演示/);
-  assert.match(page, /对内版本/);
-  assert.match(page, /对商版本/);
-  assert.match(page, /仅供内部使用/);
-  assert.match(page, /可用于向商家回复/);
+  assert.match(page, /以上信息仅供公司内部参考，请勿直接转发给商家/);
+  assert.match(page, /以上信息可转发商家/);
+  assert.doesNotMatch(page, /audience-answer-label/);
   assert.match(page, /生成对商版本/);
   assert.match(page, /生成对内版本/);
   assert.match(page, /onDeriveMerchant/);
@@ -118,8 +117,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /点击加入反馈群/);
   assert.match(css, /\.answer-actions/);
   assert.match(css, /\.audience-scenario-strip/);
-  assert.match(css, /\.audience-answer-label\.merchant/);
-  assert.match(css, /\.derive-audience-answer/);
+  assert.match(css, /\.audience-answer-footer\.merchant/);
+  assert.doesNotMatch(css, /\.audience-answer-label/);
   assert.match(css, /background: #01c1c2/);
   assert.match(css, /color: #ffffff/);
   assert.match(css, /\.feedback-dialog/);

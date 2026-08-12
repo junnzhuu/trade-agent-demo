@@ -579,6 +579,13 @@ export default function Home() {
                     data.audience === "merchant" || data.audience === "internal"
                       ? data.audience
                       : undefined,
+                  audienceIntent:
+                    data.audienceIntent === "default_internal" ||
+                    data.audienceIntent === "explicit_internal" ||
+                    data.audienceIntent === "merchant" ||
+                    data.audienceIntent === "both"
+                      ? data.audienceIntent
+                      : job.plan.audienceIntent,
                   queryType: job.plan.queryType,
                   evidence: Array.isArray(data.evidence)
                     ? (data.evidence as AudienceEvidence[])
@@ -589,8 +596,9 @@ export default function Home() {
                   canDeriveMerchant: Boolean(data.canDeriveMerchant),
                   answerGroupId: job.answerGroupId,
                   fallback:
-                    data.fallback === "merchant_unavailable"
-                      ? "merchant_unavailable"
+                    data.fallback === "merchant_unavailable_prompt" ||
+                    data.fallback === "merchant_unavailable_notice"
+                      ? data.fallback
                       : undefined,
                 };
                 if (firstAnswer) {
@@ -873,6 +881,7 @@ export default function Home() {
       if (!source || !merchantEvidence.length || source.derivedAnswerId) return;
 
       const answerId = createId();
+      const userActionId = createId();
       const startedAt = Date.now();
       const pendingAnswer: TaskMessage = {
         id: answerId,
@@ -880,6 +889,7 @@ export default function Home() {
         content: "",
         pending: true,
         audience: "merchant",
+        audienceIntent: "merchant",
         queryType: source.queryType,
         evidence,
         usedEvidenceIds: merchantEvidence.map((item) => item.id),
@@ -910,6 +920,13 @@ export default function Home() {
                 }
               : message,
           ),
+          {
+            id: userActionId,
+            role: "user",
+            content: "生成对商版本",
+            sourceAnswerId: source.id,
+            answerGroupId: source.answerGroupId,
+          },
           pendingAnswer,
         ],
       }));
@@ -928,6 +945,7 @@ export default function Home() {
       if (!source || !evidence.length || source.derivedAnswerId) return;
 
       const answerId = createId();
+      const userActionId = createId();
       const startedAt = Date.now();
       updateTask(activeTask.id, (task) => ({
         ...task,
@@ -941,11 +959,19 @@ export default function Home() {
               : message,
           ),
           {
+            id: userActionId,
+            role: "user",
+            content: "生成对内版本",
+            sourceAnswerId: source.id,
+            answerGroupId: source.answerGroupId,
+          },
+          {
             id: answerId,
             role: "assistant",
             content: "",
             pending: true,
             audience: "internal",
+            audienceIntent: "explicit_internal",
             queryType: source.queryType,
             evidence,
             usedEvidenceIds: evidence.map((item) => item.id),
@@ -2458,6 +2484,7 @@ function HomeSkillDiscovery({
             <button
               key={scenario.id}
               onClick={() => onSelectAudienceScenario(scenario.prompt)}
+              aria-label={scenario.label}
               title={scenario.prompt}
               type="button"
             >
@@ -2770,53 +2797,44 @@ function AssistantExecution({
 
       {message.content ? (
         <div className="assistant-final-answer">
-          {message.audience ? (
-            <div className={`audience-answer-label ${message.audience}`}>
-              <strong>
-                {message.audience === "merchant" ? "对商版本" : "对内版本"}
-              </strong>
-              <span>
-                {message.audience === "merchant"
-                  ? "可用于向商家回复"
-                  : "仅供内部使用"}
-              </span>
-            </div>
-          ) : null}
-          <p>{message.content}</p>
-          {message.audience === "internal" ? (
-            <p className="internal-answer-warning">
-              内含运营可见信息，请勿直接转发给商家。
+          {message.fallback ? (
+            <p className="audience-answer-footer unavailable">
+              <span>{message.content}</span>
+              {!message.pending &&
+              message.fallback === "merchant_unavailable_prompt" &&
+              !message.derivedAnswerId ? (
+                <button onClick={onGenerateInternal} type="button">
+                  生成对内版本
+                </button>
+              ) : null}
             </p>
-          ) : null}
-          {message.audience === "merchant" && message.derivedFromId ? (
-            <p className="derived-answer-note">
-              基于当前任务中已确认的可对商信息独立生成
-            </p>
-          ) : null}
-          {!message.pending &&
-          message.canDeriveMerchant &&
-          !message.derivedAnswerId ? (
-            <button
-              className="derive-audience-answer"
-              onClick={onDeriveMerchant}
-              type="button"
-            >
-              生成对商版本
-              <ChevronRight aria-hidden="true" size={15} />
-            </button>
-          ) : null}
-          {!message.pending &&
-          message.fallback === "merchant_unavailable" &&
-          !message.derivedAnswerId ? (
-            <button
-              className="derive-audience-answer internal"
-              onClick={onGenerateInternal}
-              type="button"
-            >
-              生成对内版本
-              <ChevronRight aria-hidden="true" size={15} />
-            </button>
-          ) : null}
+          ) : (
+            <>
+              <p>{message.content}</p>
+              {!message.pending && message.audience === "internal" ? (
+                <p className="audience-answer-footer internal">
+                  <span>
+                    以上信息仅供公司内部参考，请勿直接转发给商家。
+                  </span>
+                  {message.canDeriveMerchant &&
+                  !message.derivedAnswerId ? (
+                    <span>
+                      如需转发商家，可
+                      <button onClick={onDeriveMerchant} type="button">
+                        生成对商版本
+                      </button>
+                      。
+                    </span>
+                  ) : null}
+                </p>
+              ) : null}
+              {!message.pending && message.audience === "merchant" ? (
+                <p className="audience-answer-footer merchant">
+                  以上信息可转发商家。
+                </p>
+              ) : null}
+            </>
+          )}
         </div>
       ) : null}
 

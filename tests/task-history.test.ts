@@ -207,3 +207,22 @@ test("recovers persisted audience metadata and stops interrupted runs", () => {
   assert.equal(recovered.messages[0].audience, "merchant");
   assert.equal(recovered.messages[0].derivedFromId, "internal-answer");
 });
+
+test("migrates the legacy merchant-unavailable status", () => {
+  const legacyTask = {
+    ...initialRecentTasks[0],
+    messages: [
+      {
+        id: "legacy-fallback",
+        role: "assistant" as const,
+        content: "当前暂无可用于生成对商版本的信息。",
+        fallback: "merchant_unavailable",
+      },
+    ],
+  };
+  const [recovered] = recoverPersistedTasks([legacyTask]);
+  assert.equal(
+    recovered.messages[0].fallback,
+    "merchant_unavailable_prompt",
+  );
+});

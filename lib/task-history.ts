@@ -1,6 +1,7 @@
 import type {
   AnswerAudience,
   AudienceEvidence,
+  AudienceIntent,
   QueryType,
 } from "./audience-isolation";
 
@@ -20,6 +21,7 @@ export type TaskMessage = {
   trace?: TaskTraceStep[];
   favorited?: boolean;
   audience?: AnswerAudience;
+  audienceIntent?: AudienceIntent;
   queryType?: QueryType;
   evidence?: AudienceEvidence[];
   usedEvidenceIds?: string[];
@@ -27,7 +29,10 @@ export type TaskMessage = {
   derivedFromId?: string;
   derivedAnswerId?: string;
   answerGroupId?: string;
-  fallback?: "merchant_unavailable";
+  sourceAnswerId?: string;
+  fallback?:
+    | "merchant_unavailable_prompt"
+    | "merchant_unavailable_notice";
 };
 
 export type RecentTask = {
@@ -254,14 +259,20 @@ export function recoverPersistedTasks(value: unknown): RecentTask[] {
   if (!tasks.length) return initialRecentTasks;
 
   return tasks.map((task) => {
-    if (task.status !== "running") return task;
+    const messages = task.messages.map((message) => {
+      const legacyFallback = (message as { fallback?: string }).fallback;
+      return legacyFallback === "merchant_unavailable"
+        ? { ...message, fallback: "merchant_unavailable_prompt" as const }
+        : message;
+    });
+    if (task.status !== "running") return { ...task, messages };
     return {
       ...task,
       status: undefined,
       startedAt: undefined,
       metadata: "已中断",
       unreadCompletion: false,
-      messages: task.messages.map((message) =>
+      messages: messages.map((message) =>
         message.pending
           ? {
               ...message,

@@ -6,6 +6,11 @@ export type QueryType =
 
 export type AnswerAudience = "internal" | "merchant";
 export type AudienceMode = AnswerAudience | "both";
+export type AudienceIntent =
+  | "default_internal"
+  | "explicit_internal"
+  | "merchant"
+  | "both";
 export type EvidenceVisibility = "merchant" | "internal";
 export type EvidenceSource = "knowledge" | "agent";
 
@@ -29,9 +34,10 @@ export type AudienceRunPlan = {
   queryType: QueryType;
   routeName: string;
   audienceMode: AudienceMode;
+  audienceIntent: AudienceIntent;
   evidence: AudienceEvidence[];
   answers: PlannedAudienceAnswer[];
-  fallback?: "merchant_unavailable";
+  fallback?: "merchant_unavailable_prompt" | "merchant_unavailable_notice";
 };
 
 export type AudienceStreamEvent = {
@@ -42,28 +48,39 @@ export type AudienceStreamEvent = {
 export const audienceScenarioPrompts = [
   {
     id: "internal-derivable",
-    label: "默认对内，可派生",
+    label: "1.用户未说明受众+存在可对商信息",
     prompt: "请分析北屿运动近期经营问题并给出运营建议。",
   },
   {
+    id: "internal-not-derivable",
+    label: "2.用户未说明受众+不存在可对商信息",
+    prompt: "请分析商家内部风险等级和平台招商优先级。",
+  },
+  {
+    id: "explicit-internal",
+    label: "3.用户明确要求仅供内部使用",
+    prompt: "请分析北屿运动近期经营问题并给出运营建议，仅供内部使用。",
+  },
+  {
     id: "merchant-direct",
-    label: "直接生成对商话术",
+    label: "4.用户明确要求对商+存在可对商信息",
     prompt: "请生成一段回复商家的活动审核进度话术。",
   },
   {
     id: "merchant-unavailable",
-    label: "对商无可用信息",
+    label: "5.用户明确要求对商+不存在可对商信息",
     prompt: "请向商家说明其内部风险等级和平台招商优先级。",
   },
   {
     id: "both-versions",
-    label: "同时生成两版",
+    label: "6.用户明确要求同时生成对内+对商,且存在可对商信息",
     prompt: "请分别生成对运营和对商两个版本，说明活动审核结果。",
   },
   {
-    id: "internal-only",
-    label: "仅内部信息",
-    prompt: "请分析商家内部风险等级和平台招商优先级，仅供内部运营使用。",
+    id: "both-merchant-unavailable",
+    label: "7.用户明确要求同时生成两版,但不存在可对商信息",
+    prompt:
+      "请分别生成对运营和对商两个版本，说明商家内部风险等级和平台招商优先级。",
   },
 ] as const;
 
@@ -147,6 +164,13 @@ export function detectQueryType(prompt: string): QueryType {
 }
 
 export function detectAudienceMode(prompt: string): AudienceMode {
+  const intent = detectAudienceIntent(prompt);
+  return intent === "default_internal" || intent === "explicit_internal"
+    ? "internal"
+    : intent;
+}
+
+export function detectAudienceIntent(prompt: string): AudienceIntent {
   if (
     /两版|两个版本|分别生成/u.test(prompt) ||
     /同时.{0,12}(?:对内|运营).{0,12}(?:对商|商家)|同时.{0,12}(?:对商|商家).{0,12}(?:对内|运营)/u.test(
@@ -158,7 +182,10 @@ export function detectAudienceMode(prompt: string): AudienceMode {
   if (/回复商家|商家话术|对商|给商家|向商家|商家回复/u.test(prompt)) {
     return "merchant";
   }
-  return "internal";
+  if (/仅供内部|只供内部|仅内部使用|内部参考|仅供运营|仅供公司/u.test(prompt)) {
+    return "explicit_internal";
+  }
+  return "default_internal";
 }
 
 export function selectEvidence(prompt: string, queryType: QueryType) {
@@ -214,7 +241,11 @@ function planAnswer(
 
 export function createAudienceRunPlan(prompt: string): AudienceRunPlan {
   const queryType = detectQueryType(prompt);
-  const audienceMode = detectAudienceMode(prompt);
+  const audienceIntent = detectAudienceIntent(prompt);
+  const audienceMode: AudienceMode =
+    audienceIntent === "default_internal" || audienceIntent === "explicit_internal"
+      ? "internal"
+      : audienceIntent;
   const evidence = selectEvidence(prompt, queryType);
   const hasMerchantEvidence = evidence.some(
     (item) => item.visibility === "merchant",
@@ -226,9 +257,10 @@ export function createAudienceRunPlan(prompt: string): AudienceRunPlan {
       queryType,
       routeName,
       audienceMode,
+      audienceIntent,
       evidence,
       answers: [],
-      fallback: "merchant_unavailable",
+      fallback: "merchant_unavailable_prompt",
     };
   }
 
@@ -237,24 +269,28 @@ export function createAudienceRunPlan(prompt: string): AudienceRunPlan {
       queryType,
       routeName,
       audienceMode,
+      audienceIntent,
       evidence,
       answers: [
         planAnswer("internal", evidence, false),
         planAnswer("merchant", evidence, false),
       ].filter((item): item is PlannedAudienceAnswer => Boolean(item)),
-      fallback: hasMerchantEvidence ? undefined : "merchant_unavailable",
+      fallback: hasMerchantEvidence
+        ? undefined
+        : "merchant_unavailable_notice",
     };
   }
 
   const answer = planAnswer(
     audienceMode,
     evidence,
-    audienceMode === "internal" && hasMerchantEvidence,
+    audienceIntent === "default_internal" && hasMerchantEvidence,
   );
   return {
     queryType,
     routeName,
     audienceMode,
+    audienceIntent,
     evidence,
     answers: answer ? [answer] : [],
   };
@@ -270,8 +306,12 @@ export function canDeriveMerchantVersion(
   );
 }
 
-export function merchantUnavailableMessage() {
-  return "当前暂无可用于生成对商版本的信息。是否需要生成一份对运营版本供内部参考？";
+export function merchantUnavailableMessage(
+  fallback: AudienceRunPlan["fallback"] = "merchant_unavailable_prompt",
+) {
+  return fallback === "merchant_unavailable_notice"
+    ? "当前暂无可用于生成对商版本的信息源。"
+    : "当前暂无可用于生成对商版本的信息源。是否需要生成一份对内版本供内部参考？";
 }
 
 function abortError() {
@@ -349,12 +389,15 @@ export async function runAudienceIsolationScenario(options: {
     name: "audience.detected",
     data: {
       audienceMode: plan.audienceMode,
+      audienceIntent: plan.audienceIntent,
       detail:
         plan.audienceMode === "both"
           ? "用户明确要求同时生成对内与对商两个版本"
           : plan.audienceMode === "merchant"
             ? "用户明确要求生成对商版本"
-            : "未明确要求对商，默认面向内部运营",
+            : plan.audienceIntent === "explicit_internal"
+              ? "用户明确要求答案仅供内部使用"
+              : "未明确要求对商，默认面向内部运营",
     },
   });
 
@@ -365,20 +408,26 @@ export async function runAudienceIsolationScenario(options: {
     data: { detail: "按受众隔离允许进入答案上下文的信息" },
   });
 
-  if (plan.fallback && !plan.answers.length) {
+  const streamUnavailable = async () => {
+    if (!plan.fallback) return;
     onEvent({
       name: "answer.started",
       data: {
         slot: "fallback",
         fallback: plan.fallback,
         evidence: plan.evidence,
+        audienceIntent: plan.audienceIntent,
       },
     });
-    for (const delta of chunks(merchantUnavailableMessage())) {
+    for (const delta of chunks(merchantUnavailableMessage(plan.fallback))) {
       onEvent({ name: "message.delta", data: { slot: "fallback", delta } });
       await pause(25);
     }
     onEvent({ name: "answer.completed", data: { slot: "fallback" } });
+  };
+
+  if (plan.fallback && !plan.answers.length) {
+    await streamUnavailable();
     onEvent({ name: "run.completed", data: {} });
     return;
   }
@@ -392,6 +441,7 @@ export async function runAudienceIsolationScenario(options: {
         evidence: plan.evidence,
         usedEvidenceIds: answer.usedEvidenceIds,
         canDeriveMerchant: answer.canDeriveMerchant,
+        audienceIntent: plan.audienceIntent,
       },
     });
     for (const delta of chunks(answer.content)) {
@@ -407,6 +457,7 @@ export async function runAudienceIsolationScenario(options: {
     });
     await pause(120);
   }
+  await streamUnavailable();
   onEvent({ name: "run.completed", data: {} });
 }
 

@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  audienceScenarioPrompts,
   buildAnswerFromEvidence,
   canDeriveMerchantVersion,
   createAudienceRunPlan,
+  detectAudienceIntent,
   detectAudienceMode,
   detectQueryType,
   filterEvidenceForAudience,
@@ -17,6 +19,11 @@ test("routes four query types and defaults the audience to internal", () => {
   assert.equal(detectAudienceMode("分析经营问题"), "internal");
   assert.equal(detectAudienceMode("生成回复商家的话术"), "merchant");
   assert.equal(detectAudienceMode("分别生成对运营和对商两个版本"), "both");
+  assert.equal(detectAudienceIntent("分析经营问题"), "default_internal");
+  assert.equal(
+    detectAudienceIntent("分析经营问题，仅供内部使用"),
+    "explicit_internal",
+  );
 });
 
 test("merchant answers never receive internal evidence", () => {
@@ -44,7 +51,7 @@ test("degrades explicit merchant requests without merchant-visible evidence", ()
     "请向商家说明其内部风险等级和平台招商优先级。",
   );
   assert.equal(plan.audienceMode, "merchant");
-  assert.equal(plan.fallback, "merchant_unavailable");
+  assert.equal(plan.fallback, "merchant_unavailable_prompt");
   assert.deepEqual(plan.answers, []);
   assert.equal(buildAnswerFromEvidence("merchant", plan.evidence), null);
 });
@@ -77,4 +84,40 @@ test("both mode plans two independently scoped answers", () => {
     ["internal", "merchant"],
   );
   assert.ok(plan.answers.every((answer) => !answer.canDeriveMerchant));
+});
+
+test("covers all seven audience interaction scenarios", () => {
+  assert.deepEqual(
+    audienceScenarioPrompts.map((scenario) => scenario.label),
+    [
+      "1.用户未说明受众+存在可对商信息",
+      "2.用户未说明受众+不存在可对商信息",
+      "3.用户明确要求仅供内部使用",
+      "4.用户明确要求对商+存在可对商信息",
+      "5.用户明确要求对商+不存在可对商信息",
+      "6.用户明确要求同时生成对内+对商,且存在可对商信息",
+      "7.用户明确要求同时生成两版,但不存在可对商信息",
+    ],
+  );
+
+  const plans = audienceScenarioPrompts.map((scenario) =>
+    createAudienceRunPlan(scenario.prompt),
+  );
+  assert.equal(plans[0].answers[0].canDeriveMerchant, true);
+  assert.equal(plans[1].answers[0].canDeriveMerchant, false);
+  assert.equal(plans[1].fallback, undefined);
+  assert.equal(plans[2].audienceIntent, "explicit_internal");
+  assert.equal(plans[2].answers[0].canDeriveMerchant, false);
+  assert.deepEqual(plans[3].answers.map((answer) => answer.audience), [
+    "merchant",
+  ]);
+  assert.equal(plans[4].fallback, "merchant_unavailable_prompt");
+  assert.deepEqual(plans[5].answers.map((answer) => answer.audience), [
+    "internal",
+    "merchant",
+  ]);
+  assert.deepEqual(plans[6].answers.map((answer) => answer.audience), [
+    "internal",
+  ]);
+  assert.equal(plans[6].fallback, "merchant_unavailable_notice");
 });
