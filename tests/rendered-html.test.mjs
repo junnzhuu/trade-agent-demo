@@ -34,6 +34,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /权限场景演示/);
   assert.match(page, /以上信息仅供公司内部参考，请勿直接转发给商家/);
   assert.match(page, /以上信息可转发商家/);
+  assert.doesNotMatch(page, /以上信息仅供公司内部参考，请勿直接转发给商家。/);
+  assert.doesNotMatch(page, /以上信息可转发商家。/);
   assert.doesNotMatch(page, /audience-answer-label/);
   assert.match(page, /生成对商版本/);
   assert.match(page, /生成对内版本/);
@@ -118,6 +120,10 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.answer-actions/);
   assert.match(css, /\.audience-scenario-strip/);
   assert.match(css, /\.audience-answer-footer\.merchant/);
+  assert.match(
+    css,
+    /\.assistant-final-answer \.audience-answer-footer\s*\{[^}]*border-top: 1px solid #ededed/s,
+  );
   assert.doesNotMatch(css, /\.audience-answer-label/);
   assert.match(css, /background: #01c1c2/);
   assert.match(css, /color: #ffffff/);

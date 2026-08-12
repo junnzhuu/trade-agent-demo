@@ -1797,6 +1797,8 @@ button:disabled {
 
 .assistant-final-answer .audience-answer-footer {
   margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid #ededed;
   color: #858585;
   font-size: 11px;
   line-height: 1.55;

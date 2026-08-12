@@ -2814,7 +2814,7 @@ function AssistantExecution({
               {!message.pending && message.audience === "internal" ? (
                 <p className="audience-answer-footer internal">
                   <span>
-                    以上信息仅供公司内部参考，请勿直接转发给商家。
+                    以上信息仅供公司内部参考，请勿直接转发给商家
                   </span>
                   {message.canDeriveMerchant &&
                   !message.derivedAnswerId ? (
@@ -2823,14 +2823,13 @@ function AssistantExecution({
                       <button onClick={onDeriveMerchant} type="button">
                         生成对商版本
                       </button>
-                      。
                     </span>
                   ) : null}
                 </p>
               ) : null}
               {!message.pending && message.audience === "merchant" ? (
                 <p className="audience-answer-footer merchant">
-                  以上信息可转发商家。
+                  以上信息可转发商家
                 </p>
               ) : null}
             </>

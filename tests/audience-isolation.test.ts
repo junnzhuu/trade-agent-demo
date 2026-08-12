@@ -9,6 +9,7 @@ import {
   detectAudienceMode,
   detectQueryType,
   filterEvidenceForAudience,
+  merchantUnavailableMessage,
 } from "../lib/audience-isolation";
 
 test("routes four query types and defaults the audience to internal", () => {
@@ -120,4 +121,14 @@ test("covers all seven audience interaction scenarios", () => {
     "internal",
   ]);
   assert.equal(plans[6].fallback, "merchant_unavailable_notice");
+});
+
+test("standardized audience notices do not end with a full stop", () => {
+  assert.equal(
+    merchantUnavailableMessage("merchant_unavailable_notice"),
+    "当前暂无可用于生成对商版本的信息源",
+  );
+  assert.ok(
+    !merchantUnavailableMessage("merchant_unavailable_notice").endsWith("。"),
+  );
 });

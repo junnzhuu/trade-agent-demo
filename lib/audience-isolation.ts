@@ -310,7 +310,7 @@ export function merchantUnavailableMessage(
   fallback: AudienceRunPlan["fallback"] = "merchant_unavailable_prompt",
 ) {
   return fallback === "merchant_unavailable_notice"
-    ? "当前暂无可用于生成对商版本的信息源。"
+    ? "当前暂无可用于生成对商版本的信息源"
     : "当前暂无可用于生成对商版本的信息源。是否需要生成一份对内版本供内部参考？";
 }
 
