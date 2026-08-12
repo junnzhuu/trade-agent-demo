@@ -48,37 +48,39 @@ export type AudienceStreamEvent = {
 export const audienceScenarioPrompts = [
   {
     id: "internal-derivable",
-    label: "1.用户未说明受众+存在可对商信息",
+    label: "1. 用户未说明受众 + 答案生成过程中存在可对商信息",
     prompt: "请分析北屿运动近期经营问题并给出运营建议。",
   },
   {
     id: "internal-not-derivable",
-    label: "2.用户未说明受众+不存在可对商信息",
+    label: "2. 用户未说明受众 + 答案生成过程中不存在可对商信息",
     prompt: "请分析商家内部风险等级和平台招商优先级。",
   },
   {
     id: "explicit-internal",
-    label: "3.用户明确要求仅供内部使用",
+    label: "3. 用户明确说明答案仅供内部使用",
     prompt: "请分析北屿运动近期经营问题并给出运营建议，仅供内部使用。",
   },
   {
     id: "merchant-direct",
-    label: "4.用户明确要求对商+存在可对商信息",
+    label: "4. 用户明确说明答案对商 + 答案生成过程中存在可对商信息",
     prompt: "请生成一段回复商家的活动审核进度话术。",
   },
   {
     id: "merchant-unavailable",
-    label: "5.用户明确要求对商+不存在可对商信息",
+    label: "5. 用户明确说明答案对商 + 答案生成过程中不存在可对商信息",
     prompt: "请向商家说明其内部风险等级和平台招商优先级。",
   },
   {
     id: "both-versions",
-    label: "6.用户明确要求同时生成对内+对商,且存在可对商信息",
+    label:
+      "6. 用户明确要求同时生成对内 + 对商答案，且答案生成过程中存在可对商信息",
     prompt: "请分别生成对运营和对商两个版本，说明活动审核结果。",
   },
   {
     id: "both-merchant-unavailable",
-    label: "7.用户明确要求同时生成两版,但不存在可对商信息",
+    label:
+      "7. 用户明确要求同时生成对内 + 对商答案，但答案生成过程中不存在可对商信息",
     prompt:
       "请分别生成对运营和对商两个版本，说明商家内部风险等级和平台招商优先级。",
   },

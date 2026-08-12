@@ -29,8 +29,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /演示数据/);
   assert.match(page, /aria-live="polite"/);
   assert.match(page, /runAudienceIsolationScenario/);
-  assert.match(page, /audienceHistoryStorageKey/);
-  assert.match(page, /recoverPersistedTasks/);
+  assert.match(page, /useState<RecentTask\[]>\(\[]\)/);
+  assert.doesNotMatch(page, /audienceHistoryStorageKey|localStorage/);
   assert.match(page, /权限场景演示/);
   assert.match(page, /以上信息仅供公司内部参考，请勿直接转发给商家/);
   assert.match(page, /以上信息可转发商家/);
@@ -170,7 +170,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
     page,
     /useEffect\(\(\) => \{\s*const timer = window\.setTimeout\(\(\) => \{\s*if \(tourInitializedRef\.current\) return;\s*tourInitializedRef\.current = true;\s*startOnboarding\(\);\s*\}, 500\)/,
   );
-  assert.match(page, /trade-agent-audience-isolation-v1/);
+  assert.match(page, /recentTasks: RecentTask\[]/);
   assert.doesNotMatch(page, /ONBOARDING_STORAGE_KEY/);
   assert.match(page, /data-tour-id="workspace-navigation"/);
   assert.match(page, /data-tour-id="task-composer"/);

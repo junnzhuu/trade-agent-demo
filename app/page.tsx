@@ -62,7 +62,6 @@ import {
   getTaskActivityIndicator,
   initialRecentTasks,
   prependRecentTask,
-  recoverPersistedTasks,
   restoreArchivedTask,
   type RecentTask,
   type TaskMessage,
@@ -136,6 +135,7 @@ type TourOrigin = {
   activeTaskId: string | null;
   sidebarOpen: boolean;
   mobileSidebarOpen: boolean;
+  recentTasks: RecentTask[];
 };
 
 type PromptRunJob = {
@@ -160,8 +160,6 @@ type AnswerRunJob = {
 };
 
 type DemoRunJob = PromptRunJob | AnswerRunJob;
-
-const audienceHistoryStorageKey = "trade-agent-audience-isolation-v1";
 
 const createId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -206,9 +204,7 @@ export default function Home() {
   const [selectedModelId, setSelectedModelId] = useState<ModelId>("glm-5");
   const [selectedHomeSkillCategory, setSelectedHomeSkillCategory] =
     useState<HomeSkillCategoryId>("recommended");
-  const [recentTasks, setRecentTasks] =
-    useState<RecentTask[]>(initialRecentTasks);
-  const [historyHydrated, setHistoryHydrated] = useState(false);
+  const [recentTasks, setRecentTasks] = useState<RecentTask[]>([]);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -731,31 +727,6 @@ export default function Home() {
       }
     };
   }, [scheduler]);
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      try {
-        const saved = window.localStorage.getItem(audienceHistoryStorageKey);
-        if (saved) setRecentTasks(recoverPersistedTasks(JSON.parse(saved)));
-      } catch {
-        setRecentTasks(initialRecentTasks);
-      } finally {
-        setHistoryHydrated(true);
-      }
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
-
-  useEffect(() => {
-    if (!historyHydrated) return;
-    const timer = window.setTimeout(() => {
-      window.localStorage.setItem(
-        audienceHistoryStorageKey,
-        JSON.stringify(recentTasks),
-      );
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [historyHydrated, recentTasks]);
 
   const cancelTask = useCallback(
     (taskId: string) => {
@@ -1292,7 +1263,13 @@ export default function Home() {
       activeTaskId,
       sidebarOpen,
       mobileSidebarOpen,
+      recentTasks,
     };
+    setRecentTasks((current) => {
+      const presetIds = new Set(initialRecentTasks.map((task) => task.id));
+      if (current.some((task) => presetIds.has(task.id))) return current;
+      return [...initialRecentTasks, ...current];
+    });
     setSearchOpen(false);
     setLibraryDialog(null);
     setTaskMenuId(null);
@@ -1300,7 +1277,7 @@ export default function Home() {
     setTourComposerPanel(null);
     setTourStepIndex(0);
     setTourActive(true);
-  }, [activeTaskId, activeView, mobileSidebarOpen, sidebarOpen]);
+  }, [activeTaskId, activeView, mobileSidebarOpen, recentTasks, sidebarOpen]);
 
   const dismissOnboarding = useCallback(() => {
     setTourActive(false);
@@ -1319,6 +1296,7 @@ export default function Home() {
       setActiveTaskId(origin.activeTaskId);
       setSidebarOpen(origin.sidebarOpen);
       setMobileSidebarOpen(origin.mobileSidebarOpen);
+      setRecentTasks(origin.recentTasks);
     }
     tourOriginRef.current = null;
     requestAnimationFrame(() => accountButtonRef.current?.focus());
