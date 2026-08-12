@@ -41,9 +41,17 @@ import {
   useRef,
   useState,
 } from "react";
-import { runDemoScenario } from "@/lib/demo-simulator";
 import { ExpertSkillWorkspace } from "@/components/expert-skill-workspace";
 import { OnboardingTour } from "@/components/onboarding-tour";
+import {
+  audienceScenarioPrompts,
+  createAudienceRunPlan,
+  runAudienceIsolationScenario,
+  streamAudienceAnswer,
+  type AnswerAudience,
+  type AudienceEvidence,
+  type AudienceRunPlan,
+} from "@/lib/audience-isolation";
 import {
   createTaskTitle,
   filterRecentTasks,
@@ -54,6 +62,7 @@ import {
   getTaskActivityIndicator,
   initialRecentTasks,
   prependRecentTask,
+  recoverPersistedTasks,
   restoreArchivedTask,
   type RecentTask,
   type TaskMessage,
@@ -120,6 +129,7 @@ type FeedbackImage = { id: string; name: string; url: string };
 type TourComposerPanel = "add" | "model" | null;
 type ComposerHandle = {
   insertSkill: (skill: ComposerSkillOption) => void;
+  setText: (value: string) => void;
 };
 type TourOrigin = {
   activeView: WorkspaceView;
@@ -128,13 +138,30 @@ type TourOrigin = {
   mobileSidebarOpen: boolean;
 };
 
-type DemoRunJob = {
+type PromptRunJob = {
+  kind: "prompt";
   taskId: string;
   prompt: string;
   assistantId: string;
+  answerGroupId: string;
+  plan: AudienceRunPlan;
   startedAt: number;
   controller: AbortController;
 };
+
+type AnswerRunJob = {
+  kind: "answer";
+  taskId: string;
+  answerId: string;
+  audience: AnswerAudience;
+  evidence: AudienceEvidence[];
+  startedAt: number;
+  controller: AbortController;
+};
+
+type DemoRunJob = PromptRunJob | AnswerRunJob;
+
+const audienceHistoryStorageKey = "trade-agent-audience-isolation-v1";
 
 const createId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -181,6 +208,7 @@ export default function Home() {
     useState<HomeSkillCategoryId>("recommended");
   const [recentTasks, setRecentTasks] =
     useState<RecentTask[]>(initialRecentTasks);
+  const [historyHydrated, setHistoryHydrated] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -462,100 +490,144 @@ export default function Home() {
 
   const executeRunJob = useCallback(
     async (job: DemoRunJob) => {
-      const { taskId, prompt, assistantId, controller } = job;
-      let assistantText = "";
+      const { taskId, controller } = job;
       let assistantTrace: TaskTraceStep[] = [];
-      let generationStarted = false;
       let traceSequence = 0;
       const startedAt = job.startedAt;
+      const touchedMessageIds = new Set<string>();
+      const answerIdsBySlot = new Map<string, string>();
+      if (job.kind === "prompt") touchedMessageIds.add(job.assistantId);
+      else touchedMessageIds.add(job.answerId);
 
-      const updateAssistant = (
+      const updateMessage = (
+        messageId: string,
         updater: (message: TaskMessage) => TaskMessage,
       ) => {
         updateTask(taskId, (task) => ({
           ...task,
           messages: task.messages.map((message) =>
-            message.id === assistantId ? updater(message) : message,
+            message.id === messageId ? updater(message) : message,
           ),
         }));
       };
 
       const appendTrace = (title: string, detail: string) => {
+        if (job.kind !== "prompt") return;
         assistantTrace = [
           ...assistantTrace.map((step) => ({
             ...step,
             status: "completed" as const,
           })),
           {
-            id: `${assistantId}-trace-${traceSequence++}`,
+            id: `${job.assistantId}-trace-${traceSequence++}`,
             title,
             detail,
             status: "running",
           },
         ];
-        updateAssistant((message) => ({ ...message, trace: assistantTrace }));
+        updateMessage(job.assistantId, (message) => ({
+          ...message,
+          trace: assistantTrace,
+        }));
       };
 
       try {
-        await runDemoScenario({
-          prompt,
-          signal: controller.signal,
-          onEvent: ({ name, data }) => {
-            if (controller.signal.aborted) return;
-            if (name === "run.started") {
-              appendTrace(
-                "理解问题并规划执行路径",
-                String(data.detail ?? "识别任务意图与所需业务能力"),
-              );
-            } else if (name === "agent.started") {
-              appendTrace(
-                `召唤 ${String(data.name ?? "业务专家")}`,
-                String(data.detail ?? "将任务拆解后交给领域专家处理"),
-              );
-            } else if (name === "tool.started") {
-              appendTrace(
-                `调用 Skill · ${String(data.label ?? data.name ?? "业务查询")}`,
-                `使用 ${String(data.name ?? "确定性业务工具")} 查询内置演示数据`,
-              );
-            } else if (name === "tool.completed") {
-              appendTrace(
-                `Skill 返回 · ${String(data.name ?? "业务查询")}`,
-                String(data.detail ?? "已获得可用于回答的数据证据"),
-              );
-            } else if (name === "tool.failed") {
-              appendTrace(
-                `Skill 执行异常 · ${String(data.name ?? "业务查询")}`,
-                String(data.message ?? "未获得可用结果，准备调整回答"),
-              );
-            } else if (name === "agent.completed") {
-              appendTrace(
-                `${String(data.name ?? "业务专家")} 完成分析`,
-                String(data.detail ?? "专家结果已返回交易主理人"),
-              );
-            } else if (name === "reasoning.started") {
-              appendTrace(
-                "深度分析并核验结论",
-                String(data.detail ?? "检查数据证据与建议之间的逻辑一致性"),
-              );
-            } else if (name === "message.delta") {
-              if (!generationStarted) {
-                generationStarted = true;
+        if (job.kind === "prompt") {
+          await runAudienceIsolationScenario({
+            plan: job.plan,
+            signal: controller.signal,
+            onEvent: ({ name, data }) => {
+              if (controller.signal.aborted) return;
+              if (name === "run.started") {
                 appendTrace(
-                  "汇总分析并组织回复",
-                  "整合各专家结论、数据证据与下一步行动建议",
+                  "判断 Query 类型",
+                  String(data.detail ?? "识别问题类型与所需业务能力"),
                 );
+              } else if (name === "route.completed") {
+                appendTrace(
+                  `路由至 ${String(data.routeName ?? "对应上游能力")}`,
+                  String(data.detail ?? "已完成 Query 路由"),
+                );
+              } else if (name === "visibility.completed") {
+                appendTrace(
+                  "读取上游可见性标记",
+                  String(data.detail ?? "已获得带权限标记的信息"),
+                );
+              } else if (name === "audience.detected") {
+                appendTrace(
+                  "判断目标受众",
+                  String(data.detail ?? "已确定答案受众"),
+                );
+              } else if (name === "reasoning.started") {
+                appendTrace(
+                  "隔离答案生成上下文",
+                  String(data.detail ?? "仅保留当前受众允许使用的信息"),
+                );
+              } else if (name === "answer.started") {
+                const slot = String(data.slot ?? "internal");
+                const firstAnswer = answerIdsBySlot.size === 0;
+                const messageId = firstAnswer ? job.assistantId : createId();
+                answerIdsBySlot.set(slot, messageId);
+                touchedMessageIds.add(messageId);
+                const messageData: TaskMessage = {
+                  id: messageId,
+                  role: "assistant",
+                  content: "",
+                  pending: true,
+                  trace: firstAnswer ? assistantTrace : [],
+                  audience:
+                    data.audience === "merchant" || data.audience === "internal"
+                      ? data.audience
+                      : undefined,
+                  queryType: job.plan.queryType,
+                  evidence: Array.isArray(data.evidence)
+                    ? (data.evidence as AudienceEvidence[])
+                    : job.plan.evidence,
+                  usedEvidenceIds: Array.isArray(data.usedEvidenceIds)
+                    ? (data.usedEvidenceIds as string[])
+                    : [],
+                  canDeriveMerchant: Boolean(data.canDeriveMerchant),
+                  answerGroupId: job.answerGroupId,
+                  fallback:
+                    data.fallback === "merchant_unavailable"
+                      ? "merchant_unavailable"
+                      : undefined,
+                };
+                if (firstAnswer) {
+                  updateMessage(messageId, (message) => ({
+                    ...message,
+                    ...messageData,
+                  }));
+                } else {
+                  updateTask(taskId, (task) => ({
+                    ...task,
+                    messages: [...task.messages, messageData],
+                  }));
+                }
+              } else if (name === "message.delta") {
+                const slot = String(data.slot ?? "internal");
+                const messageId = answerIdsBySlot.get(slot) ?? job.assistantId;
+                const delta = String(data.delta ?? "");
+                updateMessage(messageId, (message) => ({
+                  ...message,
+                  content: `${message.content}${delta}`,
+                }));
               }
-              const delta = String(data.delta ?? "");
-              assistantText += delta;
-              updateAssistant((message) => ({
+            },
+          });
+        } else {
+          await streamAudienceAnswer({
+            audience: job.audience,
+            evidence: job.evidence,
+            signal: controller.signal,
+            onDelta: (delta) =>
+              updateMessage(job.answerId, (message) => ({
                 ...message,
                 content: `${message.content}${delta}`,
-              }));
-            }
-          },
-        });
+              })),
+          });
+        }
 
-        if (!assistantText) return;
         const completedAt = new Date();
         const finalElapsedMs = Date.now() - startedAt;
         const isViewing =
@@ -570,20 +642,32 @@ export default function Home() {
             status: "completed",
             startedAt: undefined,
             unreadCompletion: !isViewing,
-            messages: task.messages.map((message) =>
-              message.id === assistantId
-                ? {
-                    ...message,
-                    pending: false,
-                    content: assistantText,
-                    elapsedMs: finalElapsedMs,
-                    trace: assistantTrace.map((step) => ({
-                      ...step,
-                      status: "completed" as const,
-                    })),
-                  }
-                : message,
-            ),
+            messages: task.messages.map((message) => {
+              if (!touchedMessageIds.has(message.id)) return message;
+              const internalId = answerIdsBySlot.get("internal");
+              const merchantId = answerIdsBySlot.get("merchant");
+              return {
+                ...message,
+                pending: false,
+                elapsedMs: finalElapsedMs,
+                trace:
+                  message.id ===
+                  (job.kind === "prompt" ? job.assistantId : job.answerId)
+                    ? (message.trace ?? assistantTrace).map((step) => ({
+                        ...step,
+                        status: "completed" as const,
+                      }))
+                    : message.trace,
+                derivedAnswerId:
+                  message.id === internalId && merchantId
+                    ? merchantId
+                    : message.derivedAnswerId,
+                derivedFromId:
+                  message.id === merchantId && internalId
+                    ? internalId
+                    : message.derivedFromId,
+              };
+            }),
           }),
           true,
         );
@@ -604,13 +688,15 @@ export default function Home() {
             startedAt: undefined,
             unreadCompletion: stopped ? false : !isViewing,
             messages: task.messages.map((message) =>
-              message.id === assistantId
+              touchedMessageIds.has(message.id)
                 ? {
                     ...message,
                     pending: false,
-                    content: stopped
-                      ? "已停止生成。"
-                      : "演示任务执行失败，请稍后重试。",
+                    content:
+                      message.content ||
+                      (stopped
+                        ? "已停止生成。"
+                        : "演示任务执行失败，请稍后重试。"),
                     elapsedMs: finalElapsedMs,
                     trace: assistantTrace.map((step) => ({
                       ...step,
@@ -638,6 +724,31 @@ export default function Home() {
     };
   }, [scheduler]);
 
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        const saved = window.localStorage.getItem(audienceHistoryStorageKey);
+        if (saved) setRecentTasks(recoverPersistedTasks(JSON.parse(saved)));
+      } catch {
+        setRecentTasks(initialRecentTasks);
+      } finally {
+        setHistoryHydrated(true);
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!historyHydrated) return;
+    const timer = window.setTimeout(() => {
+      window.localStorage.setItem(
+        audienceHistoryStorageKey,
+        JSON.stringify(recentTasks),
+      );
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [historyHydrated, recentTasks]);
+
   const cancelTask = useCallback(
     (taskId: string) => {
       const result = scheduler.cancel(taskId);
@@ -656,6 +767,8 @@ export default function Home() {
         baseMessagesOverride ?? currentTask?.messages ?? [];
       const taskId = currentTask?.id ?? createId();
       const assistantId = createId();
+      const answerGroupId = createId();
+      const plan = createAudienceRunPlan(prompt);
       const userMessage: TaskMessage = {
         id: createId(),
         role: "user",
@@ -700,9 +813,12 @@ export default function Home() {
       );
 
       const job: DemoRunJob = {
+        kind: "prompt",
         taskId,
         prompt,
         assistantId,
+        answerGroupId,
+        plan,
         startedAt: submittedAt,
         controller,
       };
@@ -716,6 +832,142 @@ export default function Home() {
     [activeTask, executeRunJob, running, scheduler, updateTask],
   );
 
+  const enqueueAudienceAnswer = useCallback(
+    (
+      taskId: string,
+      answerId: string,
+      audience: AnswerAudience,
+      evidence: AudienceEvidence[],
+    ) => {
+      const controller = new AbortController();
+      const startedAt = Date.now();
+      const job: AnswerRunJob = {
+        kind: "answer",
+        taskId,
+        answerId,
+        audience,
+        evidence,
+        startedAt,
+        controller,
+      };
+      scheduler.enqueue({
+        id: taskId,
+        cancel: () => controller.abort(),
+        execute: () => executeRunJob(job),
+        onQueuedCancel: () => updateTask(taskId, stopTaskSnapshot),
+      });
+    },
+    [executeRunJob, scheduler, updateTask],
+  );
+
+  const deriveMerchantVersion = useCallback(
+    (sourceMessageId: string) => {
+      if (!activeTask || running) return;
+      const source = activeTask.messages.find(
+        (message) => message.id === sourceMessageId,
+      );
+      const evidence = source?.evidence ?? [];
+      const merchantEvidence = evidence.filter(
+        (item) => item.visibility === "merchant",
+      );
+      if (!source || !merchantEvidence.length || source.derivedAnswerId) return;
+
+      const answerId = createId();
+      const startedAt = Date.now();
+      const pendingAnswer: TaskMessage = {
+        id: answerId,
+        role: "assistant",
+        content: "",
+        pending: true,
+        audience: "merchant",
+        queryType: source.queryType,
+        evidence,
+        usedEvidenceIds: merchantEvidence.map((item) => item.id),
+        canDeriveMerchant: false,
+        derivedFromId: source.id,
+        answerGroupId: source.answerGroupId,
+        trace: [
+          {
+            id: `${answerId}-merchant-context`,
+            title: "构建独立对商上下文",
+            detail: `仅使用 ${merchantEvidence.length} 条标记为可对商的信息`,
+            status: "running",
+          },
+        ],
+      };
+      updateTask(activeTask.id, (task) => ({
+        ...task,
+        status: "running",
+        startedAt,
+        metadata: "处理中",
+        messages: [
+          ...task.messages.map((message) =>
+            message.id === source.id
+              ? {
+                  ...message,
+                  canDeriveMerchant: false,
+                  derivedAnswerId: answerId,
+                }
+              : message,
+          ),
+          pendingAnswer,
+        ],
+      }));
+      enqueueAudienceAnswer(activeTask.id, answerId, "merchant", evidence);
+    },
+    [activeTask, enqueueAudienceAnswer, running, updateTask],
+  );
+
+  const generateInternalFromFallback = useCallback(
+    (fallbackMessageId: string) => {
+      if (!activeTask || running) return;
+      const source = activeTask.messages.find(
+        (message) => message.id === fallbackMessageId,
+      );
+      const evidence = source?.evidence ?? [];
+      if (!source || !evidence.length || source.derivedAnswerId) return;
+
+      const answerId = createId();
+      const startedAt = Date.now();
+      updateTask(activeTask.id, (task) => ({
+        ...task,
+        status: "running",
+        startedAt,
+        metadata: "处理中",
+        messages: [
+          ...task.messages.map((message) =>
+            message.id === source.id
+              ? { ...message, derivedAnswerId: answerId }
+              : message,
+          ),
+          {
+            id: answerId,
+            role: "assistant",
+            content: "",
+            pending: true,
+            audience: "internal",
+            queryType: source.queryType,
+            evidence,
+            usedEvidenceIds: evidence.map((item) => item.id),
+            canDeriveMerchant: false,
+            derivedFromId: source.id,
+            answerGroupId: source.answerGroupId,
+            trace: [
+              {
+                id: `${answerId}-internal-context`,
+                title: "切换为对内答案",
+                detail: "用户确认生成供内部运营参考的完整版本",
+                status: "running",
+              },
+            ],
+          },
+        ],
+      }));
+      enqueueAudienceAnswer(activeTask.id, answerId, "internal", evidence);
+    },
+    [activeTask, enqueueAudienceAnswer, running, updateTask],
+  );
+
   const regenerateMessage = useCallback(
     (assistantMessageId: string) => {
       if (running) return;
@@ -723,6 +975,43 @@ export default function Home() {
         (message) => message.id === assistantMessageId,
       );
       if (assistantIndex < 1) return;
+      const sourceMessage = messages[assistantIndex];
+      if (sourceMessage.audience && sourceMessage.evidence?.length && activeTask) {
+        const startedAt = Date.now();
+        updateTask(activeTask.id, (task) => ({
+          ...task,
+          status: "running",
+          startedAt,
+          metadata: "处理中",
+          messages: task.messages.map((message) =>
+            message.id === sourceMessage.id
+              ? {
+                  ...message,
+                  content: "",
+                  pending: true,
+                  trace: [
+                    {
+                      id: `${message.id}-regenerate-${startedAt}`,
+                      title: `重新生成${message.audience === "merchant" ? "对商" : "对内"}版本`,
+                      detail:
+                        message.audience === "merchant"
+                          ? "继续仅使用可对商信息生成"
+                          : "继续使用完整运营可见信息生成",
+                      status: "running",
+                    },
+                  ],
+                }
+              : message,
+          ),
+        }));
+        enqueueAudienceAnswer(
+          activeTask.id,
+          sourceMessage.id,
+          sourceMessage.audience,
+          sourceMessage.evidence,
+        );
+        return;
+      }
       let userIndex = assistantIndex - 1;
       while (userIndex >= 0 && messages[userIndex].role !== "user") {
         userIndex -= 1;
@@ -731,7 +1020,14 @@ export default function Home() {
       if (!sourcePrompt || userIndex < 0) return;
       sendPrompt(sourcePrompt, messages.slice(0, userIndex));
     },
-    [messages, running, sendPrompt],
+    [
+      activeTask,
+      enqueueAudienceAnswer,
+      messages,
+      running,
+      sendPrompt,
+      updateTask,
+    ],
   );
 
   const closeFeedback = useCallback(() => {
@@ -1487,6 +1783,10 @@ export default function Home() {
                 setMobileSidebarOpen(false);
               }}
               onSelectCategory={setSelectedHomeSkillCategory}
+              onSelectAudienceScenario={(prompt) => {
+                setSelectedComposerSkills([]);
+                composerHandleRef.current?.setText(prompt);
+              }}
               onSelectSkill={(skill) => {
                 const composerSkill = composerSkillOptions.find(
                   (option) => option.id === skill.id,
@@ -1522,6 +1822,12 @@ export default function Home() {
                                 : (message.elapsedMs ?? 0)
                             }
                             message={message}
+                            onDeriveMerchant={() =>
+                              deriveMerchantVersion(message.id)
+                            }
+                            onGenerateInternal={() =>
+                              generateInternalFromFallback(message.id)
+                            }
                             forceOpen={
                               tourActive &&
                               onboardingSteps[tourStepIndex].id ===
@@ -1790,7 +2096,11 @@ export default function Home() {
                                 问题：{answer.question}
                               </span>
                               <span title={answer.message.content}>
-                                答案：{answer.message.content}
+                                答案
+                                {answer.message.audience
+                                  ? `（${answer.message.audience === "merchant" ? "对商版本" : "对内版本"}）`
+                                  : ""}
+                                ：{answer.message.content}
                               </span>
                             </button>
                             <button
@@ -2126,12 +2436,14 @@ function HomeSkillDiscovery({
   onSelectCategory,
   onSelectSkill,
   onMore,
+  onSelectAudienceScenario,
 }: {
   selectedCategory: HomeSkillCategoryId;
   skills: ReturnType<typeof getHomeSkills>;
   onSelectCategory: (category: HomeSkillCategoryId) => void;
   onSelectSkill: (skill: ReturnType<typeof getHomeSkills>[number]) => void;
   onMore: () => void;
+  onSelectAudienceScenario: (prompt: string) => void;
 }) {
   return (
     <section
@@ -2139,6 +2451,21 @@ function HomeSkillDiscovery({
       className="home-skill-discovery"
       data-tour-id="quick-skills"
     >
+      <div className="audience-scenario-strip">
+        <span>权限场景演示</span>
+        <div aria-label="权限场景示例">
+          {audienceScenarioPrompts.map((scenario) => (
+            <button
+              key={scenario.id}
+              onClick={() => onSelectAudienceScenario(scenario.prompt)}
+              title={scenario.prompt}
+              type="button"
+            >
+              {scenario.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div aria-label="技能分类" className="home-skill-tabs" role="tablist">
         {homeSkillCategories.map((category, index) => (
           <button
@@ -2381,14 +2708,20 @@ function AssistantExecution({
   elapsedMs,
   forceOpen = false,
   message,
+  onDeriveMerchant,
+  onGenerateInternal,
 }: {
   elapsedMs: number;
   forceOpen?: boolean;
   message: TaskMessage;
+  onDeriveMerchant: () => void;
+  onGenerateInternal: () => void;
 }) {
   const hasExecutionTrace = Boolean(message.trace?.length || message.pending);
 
-  if (!hasExecutionTrace) return <p>{message.content}</p>;
+  if (!hasExecutionTrace && !message.audience && !message.fallback) {
+    return <p>{message.content}</p>;
+  }
 
   return (
     <section
@@ -2396,46 +2729,94 @@ function AssistantExecution({
       className={`assistant-execution ${message.pending ? "running" : "completed"}`}
       data-tour-id="agent-execution"
     >
-      <details
-        className="execution-details"
-        open={message.pending || forceOpen || undefined}
-      >
-        <summary aria-label="展开或折叠思考过程" className="execution-duration">
-          <span aria-hidden="true" className="execution-duration-mark" />
-          <span>已处理</span>
-          <time>{formatElapsedTime(elapsedMs)}</time>
-          <ChevronRight
-            aria-hidden="true"
-            className="execution-chevron"
-            size={14}
-            strokeWidth={1.8}
-          />
-        </summary>
+      {hasExecutionTrace ? (
+        <details
+          className="execution-details"
+          open={message.pending || forceOpen || undefined}
+        >
+          <summary aria-label="展开或折叠思考过程" className="execution-duration">
+            <span aria-hidden="true" className="execution-duration-mark" />
+            <span>已处理</span>
+            <time>{formatElapsedTime(elapsedMs)}</time>
+            <ChevronRight
+              aria-hidden="true"
+              className="execution-chevron"
+              size={14}
+              strokeWidth={1.8}
+            />
+          </summary>
 
-        {message.trace?.length ? (
-          <ol aria-label="思考与 Skill 调用步骤" className="execution-trace">
-            {message.trace.map((step) => (
-              <li className={step.status} key={step.id}>
-                <span aria-hidden="true" className="trace-node">
-                  {step.status === "running" ? (
-                    <LoaderCircle size={13} strokeWidth={1.9} />
-                  ) : (
-                    <Check size={12} strokeWidth={2} />
-                  )}
-                </span>
-                <div>
-                  <strong>{step.title}</strong>
-                  <p>{step.detail}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        ) : null}
-      </details>
+          {message.trace?.length ? (
+            <ol aria-label="思考与 Skill 调用步骤" className="execution-trace">
+              {message.trace.map((step) => (
+                <li className={step.status} key={step.id}>
+                  <span aria-hidden="true" className="trace-node">
+                    {step.status === "running" ? (
+                      <LoaderCircle size={13} strokeWidth={1.9} />
+                    ) : (
+                      <Check size={12} strokeWidth={2} />
+                    )}
+                  </span>
+                  <div>
+                    <strong>{step.title}</strong>
+                    <p>{step.detail}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : null}
+        </details>
+      ) : null}
 
       {message.content ? (
         <div className="assistant-final-answer">
+          {message.audience ? (
+            <div className={`audience-answer-label ${message.audience}`}>
+              <strong>
+                {message.audience === "merchant" ? "对商版本" : "对内版本"}
+              </strong>
+              <span>
+                {message.audience === "merchant"
+                  ? "可用于向商家回复"
+                  : "仅供内部使用"}
+              </span>
+            </div>
+          ) : null}
           <p>{message.content}</p>
+          {message.audience === "internal" ? (
+            <p className="internal-answer-warning">
+              内含运营可见信息，请勿直接转发给商家。
+            </p>
+          ) : null}
+          {message.audience === "merchant" && message.derivedFromId ? (
+            <p className="derived-answer-note">
+              基于当前任务中已确认的可对商信息独立生成
+            </p>
+          ) : null}
+          {!message.pending &&
+          message.canDeriveMerchant &&
+          !message.derivedAnswerId ? (
+            <button
+              className="derive-audience-answer"
+              onClick={onDeriveMerchant}
+              type="button"
+            >
+              生成对商版本
+              <ChevronRight aria-hidden="true" size={15} />
+            </button>
+          ) : null}
+          {!message.pending &&
+          message.fallback === "merchant_unavailable" &&
+          !message.derivedAnswerId ? (
+            <button
+              className="derive-audience-answer internal"
+              onClick={onGenerateInternal}
+              type="button"
+            >
+              生成对内版本
+              <ChevronRight aria-hidden="true" size={15} />
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -2936,10 +3317,33 @@ const Composer = forwardRef<ComposerHandle, {
     selectedSkillKeys,
   ]);
 
+  const setComposerText = useCallback(
+    (value: string) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const textNode = document.createTextNode(value);
+      editor.replaceChildren(textNode);
+      lastReportedInputRef.current = value;
+      skillInsertionRangeRef.current = null;
+      onInput(value);
+      closeQuestionSuggestions();
+      closeSkillMenu();
+      editor.focus();
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.setStart(textNode, textNode.data.length);
+      range.collapse(true);
+      skillInsertionRangeRef.current = range.cloneRange();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    },
+    [closeQuestionSuggestions, closeSkillMenu, onInput],
+  );
+
   useImperativeHandle(
     ref,
-    () => ({ insertSkill: insertSkillToken }),
-    [insertSkillToken],
+    () => ({ insertSkill: insertSkillToken, setText: setComposerText }),
+    [insertSkillToken, setComposerText],
   );
 
   const openSkillSearchFromSlash = () => {

@@ -9,6 +9,7 @@ import {
   getTaskActivityIndicator,
   initialRecentTasks,
   prependRecentTask,
+  recoverPersistedTasks,
   restoreArchivedTask,
   type RecentTask,
 } from "../lib/task-history";
@@ -181,4 +182,28 @@ test("formats relative task time without calendar noise", () => {
     formatRelativeTaskTime(now - 4 * 24 * 60 * 60_000, now),
     "4天前",
   );
+});
+
+test("recovers persisted audience metadata and stops interrupted runs", () => {
+  const runningTask: RecentTask = {
+    ...initialRecentTasks[0],
+    status: "running",
+    startedAt: Date.now(),
+    messages: [
+      {
+        id: "audience-answer",
+        role: "assistant",
+        content: "",
+        pending: true,
+        audience: "merchant",
+        derivedFromId: "internal-answer",
+      },
+    ],
+  };
+  const [recovered] = recoverPersistedTasks([runningTask]);
+  assert.equal(recovered.status, undefined);
+  assert.equal(recovered.metadata, "已中断");
+  assert.equal(recovered.messages[0].pending, false);
+  assert.equal(recovered.messages[0].audience, "merchant");
+  assert.equal(recovered.messages[0].derivedFromId, "internal-answer");
 });

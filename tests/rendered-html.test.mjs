@@ -28,7 +28,18 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /营销活动 Agent/);
   assert.match(page, /演示数据/);
   assert.match(page, /aria-live="polite"/);
-  assert.match(page, /runDemoScenario/);
+  assert.match(page, /runAudienceIsolationScenario/);
+  assert.match(page, /audienceHistoryStorageKey/);
+  assert.match(page, /recoverPersistedTasks/);
+  assert.match(page, /权限场景演示/);
+  assert.match(page, /对内版本/);
+  assert.match(page, /对商版本/);
+  assert.match(page, /仅供内部使用/);
+  assert.match(page, /可用于向商家回复/);
+  assert.match(page, /生成对商版本/);
+  assert.match(page, /生成对内版本/);
+  assert.match(page, /onDeriveMerchant/);
+  assert.match(page, /derivedAnswerId/);
   assert.match(page, /专家 · 技能/);
   assert.match(page, /ExpertSkillWorkspace/);
   assert.match(page, /onUseSkill=\{useExpertSkill\}/);
@@ -89,7 +100,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /execution-details/);
   assert.match(page, /open=\{message\.pending \|\| forceOpen \|\| undefined\}/);
   assert.match(page, /展开或折叠思考过程/);
-  assert.match(page, /深度分析并核验结论/);
+  assert.match(page, /隔离答案生成上下文/);
   assert.match(page, /formatRelativeTaskTime/);
   assert.match(page, /Agent 回复/);
   assert.match(page, /回答操作/);
@@ -106,6 +117,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /填写详情（选填）/);
   assert.match(page, /点击加入反馈群/);
   assert.match(css, /\.answer-actions/);
+  assert.match(css, /\.audience-scenario-strip/);
+  assert.match(css, /\.audience-answer-label\.merchant/);
+  assert.match(css, /\.derive-audience-answer/);
   assert.match(css, /background: #01c1c2/);
   assert.match(css, /color: #ffffff/);
   assert.match(css, /\.feedback-dialog/);
@@ -133,7 +147,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /收藏的答案/);
   assert.match(page, /创建时间：/);
   assert.match(page, /问题：\{answer\.question\}/);
-  assert.match(page, /答案：\{answer\.message\.content\}/);
+  assert.match(page, /答案[\s\S]*：\{answer\.message\.content\}/);
   assert.match(page, /取消收藏/);
   assert.match(page, /block: "end"/);
   assert.match(page, /收藏成功，可前往/);
@@ -151,7 +165,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
     page,
     /useEffect\(\(\) => \{\s*const timer = window\.setTimeout\(\(\) => \{\s*if \(tourInitializedRef\.current\) return;\s*tourInitializedRef\.current = true;\s*startOnboarding\(\);\s*\}, 500\)/,
   );
-  assert.doesNotMatch(page, /localStorage|ONBOARDING_STORAGE_KEY/);
+  assert.match(page, /trade-agent-audience-isolation-v1/);
+  assert.doesNotMatch(page, /ONBOARDING_STORAGE_KEY/);
   assert.match(page, /data-tour-id="workspace-navigation"/);
   assert.match(page, /data-tour-id="task-composer"/);
   assert.match(page, /data-tour-id="feedback"/);

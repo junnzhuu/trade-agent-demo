@@ -1,3 +1,9 @@
+import type {
+  AnswerAudience,
+  AudienceEvidence,
+  QueryType,
+} from "./audience-isolation";
+
 export type TaskTraceStep = {
   id: string;
   title: string;
@@ -13,6 +19,15 @@ export type TaskMessage = {
   elapsedMs?: number;
   trace?: TaskTraceStep[];
   favorited?: boolean;
+  audience?: AnswerAudience;
+  queryType?: QueryType;
+  evidence?: AudienceEvidence[];
+  usedEvidenceIds?: string[];
+  canDeriveMerchant?: boolean;
+  derivedFromId?: string;
+  derivedAnswerId?: string;
+  answerGroupId?: string;
+  fallback?: "merchant_unavailable";
 };
 
 export type RecentTask = {
@@ -219,4 +234,46 @@ export function formatRelativeTaskTime(
 
   const elapsedDays = Math.floor(elapsedHours / 24);
   return `${elapsedDays}天前`;
+}
+
+export function recoverPersistedTasks(value: unknown): RecentTask[] {
+  if (!Array.isArray(value)) return initialRecentTasks;
+  const tasks = value.filter(
+    (item): item is RecentTask =>
+      Boolean(
+        item &&
+          typeof item === "object" &&
+          "id" in item &&
+          typeof item.id === "string" &&
+          "title" in item &&
+          typeof item.title === "string" &&
+          "messages" in item &&
+          Array.isArray(item.messages),
+      ),
+  );
+  if (!tasks.length) return initialRecentTasks;
+
+  return tasks.map((task) => {
+    if (task.status !== "running") return task;
+    return {
+      ...task,
+      status: undefined,
+      startedAt: undefined,
+      metadata: "已中断",
+      unreadCompletion: false,
+      messages: task.messages.map((message) =>
+        message.pending
+          ? {
+              ...message,
+              pending: false,
+              content: message.content || "任务已因页面刷新中断，请重新生成。",
+              trace: message.trace?.map((step) => ({
+                ...step,
+                status: "completed" as const,
+              })),
+            }
+          : message,
+      ),
+    };
+  });
 }
