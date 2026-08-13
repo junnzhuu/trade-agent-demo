@@ -3,8 +3,16 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 test("ships the trading agent workspace instead of the starter preview", async () => {
-  const [page, layout, css, packageJson, nextConfig, workflow, expertWorkspace] =
-    await Promise.all([
+  const [
+    page,
+    layout,
+    css,
+    packageJson,
+    nextConfig,
+    workflow,
+    expertWorkspace,
+    versionSwitcher,
+  ] = await Promise.all([
       readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
       readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
       readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
@@ -18,9 +26,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
         new URL("../components/expert-skill-workspace.tsx", import.meta.url),
         "utf8",
       ),
+      readFile(new URL("../public/version-switcher.js", import.meta.url), "utf8"),
     ]);
 
   assert.match(layout, /title: "交易 Agent｜多智能体业务工作台"/);
+  assert.match(layout, /version-switcher\.js/);
   assert.match(page, /交易业务智能工作台/);
   assert.match(page, /交易智能助手/);
   assert.match(page, /\.\/logo\.svg/);
@@ -224,6 +234,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /prefers-reduced-motion/);
   assert.match(nextConfig, /output: "export"/);
   assert.match(workflow, /actions\/deploy-pages@v4/);
+  assert.match(workflow, /codex\/交易智能助手-5ba4a51/);
+  assert.match(workflow, /versions\/classic/);
+  assert.match(versionSwitcher, /对商\/对内知识隔离与答案生成/);
+  assert.match(versionSwitcher, /交易智能助手/);
+  assert.match(versionSwitcher, /aria-current/);
   assert.doesNotMatch(page, /fetch\("\/api\/runs"/);
   assert.doesNotMatch(page, /codex-preview|SkeletonPreview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);

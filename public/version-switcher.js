@@ -1,0 +1,152 @@
+(() => {
+  const script = document.currentScript;
+  if (!script || document.getElementById("trade-agent-version-switcher")) return;
+
+  const scriptUrl = new URL(script.src, window.location.href);
+  const versionMarker = "/versions/";
+  const markerIndex = scriptUrl.pathname.indexOf(versionMarker);
+  const rootPath =
+    markerIndex >= 0
+      ? scriptUrl.pathname.slice(0, markerIndex)
+      : scriptUrl.pathname.replace(/\/version-switcher\.js$/, "");
+  const isClassic = window.location.pathname.includes("/versions/classic/");
+
+  const versions = [
+    {
+      id: "audience-isolation",
+      name: "对商/对内知识隔离与答案生成",
+      detail: "知识隔离交互版",
+      href: `${rootPath || ""}/`,
+    },
+    {
+      id: "classic",
+      name: "交易智能助手",
+      detail: "基础工作台版",
+      href: `${rootPath || ""}/versions/classic/`,
+    },
+  ];
+  const currentId = isClassic ? "classic" : "audience-isolation";
+
+  const root = document.createElement("div");
+  root.id = "trade-agent-version-switcher";
+  root.innerHTML = `
+    <style>
+      #trade-agent-version-switcher {
+        position: fixed;
+        right: 14px;
+        bottom: 14px;
+        z-index: 2147483000;
+        color: #202124;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      #trade-agent-version-switcher * { box-sizing: border-box; }
+      .ta-version-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 30px;
+        padding: 0 10px;
+        border: 1px solid rgba(255,255,255,.82);
+        border-radius: 10px;
+        background: rgba(247,248,248,.78);
+        box-shadow: 0 4px 14px rgba(25,28,31,.08), inset 0 1px rgba(255,255,255,.72);
+        backdrop-filter: blur(16px) saturate(116%);
+        -webkit-backdrop-filter: blur(16px) saturate(116%);
+        color: #555a60;
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .ta-version-trigger:hover,
+      .ta-version-trigger[aria-expanded="true"] { background: rgba(225,228,230,.9); color: #17191b; }
+      .ta-version-trigger:focus-visible,
+      .ta-version-option:focus-visible { outline: 2px solid #16191b; outline-offset: 2px; }
+      .ta-version-icon { width: 13px; height: 13px; }
+      .ta-version-menu {
+        position: absolute;
+        right: 0;
+        bottom: 38px;
+        width: 252px;
+        padding: 8px;
+        border: 1px solid rgba(255,255,255,.82);
+        border-radius: 16px;
+        background: rgba(247,248,248,.9);
+        box-shadow: 0 14px 38px rgba(25,28,31,.14), inset 0 1px rgba(255,255,255,.76);
+        backdrop-filter: blur(22px) saturate(118%);
+        -webkit-backdrop-filter: blur(22px) saturate(118%);
+      }
+      .ta-version-menu[hidden] { display: none; }
+      .ta-version-title { margin: 4px 7px 7px; color: #777d82; font-size: 12px; }
+      .ta-version-option {
+        display: grid;
+        grid-template-columns: minmax(0,1fr) auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 48px;
+        padding: 8px 9px;
+        border-radius: 11px;
+        color: inherit;
+        text-decoration: none;
+      }
+      .ta-version-option:hover { background: rgba(213,217,220,.56); }
+      .ta-version-copy { min-width: 0; }
+      .ta-version-name { display: block; overflow: hidden; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+      .ta-version-detail { display: block; margin-top: 2px; color: #858a8f; font-size: 11px; }
+      .ta-version-check { color: #01a9aa; font-size: 14px; font-weight: 700; }
+      @media (max-width: 760px) {
+        #trade-agent-version-switcher { right: 10px; bottom: 10px; }
+        .ta-version-menu { width: min(252px, calc(100vw - 20px)); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ta-version-trigger, .ta-version-option { transition: none; }
+      }
+    </style>
+    <div class="ta-version-menu" id="ta-version-menu" role="menu" hidden>
+      <p class="ta-version-title">查看页面版本</p>
+      ${versions
+        .map(
+          (version) => `
+            <a class="ta-version-option" href="${version.href}" role="menuitem" ${
+              version.id === currentId ? 'aria-current="page"' : ""
+            }>
+              <span class="ta-version-copy">
+                <span class="ta-version-name">${version.name}</span>
+                <span class="ta-version-detail">${version.detail}</span>
+              </span>
+              ${version.id === currentId ? '<span class="ta-version-check" aria-hidden="true">✓</span>' : ""}
+            </a>`,
+        )
+        .join("")}
+    </div>
+    <button class="ta-version-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="ta-version-menu" title="切换页面版本">
+      <svg class="ta-version-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 3.25h4.5a2.25 2.25 0 0 1 0 4.5H6.5a2.25 2.25 0 0 0 0 4.5H11M5 3.25 3.25 1.5M5 3.25 3.25 5M11 12.25l1.75-1.75M11 12.25 12.75 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>版本</span>
+    </button>`;
+
+  const trigger = root.querySelector(".ta-version-trigger");
+  const menu = root.querySelector(".ta-version-menu");
+  const close = () => {
+    menu.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+  };
+  const open = () => {
+    menu.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+    const currentVersion = menu.querySelector('[aria-current="page"]');
+    if (currentVersion) currentVersion.focus();
+  };
+
+  trigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (menu.hidden) open();
+    else close();
+  });
+  root.addEventListener("click", (event) => event.stopPropagation());
+  document.addEventListener("click", close);
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || menu.hidden) return;
+    close();
+    trigger.focus();
+  });
+  document.body.append(root);
+})();
