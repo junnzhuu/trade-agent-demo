@@ -68,6 +68,7 @@ import {
 } from "@/lib/task-history";
 import { ConcurrentTaskScheduler } from "@/lib/task-scheduler";
 import {
+  getHomeBannerSkills,
   getHomeSkills,
   homeSkillCategories,
   type HomeSkillCategoryId,
@@ -295,7 +296,7 @@ export default function Home() {
     () => getHomeSkills(selectedHomeSkillCategory),
     [selectedHomeSkillCategory],
   );
-  const bannerSkills = useMemo(() => getHomeSkills("recommended"), []);
+  const bannerSkills = useMemo(() => getHomeBannerSkills(), []);
 
   useEffect(() => {
     if (!taskMenuId) return;
@@ -2459,7 +2460,7 @@ function HomeSkillDiscovery({
       data-tour-id="quick-skills"
     >
       <div aria-label="技能分类" className="home-skill-tabs" role="tablist">
-        {homeSkillCategories.map((category, index) => (
+        {homeSkillCategories.map((category) => (
           <button
             aria-controls="home-skill-cards"
             aria-selected={selectedCategory === category.id}
@@ -2470,7 +2471,6 @@ function HomeSkillDiscovery({
             role="tab"
             type="button"
           >
-            {index === 0 ? <WandSparkles aria-hidden="true" size={16} /> : null}
             {category.label}
           </button>
         ))}
@@ -2491,13 +2491,13 @@ function HomeSkillDiscovery({
             className="home-skill-card"
             key={skill.id}
             onClick={() => onSelectSkill(skill)}
+            title={skill.description}
             type="button"
           >
-            <span className="home-skill-card-heading">
-              <WandSparkles aria-hidden="true" size={16} strokeWidth={1.7} />
-              <strong>{skill.name}</strong>
+            <strong>{skill.name}</strong>
+            <span className="home-skill-tooltip" role="tooltip">
+              {skill.description}
             </span>
-            <span>{skill.description}</span>
           </button>
         ))}
       </div>

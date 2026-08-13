@@ -24,7 +24,27 @@ const recommendedMerchantSkillIds = [
   "merchant-qualification",
   "merchant-violation",
   "direct-shipping",
+  "product-diagnosis",
 ];
+
+const bannerMerchantSkillIds = [
+  "merchant-qualification",
+  "merchant-violation",
+  "direct-shipping",
+];
+
+function getMerchantSkillsById(skillIds: string[]) {
+  const merchantExpert = expertCatalog.find((expert) => expert.id === "merchant");
+  if (!merchantExpert) return [];
+  return skillIds.flatMap((skillId) => {
+    const skill = merchantExpert.skills.find((item) => item.id === skillId);
+    return skill ? [skill] : [];
+  });
+}
+
+export function getHomeBannerSkills(): ExpertSkill[] {
+  return getMerchantSkillsById(bannerMerchantSkillIds);
+}
 
 export function getHomeSkills(categoryId: HomeSkillCategoryId): ExpertSkill[] {
   const expert = expertCatalog.find((item) =>
@@ -34,11 +54,8 @@ export function getHomeSkills(categoryId: HomeSkillCategoryId): ExpertSkill[] {
   if (!expert) return [];
 
   if (categoryId === "recommended") {
-    return recommendedMerchantSkillIds.flatMap((skillId) => {
-      const skill = expert.skills.find((item) => item.id === skillId);
-      return skill ? [skill] : [];
-    });
+    return getMerchantSkillsById(recommendedMerchantSkillIds);
   }
 
-  return expert.skills.slice(0, 3);
+  return expert.skills.slice(0, 4);
 }

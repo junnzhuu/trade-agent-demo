@@ -217,15 +217,19 @@ test("ships the trading agent workspace instead of the starter preview", async (
   );
   assert.match(
     css,
-    /\.home-skill-tabs button\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(120%\)/s,
+    /\.home-skill-tabs\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(120%\)/s,
   );
   assert.match(
     css,
     /\.home-skill-card\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(118%\)/s,
   );
-  assert.match(css, /background: rgba\(255, 255, 255, 0\.64\)/);
   assert.match(css, /background: rgba\(218, 222, 225, 0\.68\)/);
-  assert.match(css, /grid-template-columns: repeat\(3, minmax\(0, 260px\)\)/);
+  assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.home-skill-tooltip/);
+  assert.match(css, /\.home-skill-card:hover \.home-skill-tooltip/);
+  assert.match(page, /role="tooltip"/);
+  assert.doesNotMatch(page, /home-skill-card-heading/);
+  assert.match(page, /getHomeBannerSkills/);
   assert.match(css, /\.skill-grid/);
   assert.match(css, /\.skill-use-overlay/);
   assert.match(css, /\.skill-card:focus-visible \.skill-use-overlay/);
