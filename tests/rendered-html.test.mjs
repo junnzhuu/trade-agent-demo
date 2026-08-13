@@ -217,15 +217,17 @@ test("ships the trading agent workspace instead of the starter preview", async (
   );
   assert.match(
     css,
-    /\.home-skill-tabs button\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(120%\)/s,
+    /\.home-skill-tabs\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(120%\)/s,
   );
   assert.match(
     css,
-    /\.home-skill-card\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(118%\)/s,
+    /\.home-skill-card\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(120%\)/s,
   );
-  assert.match(css, /background: rgba\(218, 222, 225, 0\.68\)/);
+  assert.match(css, /background: rgba\(218, 222, 225, 0\.66\)/);
   assert.match(css, /\.home-skill-tabs\s*{[^}]*width: max-content/s);
-  assert.match(css, /\.home-skill-tabs\s*{[^}]*gap: 8px/s);
+  assert.match(css, /\.home-skill-tabs\s*{[^}]*gap: 0/s);
+  assert.match(css, /\.home-skill-card\s*{[^}]*min-height: 38px/s);
+  assert.match(css, /\.home-skill-card\s*{[^}]*padding: 0 15px/s);
   assert.doesNotMatch(page, /home-skill-category-icon/);
   assert.match(css, /\.home-skill-cards\s*{[^}]*display: flex/s);
   assert.match(css, /\.home-skill-more/);
