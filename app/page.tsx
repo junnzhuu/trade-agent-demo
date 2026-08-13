@@ -2494,6 +2494,7 @@ function HomeSkillDiscovery({
             title={skill.description}
             type="button"
           >
+            <WandSparkles aria-hidden="true" size={16} strokeWidth={1.8} />
             <strong>{skill.name}</strong>
             <span className="home-skill-tooltip" role="tooltip">
               {skill.description}
