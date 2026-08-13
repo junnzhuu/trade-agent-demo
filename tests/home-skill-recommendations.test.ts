@@ -12,7 +12,15 @@ test("uses the requested merchant skills for the default recommendations", () =>
 
   assert.deepEqual(
     recommendations.map((skill) => skill.name),
-    ["商家资质查询", "商家违规单查询", "商家直发资格查询", "单品诊断"],
+    [
+      "商家资质查询",
+      "商家违规单查询",
+      "商家直发资格查询",
+      "单品诊断",
+      "手续费订单查询与解析",
+      "受损单诊断",
+      "出价权限查询",
+    ],
   );
 
   const merchantSkills = expertCatalog.find((expert) => expert.id === "merchant")?.skills;
@@ -36,13 +44,14 @@ test("keeps the banner limited to the three merchant queries", () => {
   );
 });
 
-test("provides five business category tabs with four skills each", () => {
+test("provides five business category tabs with up to seven skills each", () => {
   assert.deepEqual(
     homeSkillCategories.map((category) => category.label),
     ["为你推荐", "商家运营", "商品运营", "招商", "营销活动", "项目管理"],
   );
 
-  for (const category of homeSkillCategories.slice(1)) {
-    assert.equal(getHomeSkills(category.id).length, 4);
+  assert.equal(getHomeSkills("merchant").length, 7);
+  for (const category of homeSkillCategories.slice(2)) {
+    assert.equal(getHomeSkills(category.id).length, 5);
   }
 });

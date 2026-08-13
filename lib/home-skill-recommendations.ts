@@ -25,6 +25,9 @@ const recommendedMerchantSkillIds = [
   "merchant-violation",
   "direct-shipping",
   "product-diagnosis",
+  "fee-order",
+  "damage-order",
+  "bid-permission",
 ];
 
 const bannerMerchantSkillIds = [
@@ -57,5 +60,5 @@ export function getHomeSkills(categoryId: HomeSkillCategoryId): ExpertSkill[] {
     return getMerchantSkillsById(recommendedMerchantSkillIds);
   }
 
-  return expert.skills.slice(0, 4);
+  return expert.skills.slice(0, 7);
 }

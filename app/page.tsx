@@ -2474,32 +2474,39 @@ function HomeSkillDiscovery({
             {category.label}
           </button>
         ))}
-        <button className="home-skill-more" onClick={onMore} type="button">
-          更多
-          <ChevronRight aria-hidden="true" size={15} />
-        </button>
       </div>
 
-      <div
-        aria-labelledby={`home-skill-tab-${selectedCategory}`}
-        className="home-skill-cards"
-        id="home-skill-cards"
-        role="tabpanel"
-      >
-        {skills.map((skill) => (
-          <button
-            className="home-skill-card"
-            key={skill.id}
-            onClick={() => onSelectSkill(skill)}
-            title={skill.description}
-            type="button"
-          >
-            <strong>{skill.name}</strong>
-            <span className="home-skill-tooltip" role="tooltip">
-              {skill.description}
-            </span>
-          </button>
-        ))}
+      <div className="home-skill-strip">
+        <div
+          aria-labelledby={`home-skill-tab-${selectedCategory}`}
+          className="home-skill-cards"
+          id="home-skill-cards"
+          role="tabpanel"
+        >
+          {skills.map((skill) => (
+            <button
+              className="home-skill-card"
+              key={skill.id}
+              onClick={() => onSelectSkill(skill)}
+              title={skill.description}
+              type="button"
+            >
+              <strong>{skill.name}</strong>
+              <span className="home-skill-tooltip" role="tooltip">
+                {skill.description}
+              </span>
+            </button>
+          ))}
+        </div>
+        <button
+          aria-label="查看更多技能"
+          className="home-skill-more"
+          onClick={onMore}
+          title="查看更多技能"
+          type="button"
+        >
+          <ChevronRight aria-hidden="true" size={18} />
+        </button>
       </div>
     </section>
   );
