@@ -41,7 +41,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /runAudienceIsolationScenario/);
   assert.match(page, /useState<RecentTask\[]>\(\[]\)/);
   assert.doesNotMatch(page, /audienceHistoryStorageKey|localStorage/);
-  assert.match(page, /权限场景演示/);
+  assert.doesNotMatch(page, /权限场景演示|audienceScenarioPrompts/);
   assert.match(page, /以上信息仅供公司内部参考，请勿直接转发给商家/);
   assert.match(page, /以上信息可转发商家/);
   assert.doesNotMatch(page, /以上信息仅供公司内部参考，请勿直接转发给商家。/);
@@ -59,6 +59,15 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(expertWorkspace, /className="skill-use-overlay"/);
   assert.match(expertWorkspace, /使用该技能/);
   assert.match(page, /HomeSkillDiscovery/);
+  assert.match(
+    page,
+    /<HomeSkillDiscovery[\s\S]*<Composer[\s\S]*<FeatureBannerCarousel/,
+  );
+  assert.match(page, /aria-label="新功能推荐"/);
+  assert.match(page, /window\.setInterval/);
+  assert.match(page, /}, 5000\)/);
+  assert.match(page, /立即体验/);
+  assert.match(page, /onSelect\(activeSkill\.standardQuestion\)/);
   assert.match(page, /快捷技能推荐/);
   assert.match(page, /AutomationWorkspace/);
   assert.match(page, /今天帮你做些什么？\/ 调用技能/);
@@ -128,7 +137,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /填写详情（选填）/);
   assert.match(page, /点击加入反馈群/);
   assert.match(css, /\.answer-actions/);
-  assert.match(css, /\.audience-scenario-strip/);
+  assert.doesNotMatch(css, /\.audience-scenario-strip/);
+  assert.match(css, /\.feature-banner-carousel/);
+  assert.match(css, /@keyframes feature-banner-enter/);
   assert.match(css, /\.audience-answer-footer\.merchant/);
   assert.match(
     css,
@@ -235,9 +246,14 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(nextConfig, /output: "export"/);
   assert.match(workflow, /actions\/deploy-pages@v4/);
   assert.match(workflow, /codex\/交易智能助手-5ba4a51/);
+  assert.match(workflow, /codex\/交易智能助手-v2\.1/);
   assert.match(workflow, /versions\/classic/);
-  assert.match(versionSwitcher, /对商\/对内知识隔离与答案生成/);
-  assert.match(versionSwitcher, /交易智能助手/);
+  assert.match(workflow, /versions\/audience-isolation/);
+  assert.match(versionSwitcher, /v2\.2/);
+  assert.match(versionSwitcher, /v2\.1/);
+  assert.match(versionSwitcher, /v2\.0/);
+  assert.match(versionSwitcher, /技能推荐与 Banner/);
+  assert.match(versionSwitcher, /对商\/对内知识隔离/);
   assert.match(versionSwitcher, /aria-current/);
   assert.doesNotMatch(page, /fetch\("\/api\/runs"/);
   assert.doesNotMatch(page, /codex-preview|SkeletonPreview/);

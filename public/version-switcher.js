@@ -9,23 +9,33 @@
     markerIndex >= 0
       ? scriptUrl.pathname.slice(0, markerIndex)
       : scriptUrl.pathname.replace(/\/version-switcher\.js$/, "");
-  const isClassic = window.location.pathname.includes("/versions/classic/");
+  const currentPath = window.location.pathname;
+  const isClassic = currentPath.includes("/versions/classic/");
+  const isAudienceIsolation = currentPath.includes(
+    "/versions/audience-isolation/",
+  );
 
   const versions = [
     {
-      id: "audience-isolation",
-      name: "对商/对内知识隔离与答案生成",
-      detail: "知识隔离交互版",
+      id: "v2.2",
+      name: "v2.2",
+      detail: "技能推荐与 Banner",
       href: `${rootPath || ""}/`,
     },
     {
-      id: "classic",
-      name: "交易智能助手",
+      id: "v2.1",
+      name: "v2.1",
+      detail: "对商/对内知识隔离",
+      href: `${rootPath || ""}/versions/audience-isolation/`,
+    },
+    {
+      id: "v2.0",
+      name: "v2.0",
       detail: "基础工作台版",
       href: `${rootPath || ""}/versions/classic/`,
     },
   ];
-  const currentId = isClassic ? "classic" : "audience-isolation";
+  const currentId = isClassic ? "v2.0" : isAudienceIsolation ? "v2.1" : "v2.2";
 
   const root = document.createElement("div");
   root.id = "trade-agent-version-switcher";

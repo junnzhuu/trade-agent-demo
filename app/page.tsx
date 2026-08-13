@@ -44,7 +44,6 @@ import {
 import { ExpertSkillWorkspace } from "@/components/expert-skill-workspace";
 import { OnboardingTour } from "@/components/onboarding-tour";
 import {
-  audienceScenarioPrompts,
   createAudienceRunPlan,
   runAudienceIsolationScenario,
   streamAudienceAnswer,
@@ -296,6 +295,7 @@ export default function Home() {
     () => getHomeSkills(selectedHomeSkillCategory),
     [selectedHomeSkillCategory],
   );
+  const bannerSkills = useMemo(() => getHomeSkills("recommended"), []);
 
   useEffect(() => {
     if (!taskMenuId) return;
@@ -1762,46 +1762,51 @@ export default function Home() {
           <AutomationWorkspace />
         ) : messages.length === 0 ? (
           <div className="empty-state">
-            <h1>Hi 哈基咪(Manbo)，有什么可以帮你的？</h1>
-            <Composer
-              input={input}
-              onInput={setInput}
-              onKeyDown={handleKeyDown}
-              onRemoveSkill={removeComposerSkill}
-              onAddSkill={addComposerSkill}
-              onSubmit={submit}
-              onStop={() => activeTaskId && cancelTask(activeTaskId)}
-              planMode={planMode}
-              running={running}
-              selectedSkills={selectedComposerSkills}
-              selectedModelId={selectedModelId}
-              selectModel={setSelectedModelId}
-              togglePlanMode={() => setPlanMode((current) => !current)}
-              tourPanel={tourComposerPanel}
-              ref={composerHandleRef}
-            />
-            <HomeSkillDiscovery
-              onMore={() => {
-                activeViewRef.current = "experts";
-                setActiveView("experts");
-                setMobileSidebarOpen(false);
-              }}
-              onSelectCategory={setSelectedHomeSkillCategory}
-              onSelectAudienceScenario={(prompt) => {
-                setSelectedComposerSkills([]);
-                composerHandleRef.current?.setText(prompt);
-              }}
-              onSelectSkill={(skill) => {
-                const composerSkill = composerSkillOptions.find(
-                  (option) => option.id === skill.id,
-                );
-                if (composerSkill) {
-                  composerHandleRef.current?.insertSkill(composerSkill);
-                }
-              }}
-              selectedCategory={selectedHomeSkillCategory}
-              skills={homeSkills}
-            />
+            <div className="empty-state-content">
+              <h1>Hi 哈基咪(Manbo)，有什么可以帮你的？</h1>
+              <HomeSkillDiscovery
+                onMore={() => {
+                  activeViewRef.current = "experts";
+                  setActiveView("experts");
+                  setMobileSidebarOpen(false);
+                }}
+                onSelectCategory={setSelectedHomeSkillCategory}
+                onSelectSkill={(skill) => {
+                  const composerSkill = composerSkillOptions.find(
+                    (option) => option.id === skill.id,
+                  );
+                  if (composerSkill) {
+                    composerHandleRef.current?.insertSkill(composerSkill);
+                  }
+                }}
+                selectedCategory={selectedHomeSkillCategory}
+                skills={homeSkills}
+              />
+              <Composer
+                input={input}
+                onInput={setInput}
+                onKeyDown={handleKeyDown}
+                onRemoveSkill={removeComposerSkill}
+                onAddSkill={addComposerSkill}
+                onSubmit={submit}
+                onStop={() => activeTaskId && cancelTask(activeTaskId)}
+                planMode={planMode}
+                running={running}
+                selectedSkills={selectedComposerSkills}
+                selectedModelId={selectedModelId}
+                selectModel={setSelectedModelId}
+                togglePlanMode={() => setPlanMode((current) => !current)}
+                tourPanel={tourComposerPanel}
+                ref={composerHandleRef}
+              />
+              <FeatureBannerCarousel
+                skills={bannerSkills}
+                onSelect={(question) => {
+                  setSelectedComposerSkills([]);
+                  composerHandleRef.current?.setText(question);
+                }}
+              />
+            </div>
           </div>
         ) : (
           <>
@@ -2440,14 +2445,12 @@ function HomeSkillDiscovery({
   onSelectCategory,
   onSelectSkill,
   onMore,
-  onSelectAudienceScenario,
 }: {
   selectedCategory: HomeSkillCategoryId;
   skills: ReturnType<typeof getHomeSkills>;
   onSelectCategory: (category: HomeSkillCategoryId) => void;
   onSelectSkill: (skill: ReturnType<typeof getHomeSkills>[number]) => void;
   onMore: () => void;
-  onSelectAudienceScenario: (prompt: string) => void;
 }) {
   return (
     <section
@@ -2455,22 +2458,6 @@ function HomeSkillDiscovery({
       className="home-skill-discovery"
       data-tour-id="quick-skills"
     >
-      <div className="audience-scenario-strip">
-        <span>权限场景演示</span>
-        <div aria-label="权限场景示例">
-          {audienceScenarioPrompts.map((scenario) => (
-            <button
-              key={scenario.id}
-              onClick={() => onSelectAudienceScenario(scenario.prompt)}
-              aria-label={scenario.label}
-              title={scenario.prompt}
-              type="button"
-            >
-              {scenario.label}
-            </button>
-          ))}
-        </div>
-      </div>
       <div aria-label="技能分类" className="home-skill-tabs" role="tablist">
         {homeSkillCategories.map((category, index) => (
           <button
@@ -2514,6 +2501,96 @@ function HomeSkillDiscovery({
           </button>
         ))}
       </div>
+    </section>
+  );
+}
+
+function FeatureBannerCarousel({
+  skills,
+  onSelect,
+}: {
+  skills: ReturnType<typeof getHomeSkills>;
+  onSelect: (question: string) => void;
+}) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const [focusWithin, setFocusWithin] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setReducedMotion(media.matches);
+    updatePreference();
+    media.addEventListener("change", updatePreference);
+    return () => media.removeEventListener("change", updatePreference);
+  }, []);
+
+  useEffect(() => {
+    if (hovered || focusWithin || reducedMotion || skills.length < 2) return;
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % skills.length);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [focusWithin, hovered, reducedMotion, skills.length]);
+
+  const activeSkill = skills[activeIndex] ?? skills[0];
+  if (!activeSkill) return null;
+
+  const BannerIcon =
+    activeIndex === 0 ? ClipboardList : activeIndex === 1 ? Search : Workflow;
+
+  return (
+    <section
+      aria-label="新功能推荐"
+      className="feature-banner-carousel"
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setFocusWithin(false);
+        }
+      }}
+      onFocusCapture={() => setFocusWithin(true)}
+      onKeyDown={(event) => {
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          setActiveIndex((current) => (current + 1) % skills.length);
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault();
+          setActiveIndex(
+            (current) => (current - 1 + skills.length) % skills.length,
+          );
+        }
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      tabIndex={0}
+    >
+      <div aria-label="选择推荐功能" className="feature-banner-dots">
+        {skills.map((skill, index) => (
+          <button
+            aria-label={`查看${skill.name}`}
+            aria-pressed={index === activeIndex}
+            className={index === activeIndex ? "active" : ""}
+            key={skill.id}
+            onClick={() => setActiveIndex(index)}
+            type="button"
+          />
+        ))}
+      </div>
+      <article className="feature-banner-slide" key={activeSkill.id}>
+        <span className="feature-banner-visual" aria-hidden="true">
+          <BannerIcon size={24} strokeWidth={1.7} />
+        </span>
+        <span className="feature-banner-copy">
+          <strong>{activeSkill.name}</strong>
+          <span>{activeSkill.description}</span>
+        </span>
+        <button
+          onClick={() => onSelect(activeSkill.standardQuestion)}
+          type="button"
+        >
+          立即体验
+        </button>
+      </article>
     </section>
   );
 }
