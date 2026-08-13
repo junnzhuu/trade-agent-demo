@@ -217,7 +217,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   );
   assert.match(
     css,
-    /\.home-skill-tabs\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(120%\)/s,
+    /\.home-skill-tabs button\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(120%\)/s,
   );
   assert.match(
     css,
@@ -225,6 +225,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   );
   assert.match(css, /background: rgba\(218, 222, 225, 0\.68\)/);
   assert.match(css, /\.home-skill-tabs\s*{[^}]*width: max-content/s);
+  assert.match(css, /\.home-skill-tabs\s*{[^}]*gap: 8px/s);
+  assert.doesNotMatch(page, /home-skill-category-icon/);
   assert.match(css, /\.home-skill-cards\s*{[^}]*display: flex/s);
   assert.match(css, /\.home-skill-more/);
   assert.match(page, /aria-label="查看更多技能"/);
