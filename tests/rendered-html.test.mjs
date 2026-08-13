@@ -223,9 +223,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
     css,
     /\.home-skill-card\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(118%\)/s,
   );
-  assert.match(css, /background: #393a3b/);
-  assert.match(css, /\.home-skill-cards\s*{[^}]*display: flex/s);
-  assert.match(css, /\.home-skill-card > svg/);
+  assert.match(css, /background: rgba\(218, 222, 225, 0\.68\)/);
+  assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
   assert.match(css, /\.home-skill-tooltip/);
   assert.match(css, /\.home-skill-card:hover \.home-skill-tooltip/);
   assert.match(page, /role="tooltip"/);
