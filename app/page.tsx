@@ -12,11 +12,11 @@ import {
   FilePlus2,
   ImagePlus,
   LoaderCircle,
-  MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
   Pin,
+  Plug,
   Plus,
   RotateCcw,
   Search,
@@ -42,6 +42,7 @@ import {
   useState,
 } from "react";
 import { ExpertSkillWorkspace } from "@/components/expert-skill-workspace";
+import { FeishuIntegrationDialog } from "@/components/feishu-integration-dialog";
 import { OnboardingTour } from "@/components/onboarding-tour";
 import {
   createAudienceRunPlan,
@@ -226,6 +227,7 @@ export default function Home() {
   const [renamingTaskId, setRenamingTaskId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [feishuIntegrationOpen, setFeishuIntegrationOpen] = useState(false);
   const [libraryDialog, setLibraryDialog] = useState<LibraryDialog | null>(null);
   const [deleteConfirmationTaskId, setDeleteConfirmationTaskId] = useState<
     string | null
@@ -1046,15 +1048,6 @@ export default function Home() {
     requestAnimationFrame(() => feedbackCloseRef.current?.focus());
   }, []);
 
-  const openGeneralFeedback = useCallback(() => {
-    setFeedbackMode("general");
-    setFeedbackTargetId("general-feedback");
-    setSelectedFeedbackReasons([]);
-    setFeedbackDetail("");
-    setFeedbackImages([]);
-    requestAnimationFrame(() => feedbackCloseRef.current?.focus());
-  }, []);
-
   const addFeedbackImages = (files: FileList | null) => {
     if (!files) return;
     const selected = Array.from(files).filter((file) =>
@@ -1678,35 +1671,27 @@ export default function Home() {
                 我的收藏
               </button>
               <button
-                onClick={() => openLibrary("archive")}
-                role="menuitem"
-                type="button"
-              >
-                <Archive size={17} />
-                我的归档
-              </button>
-              <button
                 onClick={() => {
                   setAccountMenuOpen(false);
-                  openGeneralFeedback();
-                }}
-                role="menuitem"
-                type="button"
-              >
-                <MessageSquare size={17} />
-                我要反馈
-              </button>
-              <button
-                onClick={() => {
-                  setAccountMenuOpen(false);
-                  setFeedbackNotice("交流群入口为演示功能");
+                  setFeedbackNotice("反馈群入口为演示功能");
                   window.setTimeout(() => setFeedbackNotice(""), 3_000);
                 }}
                 role="menuitem"
                 type="button"
               >
                 <Users size={17} />
-                加入交流群
+                加入反馈群
+              </button>
+              <button
+                onClick={() => {
+                  setAccountMenuOpen(false);
+                  setFeishuIntegrationOpen(true);
+                }}
+                role="menuitem"
+                type="button"
+              >
+                <Plug size={17} />
+                飞书集成
               </button>
               <span aria-hidden="true" className="account-drawer-divider" />
               <button
@@ -2191,6 +2176,18 @@ export default function Home() {
           </section>
         </div>
       )}
+
+      <FeishuIntegrationDialog
+        onClose={() => {
+          setFeishuIntegrationOpen(false);
+          requestAnimationFrame(() => accountButtonRef.current?.focus());
+        }}
+        onToast={(message) => {
+          setFeedbackNotice(message);
+          window.setTimeout(() => setFeedbackNotice(""), 3_000);
+        }}
+        open={feishuIntegrationOpen}
+      />
 
       {deleteConfirmationTask ? (
         <div className="delete-confirmation-layer">

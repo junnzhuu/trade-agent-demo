@@ -11,6 +11,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
     nextConfig,
     workflow,
     expertWorkspace,
+    feishuIntegration,
     versionSwitcher,
   ] = await Promise.all([
       readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
@@ -24,6 +25,10 @@ test("ships the trading agent workspace instead of the starter preview", async (
       ),
       readFile(
         new URL("../components/expert-skill-workspace.tsx", import.meta.url),
+        "utf8",
+      ),
+      readFile(
+        new URL("../components/feishu-integration-dialog.tsx", import.meta.url),
         "utf8",
       ),
       readFile(new URL("../public/version-switcher.js", import.meta.url), "utf8"),
@@ -169,6 +174,22 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /@supports not \(\(-webkit-backdrop-filter:/);
   assert.match(css, /\.task-context-menu/);
   assert.match(page, /我的收藏/);
+  assert.doesNotMatch(page, />\s*我的归档\s*</);
+  assert.doesNotMatch(page, />\s*我要反馈\s*</);
+  assert.match(page, /加入反馈群/);
+  assert.doesNotMatch(page, />\s*设置\s*</);
+  assert.match(page, /飞书集成/);
+  assert.match(feishuIntegration, /应用和授权/);
+  assert.match(
+    feishuIntegration,
+    /授权后将自动创建飞书机器人并获取 App ID 和 App Secret/,
+  );
+  assert.match(feishuIntegration, /获取授权链接\/二维码/);
+  assert.match(feishuIntegration, /完成授权后解锁完整能力/);
+  assert.match(feishuIntegration, /FEISHU_INTEGRATION_STORAGE_KEY/);
+  assert.doesNotMatch(feishuIntegration, /选择地区|连通性测试|可对话|哈基米的智能助手/);
+  assert.match(css, /\.feishu-integration-dialog/);
+  assert.match(css, /\.feishu-auth-qr/);
   assert.match(page, /收藏的任务/);
   assert.match(page, /收藏的答案/);
   assert.match(page, /创建时间：/);
