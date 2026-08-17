@@ -61,6 +61,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /onUseSkill=\{useExpertSkill\}/);
   assert.match(page, /pendingComposerSkill/);
   assert.match(expertWorkspace, /使用技能：\$\{skill\.name\}/);
+  assert.match(expertWorkspace, /className="scene-grid"/);
+  assert.match(expertWorkspace, /商家运营场景/);
+  assert.match(expertWorkspace, /className="agent-filter-tabs"/);
   assert.match(expertWorkspace, /className="skill-use-overlay"/);
   assert.match(expertWorkspace, /使用该技能/);
   assert.match(page, /HomeSkillDiscovery/);
@@ -236,7 +239,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.primary-sidebar-nav button:first-child/);
   assert.match(css, /@keyframes generating-dot/);
   assert.match(css, /\.execution-details\[open\] \.execution-chevron/);
-  assert.match(css, /\.expert-grid/);
+  assert.match(css, /\.scene-grid/);
+  assert.match(css, /\.agent-filter-tabs/);
   assert.match(css, /\.home-skill-discovery/);
   assert.match(css, /\.home-skill-cards/);
   assert.doesNotMatch(
@@ -267,7 +271,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /getHomeBannerSkills/);
   assert.match(css, /\.skill-grid/);
   assert.match(css, /\.skill-use-overlay/);
-  assert.match(css, /\.skill-card:focus-visible \.skill-use-overlay/);
+  assert.match(css, /\.skill-card:focus-within \.skill-use-overlay/);
   assert.match(css, /\.composer-skill-menu/);
   assert.match(css, /\.composer-skill-search/);
   assert.match(

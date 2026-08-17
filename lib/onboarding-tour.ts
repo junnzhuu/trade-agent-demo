@@ -146,9 +146,9 @@ export const onboardingSteps: OnboardingStep[] = [
   {
     id: "experts-and-skills",
     targetId: "experts-and-skills",
-    title: "五类专家与技能目录",
+    title: "场景、专家与技能目录",
     description:
-      "五位专家分别覆盖商家、商品、招商、营销和项目管理。选择专家后，下方技能区会展示对应能力、用途和默认选中项。",
+      "先选择业务场景，再按子 Agent 专家筛选能力。技能卡会展示用途、标准问，并支持一键带入新任务。",
     placement: "bottom",
   },
   {

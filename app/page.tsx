@@ -45,6 +45,10 @@ import {
 import { ExpertSkillWorkspace } from "@/components/expert-skill-workspace";
 import { FeishuIntegrationDialog } from "@/components/feishu-integration-dialog";
 import { OnboardingTour } from "@/components/onboarding-tour";
+import type {
+  AgentSkillDefinition,
+  SubAgentDefinition,
+} from "@/lib/agent-skill-catalog";
 import {
   createAudienceRunPlan,
   runAudienceIsolationScenario,
@@ -429,12 +433,19 @@ export default function Home() {
   }, []);
 
   const useExpertSkill = useCallback(
-    (expertId: string, skillId: string) => {
-      const skill = composerSkillOptions.find(
-        (option) => option.expertId === expertId && option.id === skillId,
-      );
+    (agent: SubAgentDefinition, skill: AgentSkillDefinition) => {
+      const composerSkill: ComposerSkillOption = {
+        id: skill.id,
+        key: skill.mountKey,
+        name: skill.name,
+        description: skill.description,
+        standardQuestion: skill.standardQuestion,
+        expertId: agent.id,
+        expertName: agent.name,
+        expertLabel: agent.name,
+      };
       startNewChat();
-      setPendingComposerSkill(skill ?? null);
+      setPendingComposerSkill(composerSkill);
     },
     [startNewChat],
   );
