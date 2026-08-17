@@ -9,8 +9,6 @@ import {
   type SubAgentDefinition,
 } from "@/lib/agent-skill-catalog";
 
-type AgentSelection = "all" | string;
-
 export function ExpertSkillWorkspace({
   onUseSkill,
 }: {
@@ -20,8 +18,6 @@ export function ExpertSkillWorkspace({
   ) => void;
 }) {
   const [selectedSceneId, setSelectedSceneId] = useState(sceneCatalog[0].id);
-  const [selectedAgentId, setSelectedAgentId] =
-    useState<AgentSelection>("all");
 
   const selectedScene = useMemo(
     () =>
@@ -29,28 +25,6 @@ export function ExpertSkillWorkspace({
       sceneCatalog[0],
     [selectedSceneId],
   );
-  const selectedAgent = useMemo(
-    () =>
-      selectedAgentId === "all"
-        ? null
-        : (selectedScene.agents.find(
-            (agent) => agent.id === selectedAgentId,
-          ) ?? null),
-    [selectedAgentId, selectedScene],
-  );
-  const visibleSkills = selectedAgent
-    ? selectedAgent.skills.map((skill) => ({ agent: selectedAgent, skill }))
-    : selectedScene.agents.flatMap((agent) =>
-        agent.skills.map((skill) => ({ agent, skill })),
-      );
-  const selectedSkillCount = selectedAgent
-    ? selectedAgent.skills.length
-    : getSceneStats(selectedScene).skillCount;
-
-  const selectScene = (sceneId: (typeof sceneCatalog)[number]["id"]) => {
-    setSelectedSceneId(sceneId);
-    setSelectedAgentId("all");
-  };
 
   return (
     <div className="expert-workspace">
@@ -70,7 +44,7 @@ export function ExpertSkillWorkspace({
                 aria-pressed={selected}
                 className={`scene-card ${selected ? "selected" : ""}`}
                 data-testid={`scene-card-${scene.id}`}
-                onClick={() => selectScene(scene.id)}
+                onClick={() => setSelectedSceneId(scene.id)}
                 type="button"
               >
                 <span className="scene-card-heading">
@@ -96,7 +70,7 @@ export function ExpertSkillWorkspace({
         })}
       </ul>
 
-      <h2>专家</h2>
+      <h2>专家 · 技能</h2>
       {selectedScene.status === "coming-soon" ? (
         <section className="scene-coming-soon" aria-live="polite">
           <span aria-hidden="true">
@@ -107,94 +81,56 @@ export function ExpertSkillWorkspace({
         </section>
       ) : (
         <section className="agent-skill-directory" aria-live="polite">
-          <div
-            aria-label={`${selectedScene.name}专家筛选`}
-            className="agent-filter-tabs"
-            role="tablist"
-          >
-            <button
-              aria-selected={selectedAgentId === "all"}
-              className={selectedAgentId === "all" ? "selected" : ""}
-              onClick={() => setSelectedAgentId("all")}
-              role="tab"
-              type="button"
-            >
-              全部
-            </button>
-            {selectedScene.agents.map((agent) => (
-              <button
-                aria-selected={selectedAgentId === agent.id}
-                className={selectedAgentId === agent.id ? "selected" : ""}
-                key={agent.id}
-                onClick={() => setSelectedAgentId(agent.id)}
-                role="tab"
-                type="button"
-              >
-                {agent.name}
-              </button>
-            ))}
-          </div>
+          <div className="expert-skill-sections">
+            {selectedScene.agents.map((agent) => {
+              const headingId = `expert-skill-heading-${agent.id.replaceAll(" ", "-")}`;
+              return (
+                <section
+                  aria-labelledby={headingId}
+                  className="expert-skill-section"
+                  key={agent.id}
+                >
+                  <header className="expert-skill-section-header">
+                    <h3 id={headingId}>{agent.name}</h3>
+                    <p>{agent.description}</p>
+                  </header>
 
-          <div className="agent-introduction">
-            <strong>{selectedAgent?.name ?? "商家运营场景"}</strong>
-            <p>
-              {selectedAgent?.description ??
-                "覆盖商品经营分析、AB 实验、寄存、交易查询、订单、逆向等专业能力。"}
-            </p>
-          </div>
-
-          <div className="skill-directory-heading">
-            <h3>技能</h3>
-            <span>{selectedSkillCount} 项</span>
-          </div>
-
-          {selectedAgent && selectedAgent.skills.length === 0 ? (
-            <div className="agent-empty-state">
-              <strong>该专家暂无可用技能</strong>
-              <span>能力正在建设中</span>
-            </div>
-          ) : (
-            <ul
-              aria-label={
-                selectedAgent
-                  ? `${selectedAgent.name}技能`
-                  : `${selectedScene.name}全部技能`
-              }
-              className={`skill-grid ${selectedAgent ? "" : "all-skills-grid"}`}
-            >
-              {visibleSkills.map(({ agent, skill }) => (
-                <li key={skill.mountKey}>
-                  <article className="skill-card">
-                    <div className="skill-card-title-row">
-                      <strong>{skill.name}</strong>
-                      {selectedAgentId === "all" ? (
-                        <span
-                          aria-label={`所属专家：${agent.name}`}
-                          className="skill-agent-tag"
-                          title={agent.name}
-                        >
-                          {agent.name}
-                        </span>
-                      ) : null}
+                  {agent.skills.length === 0 ? (
+                    <div className="expert-skill-empty">
+                      <strong>暂无可用技能</strong>
+                      <span>能力建设中</span>
                     </div>
-                    <span className="skill-description">
-                      {skill.description}
-                    </span>
-                    <div className="skill-use-overlay">
-                      <p>{skill.standardQuestion}</p>
-                      <button
-                        aria-label={`使用技能：${skill.name}`}
-                        onClick={() => onUseSkill(agent, skill)}
-                        type="button"
-                      >
-                        使用该技能
-                      </button>
-                    </div>
-                  </article>
-                </li>
-              ))}
-            </ul>
-          )}
+                  ) : (
+                    <ul
+                      aria-label={`${agent.name}技能`}
+                      className="skill-grid"
+                    >
+                      {agent.skills.map((skill) => (
+                        <li key={skill.mountKey}>
+                          <article className="skill-card">
+                            <strong>{skill.name}</strong>
+                            <span className="skill-description">
+                              {skill.description}
+                            </span>
+                            <div className="skill-use-overlay">
+                              <p>{skill.standardQuestion}</p>
+                              <button
+                                aria-label={`使用技能：${skill.name}`}
+                                onClick={() => onUseSkill(agent, skill)}
+                                type="button"
+                              >
+                                使用该技能
+                              </button>
+                            </div>
+                          </article>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
+          </div>
         </section>
       )}
     </div>

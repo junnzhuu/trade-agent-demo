@@ -17,13 +17,22 @@
   const isSceneAgentSkill = currentPath.includes(
     "/versions/scene-agent-skill/",
   );
+  const isFlatSkillDirectory = currentPath.includes(
+    "/versions/flat-skill-directory/",
+  );
 
   const versions = [
+    {
+      id: "v2.4",
+      name: "v2.4",
+      detail: "专家技能一体化",
+      href: `${rootPath || ""}/`,
+    },
     {
       id: "v2.3",
       name: "v2.3",
       detail: "技能平铺与专家标签",
-      href: `${rootPath || ""}/`,
+      href: `${rootPath || ""}/versions/flat-skill-directory/`,
     },
     {
       id: "v2.2",
@@ -50,7 +59,9 @@
       ? "v2.1"
       : isSceneAgentSkill
         ? "v2.2"
-        : "v2.3";
+        : isFlatSkillDirectory
+          ? "v2.3"
+          : "v2.4";
 
   const root = document.createElement("div");
   root.id = "trade-agent-version-switcher";
