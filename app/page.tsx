@@ -1708,6 +1708,7 @@ export default function Home() {
                 加入反馈群
               </button>
               <button
+                className="account-drawer-integration"
                 onClick={() => {
                   setAccountMenuOpen(false);
                   setFeishuIntegrationOpen(true);
@@ -1716,7 +1717,16 @@ export default function Home() {
                 type="button"
               >
                 <Plug size={17} />
-                飞书集成
+                <span>飞书集成</span>
+                {!feishuIntegrationAuthorized ? (
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="feishu-integration-alert-dot"
+                    />
+                    <span className="sr-only">飞书集成未完成</span>
+                  </>
+                ) : null}
               </button>
               <span aria-hidden="true" className="account-drawer-divider" />
               <button
@@ -1759,12 +1769,16 @@ export default function Home() {
       !accountMenuOpen &&
       !feishuIntegrationOpen ? (
         <button
-          aria-label="完成飞书集成，解锁完整功能"
           className="feishu-integration-prompt"
           onClick={() => setFeishuIntegrationOpen(true)}
           type="button"
         >
-          完成飞书集成，解锁完整功能
+          <span
+            aria-hidden="true"
+            className="feishu-integration-alert-dot"
+          />
+          <span>完成飞书集成，解锁完整功能</span>
+          <span className="sr-only">飞书集成未完成</span>
         </button>
       ) : null}
 
