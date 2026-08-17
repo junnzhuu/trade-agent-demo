@@ -469,7 +469,10 @@ button:disabled {
   z-index: 45;
   bottom: 20px;
   left: calc(var(--sidebar-width) + 12px);
+  display: inline-flex;
   min-height: 38px;
+  align-items: center;
+  gap: 8px;
   padding: 0 15px;
   border: 1px solid rgba(255, 255, 255, 0.82);
   border-radius: 12px;
@@ -488,6 +491,14 @@ button:disabled {
     background 160ms ease,
     box-shadow 160ms ease,
     transform 160ms ease;
+}
+
+.feishu-integration-alert-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #ff3b30;
 }
 
 .feishu-integration-prompt::before {
@@ -631,6 +642,14 @@ button:disabled {
 .account-drawer button:hover,
 .account-drawer button:focus-visible {
   background: #f0f0f0;
+}
+
+.account-drawer-integration > span:first-of-type {
+  min-width: 0;
+}
+
+.account-drawer-integration .feishu-integration-alert-dot {
+  margin-left: auto;
 }
 
 .account-drawer-divider {

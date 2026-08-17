@@ -197,6 +197,13 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /飞书集成/);
   assert.match(page, /完成飞书集成，解锁完整功能/);
   assert.match(page, /feishuIntegrationAuthorized/);
+  assert.match(page, /className="account-drawer-integration"/);
+  assert.match(page, /className="feishu-integration-alert-dot"/);
+  assert.match(page, /飞书集成未完成/);
+  assert.match(
+    page,
+    /!feishuIntegrationAuthorized \? \([\s\S]*className="feishu-integration-alert-dot"/,
+  );
   assert.match(page, /useSyncExternalStore/);
   assert.match(feishuIntegration, /应用和授权/);
   assert.match(
@@ -212,6 +219,14 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(feishuIntegration, /选择地区|连通性测试|可对话|哈基米的智能助手/);
   assert.match(css, /\.feishu-integration-dialog/);
   assert.match(css, /\.feishu-integration-prompt/);
+  assert.match(
+    css,
+    /\.feishu-integration-alert-dot\s*{[^}]*width: 6px[^}]*height: 6px[^}]*background: #ff3b30/s,
+  );
+  assert.match(
+    css,
+    /\.account-drawer-integration \.feishu-integration-alert-dot\s*{[^}]*margin-left: auto/s,
+  );
   assert.match(css, /\.feishu-auth-qr/);
   assert.match(page, /收藏的任务/);
   assert.match(page, /收藏的答案/);
