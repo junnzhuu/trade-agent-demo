@@ -43,9 +43,10 @@ export function ExpertSkillWorkspace({
     : selectedScene.agents.flatMap((agent) =>
         agent.skills.map((skill) => ({ agent, skill })),
       );
+  const selectedSceneStats = getSceneStats(selectedScene);
   const selectedSkillCount = selectedAgent
     ? selectedAgent.skills.length
-    : getSceneStats(selectedScene).skillCount;
+    : selectedSceneStats.skillCount;
 
   const selectScene = (sceneId: (typeof sceneCatalog)[number]["id"]) => {
     setSelectedSceneId(sceneId);
@@ -96,7 +97,10 @@ export function ExpertSkillWorkspace({
         })}
       </ul>
 
-      <h2>专家</h2>
+      <div className="expert-directory-heading">
+        <h2>专家</h2>
+        <span>{selectedSceneStats.expertCount} 个</span>
+      </div>
       {selectedScene.status === "coming-soon" ? (
         <section className="scene-coming-soon" aria-live="polite">
           <span aria-hidden="true">
@@ -167,15 +171,13 @@ export function ExpertSkillWorkspace({
                   <article className="skill-card">
                     <div className="skill-card-title-row">
                       <strong>{skill.name}</strong>
-                      {selectedAgentId === "all" ? (
-                        <span
-                          aria-label={`所属专家：${agent.name}`}
-                          className="skill-agent-tag"
-                          title={agent.name}
-                        >
-                          {agent.name}
-                        </span>
-                      ) : null}
+                      <span
+                        aria-label={`所属专家：${agent.name}`}
+                        className="skill-agent-tag"
+                        title={agent.name}
+                      >
+                        {agent.name}
+                      </span>
                     </div>
                     <span className="skill-description">
                       {skill.description}
