@@ -2438,29 +2438,6 @@ button:disabled {
   font-size: 12px;
 }
 
-.agent-skill-groups {
-  display: grid;
-  gap: 24px;
-}
-
-.agent-skill-group > header {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.agent-skill-group > header h4 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 680;
-}
-
-.agent-skill-group > header span {
-  color: #929292;
-  font-size: 11px;
-}
-
 .skill-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2560,12 +2537,37 @@ button:disabled {
   outline-offset: 2px;
 }
 
-.skill-card strong {
+.skill-card-title-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.skill-card-title-row strong {
+  min-width: 0;
+  flex: 1 1 auto;
   max-width: 100%;
   overflow: hidden;
   font-size: 13px;
   font-weight: 650;
   line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skill-agent-tag {
+  max-width: 104px;
+  flex: 0 1 auto;
+  overflow: hidden;
+  padding: 3px 7px;
+  border: 1px solid rgba(210, 213, 215, 0.9);
+  border-radius: 999px;
+  background: rgba(235, 237, 238, 0.82);
+  color: #686d71;
+  font-size: 10px;
+  font-weight: 560;
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

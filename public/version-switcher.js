@@ -14,13 +14,22 @@
   const isAudienceIsolation = currentPath.includes(
     "/versions/audience-isolation/",
   );
+  const isSceneAgentSkill = currentPath.includes(
+    "/versions/scene-agent-skill/",
+  );
 
   const versions = [
     {
+      id: "v2.3",
+      name: "v2.3",
+      detail: "技能平铺与专家标签",
+      href: `${rootPath || ""}/`,
+    },
+    {
       id: "v2.2",
       name: "v2.2",
-      detail: "技能推荐与 Banner",
-      href: `${rootPath || ""}/`,
+      detail: "场景化专家技能",
+      href: `${rootPath || ""}/versions/scene-agent-skill/`,
     },
     {
       id: "v2.1",
@@ -35,7 +44,13 @@
       href: `${rootPath || ""}/versions/classic/`,
     },
   ];
-  const currentId = isClassic ? "v2.0" : isAudienceIsolation ? "v2.1" : "v2.2";
+  const currentId = isClassic
+    ? "v2.0"
+    : isAudienceIsolation
+      ? "v2.1"
+      : isSceneAgentSkill
+        ? "v2.2"
+        : "v2.3";
 
   const root = document.createElement("div");
   root.id = "trade-agent-version-switcher";

@@ -64,6 +64,10 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(expertWorkspace, /className="scene-grid"/);
   assert.match(expertWorkspace, /商家运营场景/);
   assert.match(expertWorkspace, /className="agent-filter-tabs"/);
+  assert.match(expertWorkspace, /className="skill-agent-tag"/);
+  assert.match(expertWorkspace, /所属专家：\$\{agent\.name\}/);
+  assert.match(expertWorkspace, /className=\{`skill-grid \$\{selectedAgent/);
+  assert.doesNotMatch(expertWorkspace, /className="agent-skill-group"/);
   assert.match(expertWorkspace, /className="skill-use-overlay"/);
   assert.match(expertWorkspace, /使用该技能/);
   assert.match(page, /HomeSkillDiscovery/);
@@ -270,6 +274,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /home-skill-card-heading/);
   assert.match(page, /getHomeBannerSkills/);
   assert.match(css, /\.skill-grid/);
+  assert.match(css, /\.skill-card-title-row/);
+  assert.match(css, /\.skill-agent-tag/);
   assert.match(css, /\.skill-use-overlay/);
   assert.match(css, /\.skill-card:focus-within \.skill-use-overlay/);
   assert.match(css, /\.composer-skill-menu/);
@@ -290,12 +296,16 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(workflow, /actions\/deploy-pages@v4/);
   assert.match(workflow, /codex\/交易智能助手-5ba4a51/);
   assert.match(workflow, /codex\/交易智能助手-v2\.1/);
+  assert.match(workflow, /codex\/交易智能助手-v2\.2/);
   assert.match(workflow, /versions\/classic/);
   assert.match(workflow, /versions\/audience-isolation/);
+  assert.match(workflow, /versions\/scene-agent-skill/);
+  assert.match(versionSwitcher, /v2\.3/);
   assert.match(versionSwitcher, /v2\.2/);
   assert.match(versionSwitcher, /v2\.1/);
   assert.match(versionSwitcher, /v2\.0/);
-  assert.match(versionSwitcher, /技能推荐与 Banner/);
+  assert.match(versionSwitcher, /技能平铺与专家标签/);
+  assert.match(versionSwitcher, /场景化专家技能/);
   assert.match(versionSwitcher, /对商\/对内知识隔离/);
   assert.match(versionSwitcher, /aria-current/);
   assert.doesNotMatch(page, /fetch\("\/api\/runs"/);

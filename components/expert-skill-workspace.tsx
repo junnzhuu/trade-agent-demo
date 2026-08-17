@@ -38,9 +38,11 @@ export function ExpertSkillWorkspace({
           ) ?? null),
     [selectedAgentId, selectedScene],
   );
-  const visibleAgentGroups = selectedAgent
-    ? [selectedAgent]
-    : selectedScene.agents;
+  const visibleSkills = selectedAgent
+    ? selectedAgent.skills.map((skill) => ({ agent: selectedAgent, skill }))
+    : selectedScene.agents.flatMap((agent) =>
+        agent.skills.map((skill) => ({ agent, skill })),
+      );
   const selectedSkillCount = selectedAgent
     ? selectedAgent.skills.length
     : getSceneStats(selectedScene).skillCount;
@@ -152,45 +154,46 @@ export function ExpertSkillWorkspace({
               <span>能力正在建设中</span>
             </div>
           ) : (
-            <div className="agent-skill-groups">
-              {visibleAgentGroups.map((agent) =>
-                agent.skills.length > 0 ? (
-                  <section className="agent-skill-group" key={agent.id}>
-                    {selectedAgentId === "all" ? (
-                      <header>
-                        <h4>{agent.name}</h4>
-                        <span>{agent.skills.length} 项技能</span>
-                      </header>
-                    ) : null}
-                    <ul
-                      aria-label={`${agent.name}技能`}
-                      className="skill-grid"
-                    >
-                      {agent.skills.map((skill) => (
-                        <li key={skill.mountKey}>
-                          <article className="skill-card">
-                            <strong>{skill.name}</strong>
-                            <span className="skill-description">
-                              {skill.description}
-                            </span>
-                            <div className="skill-use-overlay">
-                              <p>{skill.standardQuestion}</p>
-                              <button
-                                aria-label={`使用技能：${skill.name}`}
-                                onClick={() => onUseSkill(agent, skill)}
-                                type="button"
-                              >
-                                使用该技能
-                              </button>
-                            </div>
-                          </article>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                ) : null,
-              )}
-            </div>
+            <ul
+              aria-label={
+                selectedAgent
+                  ? `${selectedAgent.name}技能`
+                  : `${selectedScene.name}全部技能`
+              }
+              className={`skill-grid ${selectedAgent ? "" : "all-skills-grid"}`}
+            >
+              {visibleSkills.map(({ agent, skill }) => (
+                <li key={skill.mountKey}>
+                  <article className="skill-card">
+                    <div className="skill-card-title-row">
+                      <strong>{skill.name}</strong>
+                      {selectedAgentId === "all" ? (
+                        <span
+                          aria-label={`所属专家：${agent.name}`}
+                          className="skill-agent-tag"
+                          title={agent.name}
+                        >
+                          {agent.name}
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="skill-description">
+                      {skill.description}
+                    </span>
+                    <div className="skill-use-overlay">
+                      <p>{skill.standardQuestion}</p>
+                      <button
+                        aria-label={`使用技能：${skill.name}`}
+                        onClick={() => onUseSkill(agent, skill)}
+                        type="button"
+                      >
+                        使用该技能
+                      </button>
+                    </div>
+                  </article>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       )}
