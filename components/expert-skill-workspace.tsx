@@ -10,6 +10,7 @@ import {
 } from "@/lib/agent-skill-catalog";
 
 type AgentSelection = "all" | string;
+type SkillSort = "hot" | "latest";
 
 export function ExpertSkillWorkspace({
   onUseSkill,
@@ -22,6 +23,7 @@ export function ExpertSkillWorkspace({
   const [selectedSceneId, setSelectedSceneId] = useState(sceneCatalog[0].id);
   const [selectedAgentId, setSelectedAgentId] =
     useState<AgentSelection>("all");
+  const [skillSort, setSkillSort] = useState<SkillSort>("hot");
 
   const selectedScene = useMemo(
     () =>
@@ -47,10 +49,13 @@ export function ExpertSkillWorkspace({
   const selectedSkillCount = selectedAgent
     ? selectedAgent.skills.length
     : selectedSceneStats.skillCount;
+  const orderedSkills =
+    skillSort === "hot" ? visibleSkills : [...visibleSkills].reverse();
 
   const selectScene = (sceneId: (typeof sceneCatalog)[number]["id"]) => {
     setSelectedSceneId(sceneId);
     setSelectedAgentId("all");
+    setSkillSort("hot");
   };
 
   return (
@@ -75,16 +80,10 @@ export function ExpertSkillWorkspace({
                 type="button"
               >
                 <span className="scene-card-heading">
-                  <span className="scene-avatar" aria-hidden="true">
-                    <Bot size={21} strokeWidth={1.8} />
-                  </span>
                   <strong>{scene.name}</strong>
                 </span>
                 <span className="scene-stat-line">
                   {stats.expertCount} 个专家 · {stats.skillCount} 项技能
-                </span>
-                <span className="scene-status">
-                  {scene.status === "available" ? "能力已接入" : "能力建设中"}
                 </span>
                 {selected ? (
                   <span className="selection-check" aria-hidden="true">
@@ -150,6 +149,30 @@ export function ExpertSkillWorkspace({
           <div className="skill-directory-heading">
             <h3>技能</h3>
             <span>{selectedSkillCount} 项</span>
+            <div
+              aria-label="技能排序"
+              className="skill-sort-tabs"
+              role="tablist"
+            >
+              <button
+                aria-selected={skillSort === "hot"}
+                className={skillSort === "hot" ? "selected" : ""}
+                onClick={() => setSkillSort("hot")}
+                role="tab"
+                type="button"
+              >
+                最热
+              </button>
+              <button
+                aria-selected={skillSort === "latest"}
+                className={skillSort === "latest" ? "selected" : ""}
+                onClick={() => setSkillSort("latest")}
+                role="tab"
+                type="button"
+              >
+                最新
+              </button>
+            </div>
           </div>
 
           {selectedAgent && selectedAgent.skills.length === 0 ? (
@@ -166,7 +189,7 @@ export function ExpertSkillWorkspace({
               }
               className={`skill-grid ${selectedAgent ? "" : "all-skills-grid"}`}
             >
-              {visibleSkills.map(({ agent, skill }) => (
+              {orderedSkills.map(({ agent, skill }) => (
                 <li key={skill.mountKey}>
                   <article className="skill-card">
                     <div className="skill-card-title-row">

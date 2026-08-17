@@ -62,6 +62,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /pendingComposerSkill/);
   assert.match(expertWorkspace, /使用技能：\$\{skill\.name\}/);
   assert.match(expertWorkspace, /className="scene-grid"/);
+  assert.doesNotMatch(expertWorkspace, /className="scene-avatar"/);
+  assert.doesNotMatch(expertWorkspace, /className="scene-status"/);
   assert.match(expertWorkspace, /商家运营场景/);
   assert.match(expertWorkspace, /className="agent-filter-tabs"/);
   assert.match(expertWorkspace, /className="expert-directory-heading"/);
@@ -79,6 +81,14 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(expertWorkspace, /className="agent-skill-group"/);
   assert.match(expertWorkspace, /className="skill-use-overlay"/);
   assert.match(expertWorkspace, /使用该技能/);
+  assert.match(expertWorkspace, /useState<SkillSort>\("hot"\)/);
+  assert.match(expertWorkspace, /aria-label="技能排序"/);
+  assert.match(
+    expertWorkspace,
+    /skillSort === "hot" \? visibleSkills : \[\.\.\.visibleSkills\]\.reverse\(\)/,
+  );
+  assert.match(expertWorkspace, />\s*最热\s*<\/button>/);
+  assert.match(expertWorkspace, />\s*最新\s*<\/button>/);
   assert.match(page, /HomeSkillDiscovery/);
   assert.match(
     page,
@@ -299,6 +309,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /getHomeBannerSkills/);
   assert.match(css, /\.skill-grid/);
   assert.match(css, /\.skill-card-title-row/);
+  assert.match(css, /\.skill-sort-tabs/);
+  assert.match(css, /\.skill-sort-tabs button\.selected/);
+  assert.match(css, /\.scene-card\s*{[^}]*height: 104px/s);
+  assert.doesNotMatch(css, /\.scene-avatar\s*{/);
+  assert.doesNotMatch(css, /\.scene-status\s*{/);
   assert.match(css, /\.skill-card-title-row\s*{[^}]*gap: 12px/s);
   assert.match(css, /\.skill-agent-tag/);
   assert.match(css, /\.skill-use-overlay/);
