@@ -64,8 +64,17 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(expertWorkspace, /className="scene-grid"/);
   assert.match(expertWorkspace, /商家运营场景/);
   assert.match(expertWorkspace, /className="agent-filter-tabs"/);
+  assert.match(expertWorkspace, /className="expert-directory-heading"/);
+  assert.match(
+    expertWorkspace,
+    /<span>\{selectedSceneStats\.expertCount\} 个<\/span>/,
+  );
   assert.match(expertWorkspace, /className="skill-agent-tag"/);
   assert.match(expertWorkspace, /所属专家：\$\{agent\.name\}/);
+  assert.doesNotMatch(
+    expertWorkspace,
+    /selectedAgentId === "all" \? \([\s\S]*className="skill-agent-tag"/,
+  );
   assert.match(expertWorkspace, /className=\{`skill-grid \$\{selectedAgent/);
   assert.doesNotMatch(expertWorkspace, /className="agent-skill-group"/);
   assert.match(expertWorkspace, /className="skill-use-overlay"/);
@@ -275,9 +284,15 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /getHomeBannerSkills/);
   assert.match(css, /\.skill-grid/);
   assert.match(css, /\.skill-card-title-row/);
+  assert.match(css, /\.skill-card-title-row\s*{[^}]*gap: 12px/s);
   assert.match(css, /\.skill-agent-tag/);
   assert.match(css, /\.skill-use-overlay/);
+  assert.match(css, /\.skill-use-overlay button\s*{[^}]*align-self: flex-end/s);
   assert.match(css, /\.skill-card:focus-within \.skill-use-overlay/);
+  assert.match(
+    css,
+    /\.expert-workspace > h1,[\s\S]*\.expert-directory-heading h2,[\s\S]*\.skill-directory-heading h3\s*{[^}]*font-size: 28px/s,
+  );
   assert.match(css, /\.composer-skill-menu/);
   assert.match(css, /\.composer-skill-search/);
   assert.match(
