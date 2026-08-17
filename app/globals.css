@@ -464,6 +464,54 @@ button:disabled {
   margin: auto 8px 8px;
 }
 
+.feishu-integration-prompt {
+  position: fixed;
+  z-index: 45;
+  bottom: 20px;
+  left: calc(var(--sidebar-width) + 12px);
+  min-height: 38px;
+  padding: 0 15px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow:
+    0 10px 30px rgba(53, 66, 77, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  color: #34383c;
+  font-size: 12px;
+  font-weight: 560;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  -webkit-backdrop-filter: blur(16px) saturate(118%);
+  backdrop-filter: blur(16px) saturate(118%);
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.feishu-integration-prompt::before {
+  position: absolute;
+  top: 50%;
+  left: -6px;
+  width: 11px;
+  height: 11px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.82);
+  border-left: 1px solid rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.9);
+  content: "";
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.feishu-integration-prompt:hover,
+.feishu-integration-prompt:focus-visible {
+  background: rgba(245, 247, 247, 0.96);
+  box-shadow:
+    0 12px 34px rgba(53, 66, 77, 0.17),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  transform: translateY(-1px);
+}
+
 .account-menu {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
@@ -589,6 +637,12 @@ button:disabled {
   height: 1px;
   margin: 4px 6px;
   background: rgba(28, 31, 35, 0.1);
+}
+
+@media (max-width: 780px) {
+  .feishu-integration-prompt {
+    display: none;
+  }
 }
 
 /* PC 端全功能新手指引 */

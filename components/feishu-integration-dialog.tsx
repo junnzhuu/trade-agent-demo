@@ -2,8 +2,6 @@
 
 import {
   Check,
-  Eye,
-  EyeOff,
   ExternalLink,
   Info,
   Link2,
@@ -23,6 +21,7 @@ import {
   FEISHU_INTEGRATION_STORAGE_KEY,
   FEISHU_OPEN_PLATFORM_URL,
   initialFeishuIntegrationState,
+  notifyFeishuIntegrationChanged,
   parseFeishuIntegrationState,
   type FeishuExternalAction,
   type FeishuIntegrationState,
@@ -46,7 +45,6 @@ export function FeishuIntegrationDialog({
           window.localStorage.getItem(FEISHU_INTEGRATION_STORAGE_KEY),
         ),
   );
-  const [secretVisible, setSecretVisible] = useState(false);
   const [unlinkConfirmationOpen, setUnlinkConfirmationOpen] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const unlinkCancelRef = useRef<HTMLButtonElement | null>(null);
@@ -62,6 +60,7 @@ export function FeishuIntegrationDialog({
       FEISHU_INTEGRATION_STORAGE_KEY,
       JSON.stringify(next),
     );
+    notifyFeishuIntegrationChanged();
   }, []);
 
   useEffect(() => {
@@ -184,9 +183,9 @@ export function FeishuIntegrationDialog({
 
   const confirmUnlink = () => {
     window.localStorage.removeItem(FEISHU_INTEGRATION_STORAGE_KEY);
+    notifyFeishuIntegrationChanged();
     integrationRef.current = initialFeishuIntegrationState;
     setIntegration(initialFeishuIntegrationState);
-    setSecretVisible(false);
     setUnlinkConfirmationOpen(false);
     onToast("已解除飞书集成");
   };
@@ -297,38 +296,6 @@ export function FeishuIntegrationDialog({
               </div>
             ) : null}
 
-            <div className="feishu-credential-fields">
-              <label>
-                <span>App ID</span>
-                <input
-                  aria-label="App ID"
-                  placeholder="等待授权后自动填入"
-                  readOnly
-                  value={integration.appId}
-                />
-              </label>
-              <label>
-                <span>App Secret</span>
-                <div className="feishu-secret-field">
-                  <input
-                    aria-label="App Secret"
-                    placeholder="等待授权后自动填入"
-                    readOnly
-                    type={secretVisible ? "text" : "password"}
-                    value={integration.appSecret}
-                  />
-                  <button
-                    aria-label={secretVisible ? "隐藏 App Secret" : "显示 App Secret"}
-                    disabled={!integration.appSecret}
-                    onClick={() => setSecretVisible((current) => !current)}
-                    type="button"
-                  >
-                    {secretVisible ? <EyeOff size={17} /> : <Eye size={17} />}
-                  </button>
-                </div>
-              </label>
-            </div>
-
             <footer className="feishu-integration-actions">
               <button
                 className="feishu-integration-primary"
@@ -394,13 +361,6 @@ export function FeishuIntegrationDialog({
                   完成授权
                 </a>
               )}
-              <button
-                className="feishu-integration-secondary"
-                onClick={() => persist({ ...integrationRef.current, step: 1 })}
-                type="button"
-              >
-                返回上一步
-              </button>
             </footer>
           </div>
         )}

@@ -179,6 +179,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /加入反馈群/);
   assert.doesNotMatch(page, />\s*设置\s*</);
   assert.match(page, /飞书集成/);
+  assert.match(page, /完成飞书集成，解锁完整功能/);
+  assert.match(page, /feishuIntegrationAuthorized/);
+  assert.match(page, /useSyncExternalStore/);
   assert.match(feishuIntegration, /应用和授权/);
   assert.match(
     feishuIntegration,
@@ -186,9 +189,13 @@ test("ships the trading agent workspace instead of the starter preview", async (
   );
   assert.match(feishuIntegration, /获取授权链接\/二维码/);
   assert.match(feishuIntegration, /完成授权后解锁完整能力/);
+  assert.doesNotMatch(feishuIntegration, /feishu-credential-fields/);
+  assert.doesNotMatch(feishuIntegration, /等待授权后自动填入/);
+  assert.doesNotMatch(feishuIntegration, /返回上一步/);
   assert.match(feishuIntegration, /FEISHU_INTEGRATION_STORAGE_KEY/);
   assert.doesNotMatch(feishuIntegration, /选择地区|连通性测试|可对话|哈基米的智能助手/);
   assert.match(css, /\.feishu-integration-dialog/);
+  assert.match(css, /\.feishu-integration-prompt/);
   assert.match(css, /\.feishu-auth-qr/);
   assert.match(page, /收藏的任务/);
   assert.match(page, /收藏的答案/);

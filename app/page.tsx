@@ -40,6 +40,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { ExpertSkillWorkspace } from "@/components/expert-skill-workspace";
 import { FeishuIntegrationDialog } from "@/components/feishu-integration-dialog";
@@ -88,6 +89,11 @@ import {
   getQuestionSuggestions,
   type QuestionSuggestion,
 } from "@/lib/question-suggestions";
+import {
+  getFeishuIntegrationStorageSnapshot,
+  parseFeishuIntegrationState,
+  subscribeToFeishuIntegration,
+} from "@/lib/feishu-integration";
 
 // 后续功能扩展会从这五类能力进入；首页先保持截图中的极简状态。
 const agentCapabilities = [
@@ -299,6 +305,14 @@ export default function Home() {
     [selectedHomeSkillCategory],
   );
   const bannerSkills = useMemo(() => getHomeBannerSkills(), []);
+  const feishuIntegrationSnapshot = useSyncExternalStore(
+    subscribeToFeishuIntegration,
+    getFeishuIntegrationStorageSnapshot,
+    () => null,
+  );
+  const feishuIntegrationAuthorized = parseFeishuIntegrationState(
+    feishuIntegrationSnapshot,
+  ).authorized;
 
   useEffect(() => {
     if (!taskMenuId) return;
@@ -1728,6 +1742,20 @@ export default function Home() {
           </button>
         </div>
       </aside>
+
+      {sidebarOpen &&
+      !feishuIntegrationAuthorized &&
+      !accountMenuOpen &&
+      !feishuIntegrationOpen ? (
+        <button
+          aria-label="完成飞书集成，解锁完整功能"
+          className="feishu-integration-prompt"
+          onClick={() => setFeishuIntegrationOpen(true)}
+          type="button"
+        >
+          完成飞书集成，解锁完整功能
+        </button>
+      ) : null}
 
       <section className="minimal-main">
         <button

@@ -1,5 +1,7 @@
 export const FEISHU_INTEGRATION_STORAGE_KEY =
   "trade-agent-feishu-integration-v1";
+export const FEISHU_INTEGRATION_CHANGE_EVENT =
+  "trade-agent-feishu-integration-change";
 
 export const FEISHU_OPEN_PLATFORM_URL = "https://open.feishu.cn/app";
 
@@ -23,6 +25,29 @@ export const initialFeishuIntegrationState: FeishuIntegrationState = {
   authorized: false,
   pendingExternalAction: null,
 };
+
+export function getFeishuIntegrationStorageSnapshot() {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(FEISHU_INTEGRATION_STORAGE_KEY);
+}
+
+export function subscribeToFeishuIntegration(
+  listener: () => void,
+): () => void {
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === FEISHU_INTEGRATION_STORAGE_KEY) listener();
+  };
+  window.addEventListener(FEISHU_INTEGRATION_CHANGE_EVENT, listener);
+  window.addEventListener("storage", handleStorage);
+  return () => {
+    window.removeEventListener(FEISHU_INTEGRATION_CHANGE_EVENT, listener);
+    window.removeEventListener("storage", handleStorage);
+  };
+}
+
+export function notifyFeishuIntegrationChanged() {
+  window.dispatchEvent(new Event(FEISHU_INTEGRATION_CHANGE_EVENT));
+}
 
 export function parseFeishuIntegrationState(
   storedValue: string | null,
