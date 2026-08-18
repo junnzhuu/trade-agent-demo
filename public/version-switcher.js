@@ -17,13 +17,23 @@
   const isSceneAgentSkill = currentPath.includes(
     "/versions/scene-agent-skill/",
   );
+  const isIntegratedExpertSkills = currentPath.includes(
+    "/versions/integrated-expert-skills/",
+  );
 
   const versions = [
     {
-      id: "v2.3",
-      name: "v2.3",
+      id: "v2.4",
+      name: "v2.4",
       detail: "技能平铺与专家标签",
       href: `${rootPath || ""}/`,
+      latest: true,
+    },
+    {
+      id: "v2.3",
+      name: "v2.3",
+      detail: "专家技能一体化",
+      href: `${rootPath || ""}/versions/integrated-expert-skills/`,
     },
     {
       id: "v2.2",
@@ -50,7 +60,9 @@
       ? "v2.1"
       : isSceneAgentSkill
         ? "v2.2"
-        : "v2.3";
+        : isIntegratedExpertSkills
+          ? "v2.3"
+          : "v2.4";
 
   const root = document.createElement("div");
   root.id = "trade-agent-version-switcher";
@@ -117,6 +129,18 @@
       .ta-version-copy { min-width: 0; }
       .ta-version-name { display: block; overflow: hidden; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
       .ta-version-detail { display: block; margin-top: 2px; color: #858a8f; font-size: 11px; }
+      .ta-version-meta { display: inline-flex; align-items: center; gap: 7px; }
+      .ta-version-latest {
+        padding: 2px 6px;
+        border: 1px solid rgba(1, 169, 170, .2);
+        border-radius: 999px;
+        background: rgba(1, 193, 194, .12);
+        color: #008c8d;
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 1.4;
+        white-space: nowrap;
+      }
       .ta-version-check { color: #01a9aa; font-size: 14px; font-weight: 700; }
       @media (max-width: 760px) {
         #trade-agent-version-switcher { right: 10px; bottom: 10px; }
@@ -138,7 +162,10 @@
                 <span class="ta-version-name">${version.name}</span>
                 <span class="ta-version-detail">${version.detail}</span>
               </span>
-              ${version.id === currentId ? '<span class="ta-version-check" aria-hidden="true">✓</span>' : ""}
+              <span class="ta-version-meta">
+                ${version.latest ? '<span class="ta-version-latest">最新版</span>' : ""}
+                ${version.id === currentId ? '<span class="ta-version-check" aria-hidden="true">✓</span>' : ""}
+              </span>
             </a>`,
         )
         .join("")}

@@ -13,6 +13,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
     expertWorkspace,
     feishuIntegration,
     versionSwitcher,
+    flatSkillRedirect,
   ] = await Promise.all([
       readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
       readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -32,6 +33,13 @@ test("ships the trading agent workspace instead of the starter preview", async (
         "utf8",
       ),
       readFile(new URL("../public/version-switcher.js", import.meta.url), "utf8"),
+      readFile(
+        new URL(
+          "../public/versions/flat-skill-directory/index.html",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
     ]);
 
   assert.match(layout, /title: "交易 Agent｜多智能体业务工作台"/);
@@ -342,17 +350,26 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(workflow, /codex\/交易智能助手-5ba4a51/);
   assert.match(workflow, /codex\/交易智能助手-v2\.1/);
   assert.match(workflow, /codex\/交易智能助手-v2\.2/);
+  assert.match(workflow, /codex\/交易智能助手-v2\.3-integrated/);
   assert.match(workflow, /versions\/classic/);
   assert.match(workflow, /versions\/audience-isolation/);
   assert.match(workflow, /versions\/scene-agent-skill/);
+  assert.match(workflow, /versions\/integrated-expert-skills/);
+  assert.match(versionSwitcher, /v2\.4/);
   assert.match(versionSwitcher, /v2\.3/);
   assert.match(versionSwitcher, /v2\.2/);
   assert.match(versionSwitcher, /v2\.1/);
   assert.match(versionSwitcher, /v2\.0/);
   assert.match(versionSwitcher, /技能平铺与专家标签/);
+  assert.match(versionSwitcher, /专家技能一体化/);
   assert.match(versionSwitcher, /场景化专家技能/);
   assert.match(versionSwitcher, /对商\/对内知识隔离/);
+  assert.match(versionSwitcher, /ta-version-latest/);
+  assert.match(versionSwitcher, /最新版/);
+  assert.match(versionSwitcher, /latest: true/);
   assert.match(versionSwitcher, /aria-current/);
+  assert.match(flatSkillRedirect, /http-equiv="refresh"/);
+  assert.match(flatSkillRedirect, /url=\.\.\/\.\.\//);
   assert.doesNotMatch(page, /fetch\("\/api\/runs"/);
   assert.doesNotMatch(page, /codex-preview|SkeletonPreview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
