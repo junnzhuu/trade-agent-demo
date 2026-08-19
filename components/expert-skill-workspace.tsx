@@ -157,7 +157,6 @@ export function ExpertSkillWorkspace({
                 onClick={() => onSummonAgent(selectedAgent)}
                 type="button"
               >
-                <Bot aria-hidden="true" size={15} strokeWidth={1.8} />
                 召唤
               </button>
             ) : null}

@@ -2513,7 +2513,6 @@ button:disabled {
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   padding: 0 14px;
   border: 1px solid #d6d6d6;
   border-radius: 10px;
@@ -2522,18 +2521,8 @@ button:disabled {
   color: #262626;
   font-size: 12px;
   font-weight: 650;
-  opacity: 0;
-  transform: translateX(4px);
   transition:
-    opacity 140ms ease,
-    transform 140ms ease,
     background 140ms ease;
-}
-
-.agent-introduction.summonable:hover .summon-agent-button,
-.agent-introduction.summonable:focus-within .summon-agent-button {
-  opacity: 1;
-  transform: translateX(0);
 }
 
 .summon-agent-button:hover {

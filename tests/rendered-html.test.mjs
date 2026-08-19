@@ -329,12 +329,17 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.skill-card:focus-within \.skill-use-overlay/);
   assert.match(expertWorkspace, /onSummonAgent/);
   assert.match(expertWorkspace, /召唤专家：/);
+  assert.doesNotMatch(
+    expertWorkspace,
+    /summon-agent-button[\s\S]*?<Bot aria-hidden=/,
+  );
   assert.match(expertWorkspace, /该专家暂无挂载技能/);
   assert.match(expertWorkspace, /可直接召唤专家处理相关问题/);
   assert.match(page, /selectedComposerExpert/);
   assert.match(page, /targetAgent/);
   assert.match(page, /Supervisor 已路由至/);
   assert.match(css, /\.summon-agent-button/);
+  assert.doesNotMatch(css, /\.summon-agent-button\s*{[^}]*opacity:\s*0/s);
   assert.match(css, /\.composer-expert-tag/);
   assert.match(
     css,
