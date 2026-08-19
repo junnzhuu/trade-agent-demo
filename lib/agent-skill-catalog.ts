@@ -11,6 +11,7 @@ export type SubAgentDefinition = {
   originalName: string;
   name: string;
   description: string;
+  standardQuestion: string;
   skills: AgentSkillDefinition[];
 };
 
@@ -40,6 +41,8 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
     originalName: "商家运营专家",
     name: "商家运营专家",
     description: "处理商家运营、风控与信息查询，并查找商家联系方式和负责小二。",
+    standardQuestion:
+      "请召唤商家运营专家，查询商家【商家ID】的联系渠道和内部负责小二。",
     skills: [],
   }),
   defineAgent({
@@ -47,6 +50,8 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
     originalName: "数据分析专家",
     name: "商品经营分析专家",
     description: "分析商品价格竞争力与单品经营表现，定位价格、销售等关键问题。",
+    standardQuestion:
+      "请召唤商品经营分析专家，诊断 SPU=【SPUID】在【时间范围】内的经营表现和异常原因。",
     skills: [
       {
         id: "compare_price_analysis",
@@ -67,6 +72,8 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
     originalName: "AB实验数据分析专家",
     name: "AB 实验专家",
     description: "设计 AB 实验、分析实验结果，并给出推全、继续观测或回退建议。",
+    standardQuestion:
+      "请召唤 AB 实验专家，分析 paramsId=【paramsId】对应的实验结果并给出是否推全的建议。",
     skills: [
       {
         id: "ab-analysis-assistant",
@@ -87,6 +94,8 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
     originalName: "寄存领域专家",
     name: "寄存业务专家",
     description: "查询寄存单据，诊断入仓准入、直发托管和库存流向等寄存问题。",
+    standardQuestion:
+      "请召唤寄存业务专家，分析入仓单【AP或JS入仓单号】的状态和库存流向。",
     skills: [
       {
         id: "deposit-bill-basic-query",
@@ -119,6 +128,8 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
     originalName: "交易域数据查询专家",
     name: "交易实时查询专家",
     description: "查询订单、商品、物流、出价库存等交易域实时明细。",
+    standardQuestion:
+      "请召唤交易实时查询专家，查询采购单【采购单编号】的实时明细。",
     skills: [
       {
         id: "dewu-trade-api-invoke",
@@ -139,6 +150,8 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
     originalName: "Galaxy离线数仓数据分析专家",
     name: "离线数据分析专家",
     description: "通过离线数仓完成交易、逆向、价格力、直播等数据查询与分析。",
+    standardQuestion:
+      "请召唤离线数据分析专家，通过离线数仓查询【时间范围】内的订单数据并按状态汇总。",
     skills: [
       {
         id: "galaxy-price-power-analysis",
@@ -213,6 +226,8 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
     originalName: "交易订单智能体",
     name: "订单业务专家",
     description: "处理租赁、履约、国补、服务标、跨境、转赠等订单查询与诊断。",
+    standardQuestion:
+      "请召唤订单业务专家，分析子订单号【租赁子订单号】的订单状态和异常原因。",
     skills: [
       {
         id: "galaxy-adhoc",
@@ -269,6 +284,8 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
     originalName: "商家退出问题定位专家",
     name: "商家退出诊断专家",
     description: "定位商家无法退出入驻的阻塞原因，快速找到待处理项。",
+    standardQuestion:
+      "请召唤商家退出诊断专家，检查商家【商家ID】无法退出入驻的阻塞原因。",
     skills: [
       {
         id: "merchant-quit-diagnosis",
@@ -289,6 +306,8 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
     originalName: "逆向agent",
     name: "逆向业务分析专家",
     description: "查询退货退款、主动服务和 CPO 数据，支持逆向业务分析与取数。",
+    standardQuestion:
+      "请召唤逆向业务分析专家，查询【时间范围】内退货退款原因分布并生成 SQL。",
     skills: [
       {
         id: "cpo-query",
@@ -315,6 +334,7 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
     originalName: "穿搭项目agent",
     name: "女装穿搭运营专家",
     description: "完成女装穿搭项目的数据观测、供给分析、日报产出和图片链路诊断。",
+    standardQuestion: "请召唤女装穿搭运营专家，生成【日期】的女装穿搭日报。",
     skills: [
       {
         id: "dress-up-guashangka",
@@ -353,6 +373,7 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
     originalName: "安全服务台",
     name: "安全服务专家",
     description: "处理得物安全相关咨询与安全服务台问题。",
+    standardQuestion: "请召唤安全服务专家，帮我处理这个安全问题：【安全问题】。",
     skills: [],
   }),
   defineAgent({
@@ -360,6 +381,8 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
     originalName: "权限智能体",
     name: "权限服务专家",
     description: "处理权限相关查询、问题定位与使用咨询。",
+    standardQuestion:
+      "请召唤权限服务专家，查询并定位这个权限问题：【权限问题】。",
     skills: [],
   }),
 ];

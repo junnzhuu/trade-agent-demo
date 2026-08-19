@@ -2,6 +2,7 @@
 
 import {
   Archive,
+  Bot,
   Bookmark,
   Check,
   ChevronDown,
@@ -70,6 +71,7 @@ import {
   restoreArchivedTask,
   type RecentTask,
   type TaskMessage,
+  type TaskTargetAgent,
   type TaskTraceStep,
 } from "@/lib/task-history";
 import { ConcurrentTaskScheduler } from "@/lib/task-scheduler";
@@ -141,6 +143,7 @@ type ComposerHandle = {
   insertSkill: (skill: ComposerSkillOption) => void;
   setText: (value: string) => void;
 };
+type ComposerExpertOption = TaskTargetAgent;
 type TourOrigin = {
   activeView: WorkspaceView;
   activeTaskId: string | null;
@@ -156,6 +159,7 @@ type PromptRunJob = {
   assistantId: string;
   answerGroupId: string;
   plan: AudienceRunPlan;
+  targetAgent?: TaskTargetAgent;
   startedAt: number;
   controller: AbortController;
 };
@@ -211,6 +215,10 @@ export default function Home() {
   >([]);
   const [pendingComposerSkill, setPendingComposerSkill] =
     useState<ComposerSkillOption | null>(null);
+  const [selectedComposerExpert, setSelectedComposerExpert] =
+    useState<ComposerExpertOption | null>(null);
+  const [pendingComposerExpert, setPendingComposerExpert] =
+    useState<SubAgentDefinition | null>(null);
   const [planMode, setPlanMode] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState<ModelId>("glm-5");
   const [selectedHomeSkillCategory, setSelectedHomeSkillCategory] =
@@ -425,6 +433,8 @@ export default function Home() {
     setInput("");
     setSelectedComposerSkills([]);
     setPendingComposerSkill(null);
+    setSelectedComposerExpert(null);
+    setPendingComposerExpert(null);
     activeTaskIdRef.current = null;
     activeViewRef.current = "chat";
     setActiveTaskId(null);
@@ -450,6 +460,15 @@ export default function Home() {
     [startNewChat],
   );
 
+  const summonExpert = useCallback(
+    (agent: SubAgentDefinition) => {
+      startNewChat();
+      setSelectedComposerExpert({ id: agent.id, name: agent.name });
+      setPendingComposerExpert(agent);
+    },
+    [startNewChat],
+  );
+
   useEffect(() => {
     activeTaskIdRef.current = activeTaskId;
   }, [activeTaskId]);
@@ -469,6 +488,18 @@ export default function Home() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [activeView, pendingComposerSkill]);
+
+  useEffect(() => {
+    if (activeView !== "chat" || !pendingComposerExpert) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const composer = composerHandleRef.current;
+      if (!composer) return;
+      composer.setText(pendingComposerExpert.standardQuestion);
+      setPendingComposerExpert(null);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeView, pendingComposerExpert]);
 
   useEffect(() => {
     scrollEndRef.current?.scrollIntoView({
@@ -568,10 +599,17 @@ export default function Home() {
                   String(data.detail ?? "识别问题类型与所需业务能力"),
                 );
               } else if (name === "route.completed") {
-                appendTrace(
-                  `路由至 ${String(data.routeName ?? "对应上游能力")}`,
-                  String(data.detail ?? "已完成 Query 路由"),
-                );
+                if (job.targetAgent) {
+                  appendTrace(
+                    `Supervisor 已路由至${job.targetAgent.name}`,
+                    `按当前任务显式选择，直接调用${job.targetAgent.name}处理本轮问题。`,
+                  );
+                } else {
+                  appendTrace(
+                    `路由至 ${String(data.routeName ?? "对应上游能力")}`,
+                    String(data.detail ?? "已完成 Query 路由"),
+                  );
+                }
               } else if (name === "visibility.completed") {
                 appendTrace(
                   "读取上游可见性标记",
@@ -812,6 +850,7 @@ export default function Home() {
           updatedAt: submittedAt,
           pinned: currentTask?.pinned,
           favorited: currentTask?.favorited,
+          targetAgent: selectedComposerExpert ?? currentTask?.targetAgent,
           archived: false,
           status: "running",
           startedAt: submittedAt,
@@ -826,6 +865,7 @@ export default function Home() {
         assistantId,
         answerGroupId,
         plan,
+        targetAgent: selectedComposerExpert ?? currentTask?.targetAgent,
         startedAt: submittedAt,
         controller,
       };
@@ -836,7 +876,14 @@ export default function Home() {
         onQueuedCancel: () => updateTask(taskId, stopTaskSnapshot),
       });
     },
-    [activeTask, executeRunJob, running, scheduler, updateTask],
+    [
+      activeTask,
+      executeRunJob,
+      running,
+      scheduler,
+      selectedComposerExpert,
+      updateTask,
+    ],
   );
 
   const enqueueAudienceAnswer = useCallback(
@@ -1147,6 +1194,7 @@ export default function Home() {
       }));
       setInput("");
       setSelectedComposerSkills([]);
+      setSelectedComposerExpert(task.targetAgent ?? null);
       setMobileSidebarOpen(false);
       closeSearch();
     },
@@ -1216,6 +1264,7 @@ export default function Home() {
       activeViewRef.current = "chat";
       setActiveTaskId(null);
       setActiveView("chat");
+      setSelectedComposerExpert(null);
     }
     setDeleteConfirmationTaskId(null);
     requestAnimationFrame(() => libraryCloseRef.current?.focus());
@@ -1273,6 +1322,7 @@ export default function Home() {
       activeViewRef.current = "chat";
       setActiveTaskId(null);
       setActiveView("chat");
+      setSelectedComposerExpert(null);
     }
   };
 
@@ -1410,6 +1460,13 @@ export default function Home() {
     return () => window.cancelAnimationFrame(frame);
   }, [openFeedback, tourActive, tourStepIndex]);
 
+  const clearComposerExpert = useCallback(() => {
+    setSelectedComposerExpert(null);
+    const taskId = activeTaskIdRef.current;
+    if (!taskId) return;
+    updateTask(taskId, (task) => ({ ...task, targetAgent: undefined }));
+  }, [updateTask]);
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const prompt = buildPromptWithSkills(input, selectedComposerSkills);
@@ -1419,6 +1476,7 @@ export default function Home() {
   };
 
   const addComposerSkill = (skill: ComposerSkillOption) => {
+    clearComposerExpert();
     setSelectedComposerSkills((current) =>
       current.some((item) => item.key === skill.key)
         ? current
@@ -1796,7 +1854,10 @@ export default function Home() {
         </button>
 
         {activeView === "experts" ? (
-          <ExpertSkillWorkspace onUseSkill={useExpertSkill} />
+          <ExpertSkillWorkspace
+            onSummonAgent={summonExpert}
+            onUseSkill={useExpertSkill}
+          />
         ) : activeView === "automation" ? (
           <AutomationWorkspace />
         ) : messages.length === 0 ? (
@@ -1825,6 +1886,7 @@ export default function Home() {
                 input={input}
                 onInput={setInput}
                 onKeyDown={handleKeyDown}
+                onRemoveExpert={clearComposerExpert}
                 onRemoveSkill={removeComposerSkill}
                 onAddSkill={addComposerSkill}
                 onSubmit={submit}
@@ -1832,6 +1894,7 @@ export default function Home() {
                 planMode={planMode}
                 running={running}
                 selectedSkills={selectedComposerSkills}
+                selectedExpert={selectedComposerExpert}
                 selectedModelId={selectedModelId}
                 selectModel={setSelectedModelId}
                 togglePlanMode={() => setPlanMode((current) => !current)}
@@ -1914,6 +1977,7 @@ export default function Home() {
                 input={input}
                 onInput={setInput}
                 onKeyDown={handleKeyDown}
+                onRemoveExpert={clearComposerExpert}
                 onRemoveSkill={removeComposerSkill}
                 onAddSkill={addComposerSkill}
                 onSubmit={submit}
@@ -1921,6 +1985,7 @@ export default function Home() {
                 planMode={planMode}
                 running={running}
                 selectedSkills={selectedComposerSkills}
+                selectedExpert={selectedComposerExpert}
                 selectedModelId={selectedModelId}
                 selectModel={setSelectedModelId}
                 togglePlanMode={() => setPlanMode((current) => !current)}
@@ -3126,11 +3191,13 @@ const Composer = forwardRef<ComposerHandle, {
   onInput: (value: string) => void;
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
   onAddSkill: (skill: ComposerSkillOption) => void;
+  onRemoveExpert: () => void;
   onRemoveSkill: (skillKey: string) => void;
   onSubmit: (event: FormEvent) => void;
   onStop: () => void;
   planMode: boolean;
   running: boolean;
+  selectedExpert: ComposerExpertOption | null;
   selectedSkills: ComposerSkillOption[];
   selectedModelId: ModelId;
   selectModel: (modelId: ModelId) => void;
@@ -3141,11 +3208,13 @@ const Composer = forwardRef<ComposerHandle, {
   onInput,
   onKeyDown,
   onAddSkill,
+  onRemoveExpert,
   onRemoveSkill,
   onSubmit,
   onStop,
   planMode,
   running,
+  selectedExpert,
   selectedSkills,
   selectedModelId,
   selectModel,
@@ -3894,6 +3963,21 @@ const Composer = forwardRef<ComposerHandle, {
               </div>
             )}
           </div>
+          {selectedExpert ? (
+            <button
+              aria-label={`取消召唤专家：${selectedExpert.name}`}
+              className="composer-expert-tag"
+              onClick={onRemoveExpert}
+              title={`取消召唤${selectedExpert.name}`}
+              type="button"
+            >
+              <span className="composer-expert-tag-icons" aria-hidden="true">
+                <Bot className="composer-expert-tag-default-icon" size={18} />
+                <X className="composer-expert-tag-close-icon" size={19} />
+              </span>
+              <span>{selectedExpert.name}</span>
+            </button>
+          ) : null}
           {planMode ? (
             <button
               aria-label="关闭计划模式"

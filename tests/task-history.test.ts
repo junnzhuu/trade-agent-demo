@@ -208,6 +208,19 @@ test("recovers persisted audience metadata and stops interrupted runs", () => {
   assert.equal(recovered.messages[0].derivedFromId, "internal-answer");
 });
 
+test("keeps a task-level explicit expert selection", () => {
+  const task: RecentTask = {
+    ...initialRecentTasks[0],
+    targetAgent: {
+      id: "merchant-operation-agent",
+      name: "商家运营专家",
+    },
+  };
+
+  const recovered = recoverPersistedTasks([task]);
+  assert.deepEqual(recovered[0].targetAgent, task.targetAgent);
+});
+
 test("migrates the legacy merchant-unavailable status", () => {
   const legacyTask = {
     ...initialRecentTasks[0],

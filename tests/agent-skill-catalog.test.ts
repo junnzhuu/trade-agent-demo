@@ -41,3 +41,20 @@ test("keeps repeated skill mounts unique per agent", () => {
   assert.ok(mounts.every((skill) => skill.description.length > 0));
   assert.ok(mounts.every((skill) => skill.standardQuestion.length > 0));
 });
+
+test("provides a direct summon question for every expert", () => {
+  assert.equal(merchantOperationAgents.length, 12);
+  assert.ok(
+    merchantOperationAgents.every(
+      (agent) =>
+        agent.standardQuestion.replace(/^请召唤\s*/u, "").startsWith(agent.name) &&
+        agent.standardQuestion.length > agent.name.length + 4,
+    ),
+  );
+  assert.deepEqual(
+    merchantOperationAgents
+      .filter((agent) => agent.skills.length === 0)
+      .map((agent) => agent.name),
+    ["商家运营专家", "安全服务专家", "权限服务专家"],
+  );
+});

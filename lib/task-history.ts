@@ -49,6 +49,12 @@ export type RecentTask = {
   startedAt?: number;
   unreadCompletion?: boolean;
   favorited?: boolean;
+  targetAgent?: TaskTargetAgent;
+};
+
+export type TaskTargetAgent = {
+  id: string;
+  name: string;
 };
 
 export type FavoriteAnswer = {
