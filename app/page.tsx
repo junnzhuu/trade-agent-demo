@@ -50,6 +50,7 @@ import type {
   AgentSkillDefinition,
   SubAgentDefinition,
 } from "@/lib/agent-skill-catalog";
+import { quickComposerExperts } from "@/lib/agent-skill-catalog";
 import {
   createAudienceRunPlan,
   runAudienceIsolationScenario,
@@ -542,6 +543,26 @@ export default function Home() {
     },
     [],
   );
+
+  const selectQuickComposerExpert = useCallback(
+    (agent: SubAgentDefinition) => {
+      const targetAgent = { id: agent.id, name: agent.name };
+      setSelectedComposerSkills([]);
+      setSelectedComposerExpert(targetAgent);
+
+      const taskId = activeTaskIdRef.current;
+      if (taskId) {
+        updateTask(taskId, (task) => ({ ...task, targetAgent }));
+      }
+    },
+    [updateTask],
+  );
+
+  const openExpertWorkspaceFromComposer = useCallback(() => {
+    activeViewRef.current = "experts";
+    setActiveView("experts");
+    setMobileSidebarOpen(false);
+  }, []);
 
   const executeRunJob = useCallback(
     async (job: DemoRunJob) => {
@@ -1886,9 +1907,11 @@ export default function Home() {
                 input={input}
                 onInput={setInput}
                 onKeyDown={handleKeyDown}
+                onMoreExperts={openExpertWorkspaceFromComposer}
                 onRemoveExpert={clearComposerExpert}
                 onRemoveSkill={removeComposerSkill}
                 onAddSkill={addComposerSkill}
+                onSelectExpert={selectQuickComposerExpert}
                 onSubmit={submit}
                 onStop={() => activeTaskId && cancelTask(activeTaskId)}
                 planMode={planMode}
@@ -1977,9 +2000,11 @@ export default function Home() {
                 input={input}
                 onInput={setInput}
                 onKeyDown={handleKeyDown}
+                onMoreExperts={openExpertWorkspaceFromComposer}
                 onRemoveExpert={clearComposerExpert}
                 onRemoveSkill={removeComposerSkill}
                 onAddSkill={addComposerSkill}
+                onSelectExpert={selectQuickComposerExpert}
                 onSubmit={submit}
                 onStop={() => activeTaskId && cancelTask(activeTaskId)}
                 planMode={planMode}
@@ -3191,8 +3216,10 @@ const Composer = forwardRef<ComposerHandle, {
   onInput: (value: string) => void;
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
   onAddSkill: (skill: ComposerSkillOption) => void;
+  onMoreExperts: () => void;
   onRemoveExpert: () => void;
   onRemoveSkill: (skillKey: string) => void;
+  onSelectExpert: (agent: SubAgentDefinition) => void;
   onSubmit: (event: FormEvent) => void;
   onStop: () => void;
   planMode: boolean;
@@ -3208,8 +3235,10 @@ const Composer = forwardRef<ComposerHandle, {
   onInput,
   onKeyDown,
   onAddSkill,
+  onMoreExperts,
   onRemoveExpert,
   onRemoveSkill,
+  onSelectExpert,
   onSubmit,
   onStop,
   planMode,
@@ -3222,6 +3251,10 @@ const Composer = forwardRef<ComposerHandle, {
   tourPanel,
 }, ref) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [expertMenuOpen, setExpertMenuOpen] = useState(false);
+  const [expertMenuSide, setExpertMenuSide] = useState<"left" | "right">(
+    "right",
+  );
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [skillMenuOpen, setSkillMenuOpen] = useState(false);
   const [skillQuery, setSkillQuery] = useState("");
@@ -3229,6 +3262,8 @@ const Composer = forwardRef<ComposerHandle, {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
   const addControlRef = useRef<HTMLDivElement | null>(null);
+  const expertMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const expertMenuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const modelControlRef = useRef<HTMLDivElement | null>(null);
@@ -3384,16 +3419,25 @@ const Composer = forwardRef<ComposerHandle, {
     skillInsertionRangeRef.current = endRange;
   }, []);
 
-  const openSkillMenuFromAdd = useCallback(() => {
-    rememberEditorInsertion();
+  const closeExpertMenu = useCallback((restoreTriggerFocus = false) => {
+    setExpertMenuOpen(false);
+    if (restoreTriggerFocus) {
+      requestAnimationFrame(() => expertMenuTriggerRef.current?.focus());
+    }
+  }, []);
+
+  const openExpertMenu = useCallback(() => {
     closeQuestionSuggestions();
-    setAddMenuOpen(false);
     setModelMenuOpen(false);
-    setSkillQuery("");
-    setActiveSkillIndex(0);
-    setSkillMenuOpen(true);
-    requestAnimationFrame(() => skillSearchRef.current?.focus());
-  }, [closeQuestionSuggestions, rememberEditorInsertion]);
+    setExpertMenuSide(() => {
+      const trigger = expertMenuTriggerRef.current?.getBoundingClientRect();
+      return trigger && window.innerWidth - trigger.right < 250
+        ? "left"
+        : "right";
+    });
+    setExpertMenuOpen(true);
+    requestAnimationFrame(() => expertMenuItemRefs.current[0]?.focus());
+  }, [closeQuestionSuggestions]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -3428,6 +3472,7 @@ const Composer = forwardRef<ComposerHandle, {
       if (event.target instanceof Node) {
         if (visibleAddMenuOpen && !addControlRef.current?.contains(event.target)) {
           setAddMenuOpen(false);
+          setExpertMenuOpen(false);
         }
         if (visibleModelMenuOpen && !modelControlRef.current?.contains(event.target)) {
           setModelMenuOpen(false);
@@ -3445,7 +3490,13 @@ const Composer = forwardRef<ComposerHandle, {
     };
     const closeOnEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (expertMenuOpen) {
+          event.preventDefault();
+          closeExpertMenu(true);
+          return;
+        }
         setAddMenuOpen(false);
+        setExpertMenuOpen(false);
         setModelMenuOpen(false);
         closeSkillMenu(true);
         closeQuestionSuggestions();
@@ -3460,6 +3511,8 @@ const Composer = forwardRef<ComposerHandle, {
     };
   }, [
     closeQuestionSuggestions,
+    closeExpertMenu,
+    expertMenuOpen,
     closeSkillMenu,
     skillMenuOpen,
     suggestionsOpen,
@@ -3538,6 +3591,46 @@ const Composer = forwardRef<ComposerHandle, {
     [closeQuestionSuggestions, closeSkillMenu, onInput],
   );
 
+  const selectQuickExpert = useCallback(
+    (agent: SubAgentDefinition) => {
+      onSelectExpert(agent);
+      setComposerText(input.trim() ? input : agent.standardQuestion);
+      setExpertMenuOpen(false);
+      setAddMenuOpen(false);
+    },
+    [input, onSelectExpert, setComposerText],
+  );
+
+  const openMoreExperts = useCallback(() => {
+    setExpertMenuOpen(false);
+    setAddMenuOpen(false);
+    onMoreExperts();
+  }, [onMoreExperts]);
+
+  const handleExpertMenuKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    const itemCount = quickComposerExperts.length + 1;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      expertMenuItemRefs.current[(index + 1) % itemCount]?.focus();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      expertMenuItemRefs.current[(index - 1 + itemCount) % itemCount]?.focus();
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      expertMenuItemRefs.current[0]?.focus();
+    } else if (event.key === "End") {
+      event.preventDefault();
+      expertMenuItemRefs.current[itemCount - 1]?.focus();
+    } else if (event.key === "ArrowLeft" || event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeExpertMenu(true);
+    }
+  };
+
   useImperativeHandle(
     ref,
     () => ({ insertSkill: insertSkillToken, setText: setComposerText }),
@@ -3578,6 +3671,7 @@ const Composer = forwardRef<ComposerHandle, {
     setActiveSkillIndex(0);
     setSkillMenuOpen(true);
     setAddMenuOpen(false);
+    setExpertMenuOpen(false);
     setModelMenuOpen(false);
     requestAnimationFrame(() => skillSearchRef.current?.focus());
     return true;
@@ -3901,6 +3995,7 @@ const Composer = forwardRef<ComposerHandle, {
               multiple
               onChange={() => {
                 setAddMenuOpen(false);
+                setExpertMenuOpen(false);
               }}
               ref={fileInputRef}
               type="file"
@@ -3913,7 +4008,10 @@ const Composer = forwardRef<ComposerHandle, {
               onClick={() => {
                 closeQuestionSuggestions();
                 setModelMenuOpen(false);
-                setAddMenuOpen((current) => !current);
+                setAddMenuOpen((current) => {
+                  if (current) setExpertMenuOpen(false);
+                  return !current;
+                });
               }}
               onPointerDown={rememberEditorInsertion}
               type="button"
@@ -3937,13 +4035,77 @@ const Composer = forwardRef<ComposerHandle, {
                   <span>添加文件</span>
                 </button>
                 <button
-                  onClick={openSkillMenuFromAdd}
+                  aria-controls="composer-quick-expert-menu"
+                  aria-expanded={expertMenuOpen}
+                  aria-haspopup="menu"
+                  className={expertMenuOpen ? "expert-menu-trigger active" : "expert-menu-trigger"}
+                  onClick={() =>
+                    expertMenuOpen ? closeExpertMenu(true) : openExpertMenu()
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "ArrowRight") {
+                      event.preventDefault();
+                      openExpertMenu();
+                    }
+                  }}
+                  ref={expertMenuTriggerRef}
                   role="menuitem"
                   type="button"
                 >
-                  <WandSparkles size={18} strokeWidth={1.7} />
-                  <span>技能</span>
+                  <Users aria-hidden="true" size={18} strokeWidth={1.7} />
+                  <span>专家</span>
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="add-menu-chevron"
+                    size={17}
+                    strokeWidth={1.8}
+                  />
                 </button>
+                {expertMenuOpen ? (
+                  <div
+                    aria-label="快捷召唤专家"
+                    className={`quick-expert-menu ${expertMenuSide}`}
+                    id="composer-quick-expert-menu"
+                    role="menu"
+                  >
+                    {quickComposerExperts.map((agent, index) => (
+                      <button
+                        aria-checked={selectedExpert?.id === agent.id}
+                        key={agent.id}
+                        onClick={() => selectQuickExpert(agent)}
+                        onKeyDown={(event) =>
+                          handleExpertMenuKeyDown(event, index)
+                        }
+                        ref={(node) => {
+                          expertMenuItemRefs.current[index] = node;
+                        }}
+                        role="menuitemradio"
+                        type="button"
+                      >
+                        <span>{agent.name}</span>
+                      </button>
+                    ))}
+                    <div className="quick-expert-menu-separator" role="separator" />
+                    <button
+                      className="quick-expert-more"
+                      onClick={openMoreExperts}
+                      onKeyDown={(event) =>
+                        handleExpertMenuKeyDown(
+                          event,
+                          quickComposerExperts.length,
+                        )
+                      }
+                      ref={(node) => {
+                        expertMenuItemRefs.current[quickComposerExperts.length] =
+                          node;
+                      }}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <span>召唤更多专家</span>
+                    </button>
+                  </div>
+                ) : null}
                 <button
                   aria-checked={planMode}
                   className="mode-switch-row"
@@ -4008,6 +4170,7 @@ const Composer = forwardRef<ComposerHandle, {
               onClick={() => {
                 closeQuestionSuggestions();
                 setAddMenuOpen(false);
+                setExpertMenuOpen(false);
                 setModelMenuOpen((current) => !current);
               }}
               type="button"

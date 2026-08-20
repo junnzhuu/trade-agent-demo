@@ -142,6 +142,14 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /\n  ArrowUp,/);
   assert.doesNotMatch(page, /\n  Square,/);
   assert.match(page, /添加文件/);
+  assert.match(page, /快捷召唤专家/);
+  assert.match(page, /召唤更多专家/);
+  assert.match(page, /quickComposerExperts\.map/);
+  assert.match(
+    page,
+    /setComposerText\(input\.trim\(\) \? input : agent\.standardQuestion\)/,
+  );
+  assert.match(page, /updateTask\(taskId, \(task\) => \(\{ \.\.\.task, targetAgent \}\)\)/);
   assert.match(page, /计划模式/);
   assert.match(page, /className="plan-mode-tag"/);
   assert.match(page, /aria-label="关闭计划模式"/);
@@ -149,8 +157,15 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /role="switch"/);
   assert.match(
     page,
-    /<span>添加文件<\/span>[\s\S]*<span>技能<\/span>[\s\S]*<strong>计划模式<\/strong>/,
+    /<span>添加文件<\/span>[\s\S]*<span>专家<\/span>[\s\S]*<strong>计划模式<\/strong>/,
   );
+  assert.doesNotMatch(
+    page,
+    /className="add-menu"[\s\S]*?<span>技能<\/span>[\s\S]*?<strong>计划模式<\/strong>/,
+  );
+  assert.match(css, /\.quick-expert-menu/);
+  assert.match(css, /\.quick-expert-menu\.right/);
+  assert.match(css, /\.quick-expert-menu\.left/);
   assert.doesNotMatch(page, /addMenuView|mode-menu|openExperts|openSkills/);
   assert.doesNotMatch(page, /aria-label="添加附件"/);
   assert.doesNotMatch(page, /BrainCircuit/);
@@ -340,6 +355,10 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /Supervisor 已路由至/);
   assert.match(css, /\.summon-agent-button/);
   assert.doesNotMatch(css, /\.summon-agent-button\s*{[^}]*opacity:\s*0/s);
+  assert.match(
+    css,
+    /\.summon-agent-button\s*{[^}]*background:\s*#171717;[^}]*color:\s*#ffffff;/s,
+  );
   assert.match(css, /\.composer-expert-tag/);
   assert.match(
     css,

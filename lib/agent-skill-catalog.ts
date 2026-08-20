@@ -387,6 +387,37 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
   }),
 ];
 
+export const quickComposerExperts: SubAgentDefinition[] = [
+  merchantOperationAgents[0],
+  defineAgent({
+    id: "marketing-acquisition-campaign-agent",
+    originalName: "营销招商活动专家",
+    name: "营销招商活动专家",
+    description: "处理营销活动、招商推进、商家沟通和执行方案制定。",
+    standardQuestion:
+      "请召唤营销招商活动专家，围绕【活动/招商需求】制定执行方案和商家沟通建议。",
+    skills: [],
+  }),
+  defineAgent({
+    id: "mrd-writing-agent",
+    originalName: "MRD撰写专家",
+    name: "MRD撰写专家",
+    description: "根据业务背景、用户问题和目标输出结构化 MRD。",
+    standardQuestion:
+      "请召唤 MRD 撰写专家，根据【需求背景】撰写一份完整的 MRD。",
+    skills: [],
+  }),
+  defineAgent({
+    id: "product-operation-agent",
+    originalName: "商品运营专家",
+    name: "商品运营专家",
+    description: "分析商品经营表现、问题原因并提供运营建议。",
+    standardQuestion:
+      "请召唤商品运营专家，分析商品【商品ID】在【时间范围】内的经营表现并给出运营建议。",
+    skills: [],
+  }),
+];
+
 export const sceneCatalog: SceneDefinition[] = [
   {
     id: "merchant",

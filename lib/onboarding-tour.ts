@@ -92,7 +92,7 @@ export const onboardingSteps: OnboardingStep[] = [
     targetId: "add-menu",
     title: "添加内容与能力",
     description:
-      "加号菜单包含添加文件、技能搜索和计划模式。点击技能会打开完整技能面板，文件功能当前不会上传到真实业务系统。",
+      "加号菜单包含添加文件、快捷专家和计划模式。选择专家后会在当前任务中持续路由，输入 / 仍可调用技能。",
     placement: "right",
   },
   {

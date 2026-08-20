@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   getSceneStats,
   merchantOperationAgents,
+  quickComposerExperts,
   sceneCatalog,
 } from "../lib/agent-skill-catalog";
 
@@ -56,5 +57,22 @@ test("provides a direct summon question for every expert", () => {
       .filter((agent) => agent.skills.length === 0)
       .map((agent) => agent.name),
     ["商家运营专家", "安全服务专家", "权限服务专家"],
+  );
+});
+
+test("provides the four plain-text quick composer experts", () => {
+  assert.deepEqual(
+    quickComposerExperts.map((agent) => agent.name),
+    [
+      "商家运营专家",
+      "营销招商活动专家",
+      "MRD撰写专家",
+      "商品运营专家",
+    ],
+  );
+  assert.ok(
+    quickComposerExperts.every(
+      (agent) => agent.standardQuestion.length > agent.name.length,
+    ),
   );
 });
