@@ -173,6 +173,12 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /aria-label="添加附件"/);
   assert.doesNotMatch(page, /BrainCircuit/);
   assert.match(page, /已处理/);
+  assert.match(page, /answeringAgent: targetAgent/);
+  assert.match(page, /className="answer-expert-identity"/);
+  assert.match(page, /由\$\{message\.answeringAgent\.name\}回答/);
+  assert.match(page, /message\.pending[\s\S]*?"处理中"[\s\S]*?"已完成"/);
+  assert.match(css, /\.answer-expert-identity/);
+  assert.match(css, /\.answer-expert-avatar/);
   assert.match(page, /思考与 Skill 调用步骤/);
   assert.match(page, /execution-details/);
   assert.match(page, /open=\{message\.pending \|\| forceOpen \|\| undefined\}/);

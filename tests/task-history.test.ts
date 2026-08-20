@@ -221,6 +221,28 @@ test("keeps a task-level explicit expert selection", () => {
   assert.deepEqual(recovered[0].targetAgent, task.targetAgent);
 });
 
+test("keeps the answering expert snapshot on assistant messages", () => {
+  const answeringAgent = {
+    id: "merchant-operation-agent",
+    name: "商家运营专家",
+  };
+  const task: RecentTask = {
+    ...initialRecentTasks[0],
+    messages: [
+      {
+        id: "expert-answer",
+        role: "assistant",
+        content: "专家回答",
+        answeringAgent,
+        elapsedMs: 10_000,
+      },
+    ],
+  };
+
+  const recovered = recoverPersistedTasks([task]);
+  assert.deepEqual(recovered[0].messages[0].answeringAgent, answeringAgent);
+});
+
 test("migrates the legacy merchant-unavailable status", () => {
   const legacyTask = {
     ...initialRecentTasks[0],

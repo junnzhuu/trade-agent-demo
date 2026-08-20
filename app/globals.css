@@ -2053,6 +2053,35 @@ button:disabled {
   width: 100%;
 }
 
+.answer-expert-identity {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 11px;
+}
+
+.answer-expert-identity strong {
+  color: #202426;
+  font-size: 15px;
+  font-weight: 680;
+  line-height: 1.2;
+}
+
+.answer-expert-avatar {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid rgba(1, 193, 194, 0.26);
+  border-radius: 999px;
+  background: #17282b;
+  color: #01c1c2;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 5px 14px rgba(29, 49, 52, 0.12);
+}
+
 .execution-duration {
   position: relative;
   display: flex;

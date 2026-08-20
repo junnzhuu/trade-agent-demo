@@ -656,6 +656,7 @@ export default function Home() {
                   id: messageId,
                   role: "assistant",
                   content: "",
+                  answeringAgent: job.targetAgent,
                   pending: true,
                   trace: firstAnswer ? assistantTrace : [],
                   audience:
@@ -840,10 +841,12 @@ export default function Home() {
         role: "user",
         content: prompt,
       };
+      const targetAgent = selectedComposerExpert ?? currentTask?.targetAgent;
       const pendingAssistantMessage: TaskMessage = {
         id: assistantId,
         role: "assistant",
         content: "",
+        answeringAgent: targetAgent,
         pending: true,
         trace: [],
       };
@@ -871,7 +874,7 @@ export default function Home() {
           updatedAt: submittedAt,
           pinned: currentTask?.pinned,
           favorited: currentTask?.favorited,
-          targetAgent: selectedComposerExpert ?? currentTask?.targetAgent,
+          targetAgent,
           archived: false,
           status: "running",
           startedAt: submittedAt,
@@ -886,7 +889,7 @@ export default function Home() {
         assistantId,
         answerGroupId,
         plan,
-        targetAgent: selectedComposerExpert ?? currentTask?.targetAgent,
+        targetAgent,
         startedAt: submittedAt,
         controller,
       };
@@ -954,6 +957,7 @@ export default function Home() {
         id: answerId,
         role: "assistant",
         content: "",
+        answeringAgent: source.answeringAgent ?? activeTask.targetAgent,
         pending: true,
         audience: "merchant",
         audienceIntent: "merchant",
@@ -1036,6 +1040,7 @@ export default function Home() {
             id: answerId,
             role: "assistant",
             content: "",
+            answeringAgent: source.answeringAgent ?? activeTask.targetAgent,
             pending: true,
             audience: "internal",
             audienceIntent: "explicit_internal",
@@ -2930,7 +2935,7 @@ function SidebarTaskSection({
 function formatElapsedTime(elapsedMs: number) {
   const minutes = Math.floor(elapsedMs / 60_000);
   const seconds = Math.floor((elapsedMs % 60_000) / 1_000);
-  return `${minutes}m ${seconds}s`;
+  return minutes ? `${minutes}m ${seconds}s` : `${seconds}s`;
 }
 
 function AssistantExecution({
@@ -2948,7 +2953,12 @@ function AssistantExecution({
 }) {
   const hasExecutionTrace = Boolean(message.trace?.length || message.pending);
 
-  if (!hasExecutionTrace && !message.audience && !message.fallback) {
+  if (
+    !hasExecutionTrace &&
+    !message.answeringAgent &&
+    !message.audience &&
+    !message.fallback
+  ) {
     return <p>{message.content}</p>;
   }
 
@@ -2958,6 +2968,18 @@ function AssistantExecution({
       className={`assistant-execution ${message.pending ? "running" : "completed"}`}
       data-tour-id="agent-execution"
     >
+      {message.answeringAgent ? (
+        <header
+          aria-label={`由${message.answeringAgent.name}回答`}
+          className="answer-expert-identity"
+        >
+          <span aria-hidden="true" className="answer-expert-avatar">
+            <Bot size={18} strokeWidth={1.8} />
+          </span>
+          <strong>{message.answeringAgent.name}</strong>
+        </header>
+      ) : null}
+
       {hasExecutionTrace ? (
         <details
           className="execution-details"
@@ -2965,7 +2987,13 @@ function AssistantExecution({
         >
           <summary aria-label="展开或折叠思考过程" className="execution-duration">
             <span aria-hidden="true" className="execution-duration-mark" />
-            <span>已处理</span>
+            <span>
+              {message.answeringAgent
+                ? message.pending
+                  ? "处理中"
+                  : "已完成"
+                : "已处理"}
+            </span>
             <time>{formatElapsedTime(elapsedMs)}</time>
             <ChevronRight
               aria-hidden="true"

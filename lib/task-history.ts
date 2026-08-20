@@ -16,6 +16,7 @@ export type TaskMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  answeringAgent?: TaskTargetAgent;
   pending?: boolean;
   elapsedMs?: number;
   trace?: TaskTraceStep[];
