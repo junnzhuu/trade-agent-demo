@@ -145,6 +145,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /快捷召唤专家/);
   assert.match(page, /召唤更多专家/);
   assert.match(page, /quickComposerExperts\.map/);
+  assert.match(page, /onMouseEnter=\{\(\) => openExpertMenu\(\)\}/);
+  assert.match(page, /className="quick-expert-menu-check"/);
   assert.match(
     page,
     /setComposerText\(input\.trim\(\) \? input : agent\.standardQuestion\)/,
@@ -166,6 +168,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.quick-expert-menu/);
   assert.match(css, /\.quick-expert-menu\.right/);
   assert.match(css, /\.quick-expert-menu\.left/);
+  assert.match(css, /\.quick-expert-menu-check\s*{[^}]*color:\s*#01c1c2/s);
   assert.doesNotMatch(page, /addMenuView|mode-menu|openExperts|openSkills/);
   assert.doesNotMatch(page, /aria-label="添加附件"/);
   assert.doesNotMatch(page, /BrainCircuit/);

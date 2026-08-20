@@ -1807,6 +1807,7 @@ button:disabled {
 .quick-expert-menu > button:focus-visible,
 .quick-expert-menu > button[aria-checked="true"] {
   background: #f1f1f1;
+  font-weight: 650;
 }
 
 .quick-expert-menu > button:focus-visible {
@@ -1816,6 +1817,10 @@ button:disabled {
 
 .quick-expert-menu > button svg {
   flex: 0 0 auto;
+}
+
+.quick-expert-menu-check {
+  color: #01c1c2;
 }
 
 .quick-expert-menu-separator {

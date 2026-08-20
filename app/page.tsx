@@ -3264,6 +3264,7 @@ const Composer = forwardRef<ComposerHandle, {
   const addControlRef = useRef<HTMLDivElement | null>(null);
   const expertMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const expertMenuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const expertMenuCloseTimerRef = useRef<number | null>(null);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const modelControlRef = useRef<HTMLDivElement | null>(null);
@@ -3420,13 +3421,21 @@ const Composer = forwardRef<ComposerHandle, {
   }, []);
 
   const closeExpertMenu = useCallback((restoreTriggerFocus = false) => {
+    if (expertMenuCloseTimerRef.current) {
+      window.clearTimeout(expertMenuCloseTimerRef.current);
+      expertMenuCloseTimerRef.current = null;
+    }
     setExpertMenuOpen(false);
     if (restoreTriggerFocus) {
       requestAnimationFrame(() => expertMenuTriggerRef.current?.focus());
     }
   }, []);
 
-  const openExpertMenu = useCallback(() => {
+  const openExpertMenu = useCallback((focusFirstItem = false) => {
+    if (expertMenuCloseTimerRef.current) {
+      window.clearTimeout(expertMenuCloseTimerRef.current);
+      expertMenuCloseTimerRef.current = null;
+    }
     closeQuestionSuggestions();
     setModelMenuOpen(false);
     setExpertMenuSide(() => {
@@ -3436,8 +3445,29 @@ const Composer = forwardRef<ComposerHandle, {
         : "right";
     });
     setExpertMenuOpen(true);
-    requestAnimationFrame(() => expertMenuItemRefs.current[0]?.focus());
+    if (focusFirstItem) {
+      requestAnimationFrame(() => expertMenuItemRefs.current[0]?.focus());
+    }
   }, [closeQuestionSuggestions]);
+
+  const scheduleExpertMenuClose = useCallback(() => {
+    if (expertMenuCloseTimerRef.current) {
+      window.clearTimeout(expertMenuCloseTimerRef.current);
+    }
+    expertMenuCloseTimerRef.current = window.setTimeout(() => {
+      setExpertMenuOpen(false);
+      expertMenuCloseTimerRef.current = null;
+    }, 120);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (expertMenuCloseTimerRef.current) {
+        window.clearTimeout(expertMenuCloseTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -4024,9 +4054,11 @@ const Composer = forwardRef<ComposerHandle, {
                 aria-label="添加内容"
                 className="add-menu"
                 data-tour-id="add-menu"
+                onMouseLeave={scheduleExpertMenuClose}
                 role="menu"
               >
                 <button
+                  onMouseEnter={() => closeExpertMenu()}
                   onClick={() => fileInputRef.current?.click()}
                   role="menuitem"
                   type="button"
@@ -4040,12 +4072,13 @@ const Composer = forwardRef<ComposerHandle, {
                   aria-haspopup="menu"
                   className={expertMenuOpen ? "expert-menu-trigger active" : "expert-menu-trigger"}
                   onClick={() =>
-                    expertMenuOpen ? closeExpertMenu(true) : openExpertMenu()
+                    expertMenuOpen ? closeExpertMenu(true) : openExpertMenu(true)
                   }
+                  onMouseEnter={() => openExpertMenu()}
                   onKeyDown={(event) => {
                     if (event.key === "ArrowRight") {
                       event.preventDefault();
-                      openExpertMenu();
+                      openExpertMenu(true);
                     }
                   }}
                   ref={expertMenuTriggerRef}
@@ -4066,6 +4099,8 @@ const Composer = forwardRef<ComposerHandle, {
                     aria-label="快捷召唤专家"
                     className={`quick-expert-menu ${expertMenuSide}`}
                     id="composer-quick-expert-menu"
+                    onMouseEnter={() => openExpertMenu()}
+                    onMouseLeave={scheduleExpertMenuClose}
                     role="menu"
                   >
                     {quickComposerExperts.map((agent, index) => (
@@ -4083,6 +4118,14 @@ const Composer = forwardRef<ComposerHandle, {
                         type="button"
                       >
                         <span>{agent.name}</span>
+                        {selectedExpert?.id === agent.id ? (
+                          <Check
+                            aria-hidden="true"
+                            className="quick-expert-menu-check"
+                            size={17}
+                            strokeWidth={2.4}
+                          />
+                        ) : null}
                       </button>
                     ))}
                     <div className="quick-expert-menu-separator" role="separator" />
@@ -4110,6 +4153,7 @@ const Composer = forwardRef<ComposerHandle, {
                   aria-checked={planMode}
                   className="mode-switch-row"
                   data-tour-id="run-modes"
+                  onMouseEnter={() => closeExpertMenu()}
                   onClick={togglePlanMode}
                   role="switch"
                   type="button"
