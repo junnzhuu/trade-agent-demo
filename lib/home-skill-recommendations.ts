@@ -1,4 +1,9 @@
 import { expertCatalog, type ExpertSkill } from "./expert-catalog";
+import {
+  merchantOperationAgents,
+  quickComposerExperts,
+  type SubAgentDefinition,
+} from "./agent-skill-catalog";
 
 export type HomeSkillCategoryId =
   | "recommended"
@@ -61,4 +66,41 @@ export function getHomeSkills(categoryId: HomeSkillCategoryId): ExpertSkill[] {
   }
 
   return expert.skills.slice(0, 7);
+}
+
+const recommendedExperts = merchantOperationAgents
+  .filter((agent) => agent.skills.length > 0)
+  .slice(0, 7);
+
+const allHomeExperts = Array.from(
+  new Map(
+    [
+      ...recommendedExperts,
+      ...merchantOperationAgents,
+      ...quickComposerExperts,
+    ].map((agent) => [
+      agent.id,
+      agent,
+    ]),
+  ).values(),
+);
+
+export function getHomeExperts(
+  categoryId: HomeSkillCategoryId,
+): SubAgentDefinition[] {
+  if (categoryId === "recommended") return recommendedExperts;
+  if (categoryId === "merchant") return merchantOperationAgents.slice(0, 7);
+  if (categoryId === "product") return quickComposerExperts.slice(3, 4);
+  if (categoryId === "project") return quickComposerExperts.slice(2, 3);
+  if (categoryId === "acquisition" || categoryId === "campaign") {
+    return quickComposerExperts.slice(1, 2);
+  }
+  return [];
+}
+
+export function getHomeExpertById(
+  expertId: string | undefined,
+): SubAgentDefinition | undefined {
+  if (!expertId) return undefined;
+  return allHomeExperts.find((agent) => agent.id === expertId);
 }

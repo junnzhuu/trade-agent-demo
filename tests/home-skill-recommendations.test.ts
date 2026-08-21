@@ -3,9 +3,24 @@ import test from "node:test";
 import { expertCatalog } from "../lib/expert-catalog";
 import {
   getHomeBannerSkills,
+  getHomeExpertById,
+  getHomeExperts,
   getHomeSkills,
   homeSkillCategories,
 } from "../lib/home-skill-recommendations";
+
+test("recommends experts first and exposes their mounted skills", () => {
+  const recommendedExperts = getHomeExperts("recommended");
+  assert.equal(recommendedExperts.length, 7);
+  assert.equal(recommendedExperts[0]?.name, "商品经营分析专家");
+  assert.ok(recommendedExperts.every((expert) => expert.skills.length > 0));
+
+  const merchantExperts = getHomeExperts("merchant");
+  assert.equal(merchantExperts.length, 7);
+  const analysisExpert = getHomeExpertById("data-analysis-agent");
+  assert.equal(analysisExpert?.name, "商品经营分析专家");
+  assert.equal(analysisExpert?.skills.length, 2);
+});
 
 test("uses the requested merchant skills for the default recommendations", () => {
   const recommendations = getHomeSkills("recommended");

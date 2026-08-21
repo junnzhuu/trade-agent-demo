@@ -107,7 +107,10 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /}, 5000\)/);
   assert.match(page, /立即体验/);
   assert.match(page, /onSelect\(activeSkill\.standardQuestion\)/);
-  assert.match(page, /快捷技能推荐/);
+  assert.match(page, /专家推荐/);
+  assert.match(page, /专家技能推荐/);
+  assert.match(page, /composerHandleRef\.current\?\.setText\(agent\.standardQuestion\)/);
+  assert.match(page, /composerHandleRef\.current\?\.setText\(skill\.standardQuestion\)/);
   assert.match(page, /AutomationWorkspace/);
   assert.match(page, /今天帮你做些什么？\/ 调用技能/);
   assert.match(page, /composerSkillOptions/);
@@ -333,7 +336,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /home-skill-category-icon/);
   assert.match(css, /\.home-skill-cards\s*{[^}]*display: flex/s);
   assert.match(css, /\.home-skill-more/);
-  assert.match(page, /aria-label="查看更多技能"/);
+  assert.match(page, /showingExpertSkills \? "查看更多技能" : "查看更多专家"/);
   assert.match(css, /\.home-skill-tooltip/);
   assert.match(css, /\.home-skill-card:hover \.home-skill-tooltip/);
   assert.match(page, /role="tooltip"/);

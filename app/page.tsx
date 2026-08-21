@@ -78,6 +78,8 @@ import {
 import { ConcurrentTaskScheduler } from "@/lib/task-scheduler";
 import {
   getHomeBannerSkills,
+  getHomeExpertById,
+  getHomeExperts,
   getHomeSkills,
   homeSkillCategories,
   type HomeSkillCategoryId,
@@ -313,9 +315,27 @@ export default function Home() {
     () => recentTasks.filter((task) => task.archived),
     [recentTasks],
   );
-  const homeSkills = useMemo(
-    () => getHomeSkills(selectedHomeSkillCategory),
+  const homeExperts = useMemo(
+    () => getHomeExperts(selectedHomeSkillCategory),
     [selectedHomeSkillCategory],
+  );
+  const selectedHomeExpert = useMemo(
+    () => getHomeExpertById(selectedComposerExpert?.id),
+    [selectedComposerExpert?.id],
+  );
+  const selectedHomeExpertSkills = useMemo<ComposerSkillOption[]>(
+    () =>
+      selectedHomeExpert?.skills.map((skill) => ({
+        id: skill.id,
+        key: skill.mountKey,
+        name: skill.name,
+        description: skill.description,
+        standardQuestion: skill.standardQuestion,
+        expertId: selectedHomeExpert.id,
+        expertName: selectedHomeExpert.name,
+        expertLabel: selectedHomeExpert.name,
+      })) ?? [],
+    [selectedHomeExpert],
   );
   const bannerSkills = useMemo(() => getHomeBannerSkills(), []);
   const feishuIntegrationSnapshot = useSyncExternalStore(
@@ -1502,7 +1522,6 @@ export default function Home() {
   };
 
   const addComposerSkill = (skill: ComposerSkillOption) => {
-    clearComposerExpert();
     setSelectedComposerSkills((current) =>
       current.some((item) => item.key === skill.key)
         ? current
@@ -1891,22 +1910,28 @@ export default function Home() {
             <div className="empty-state-content">
               <h1>Hi 哈基咪(Manbo)，有什么可以帮你的？</h1>
               <HomeSkillDiscovery
+                experts={homeExperts}
                 onMore={() => {
                   activeViewRef.current = "experts";
                   setActiveView("experts");
                   setMobileSidebarOpen(false);
                 }}
-                onSelectCategory={setSelectedHomeSkillCategory}
+                onSelectCategory={(category) => {
+                  setSelectedHomeSkillCategory(category);
+                  setSelectedComposerSkills([]);
+                  clearComposerExpert();
+                }}
+                onSelectExpert={(agent) => {
+                  selectQuickComposerExpert(agent);
+                  composerHandleRef.current?.setText(agent.standardQuestion);
+                }}
                 onSelectSkill={(skill) => {
-                  const composerSkill = composerSkillOptions.find(
-                    (option) => option.id === skill.id,
-                  );
-                  if (composerSkill) {
-                    composerHandleRef.current?.insertSkill(composerSkill);
-                  }
+                  setSelectedComposerSkills([skill]);
+                  composerHandleRef.current?.setText(skill.standardQuestion);
                 }}
                 selectedCategory={selectedHomeSkillCategory}
-                skills={homeSkills}
+                selectedExpert={selectedHomeExpert}
+                skills={selectedHomeExpertSkills}
               />
               <Composer
                 input={input}
@@ -2587,27 +2612,34 @@ function AutomationWorkspace() {
 
 function HomeSkillDiscovery({
   selectedCategory,
+  selectedExpert,
+  experts,
   skills,
   onSelectCategory,
+  onSelectExpert,
   onSelectSkill,
   onMore,
 }: {
   selectedCategory: HomeSkillCategoryId;
-  skills: ReturnType<typeof getHomeSkills>;
+  selectedExpert?: SubAgentDefinition;
+  experts: SubAgentDefinition[];
+  skills: ComposerSkillOption[];
   onSelectCategory: (category: HomeSkillCategoryId) => void;
-  onSelectSkill: (skill: ReturnType<typeof getHomeSkills>[number]) => void;
+  onSelectExpert: (agent: SubAgentDefinition) => void;
+  onSelectSkill: (skill: ComposerSkillOption) => void;
   onMore: () => void;
 }) {
+  const showingExpertSkills = Boolean(selectedExpert);
   return (
     <section
-      aria-label="快捷技能推荐"
+      aria-label={showingExpertSkills ? "专家技能推荐" : "专家推荐"}
       className="home-skill-discovery"
       data-tour-id="quick-skills"
     >
-      <div aria-label="技能分类" className="home-skill-tabs" role="tablist">
+      <div aria-label="业务场景" className="home-skill-tabs" role="tablist">
         {homeSkillCategories.map((category) => (
           <button
-            aria-controls="home-skill-cards"
+            aria-controls="home-expert-skill-cards"
             aria-selected={selectedCategory === category.id}
             className={selectedCategory === category.id ? "selected" : ""}
             id={`home-skill-tab-${category.id}`}
@@ -2625,29 +2657,50 @@ function HomeSkillDiscovery({
         <div
           aria-labelledby={`home-skill-tab-${selectedCategory}`}
           className="home-skill-cards"
-          id="home-skill-cards"
+          id="home-expert-skill-cards"
           role="tabpanel"
         >
-          {skills.map((skill) => (
-            <button
-              className="home-skill-card"
-              key={skill.id}
-              onClick={() => onSelectSkill(skill)}
-              title={skill.description}
-              type="button"
-            >
-              <strong>{skill.name}</strong>
-              <span className="home-skill-tooltip" role="tooltip">
-                {skill.description}
-              </span>
-            </button>
-          ))}
+          {showingExpertSkills ? (
+            skills.length ? (
+              skills.map((skill) => (
+                <button
+                  className="home-skill-card"
+                  key={skill.key}
+                  onClick={() => onSelectSkill(skill)}
+                  title={skill.description}
+                  type="button"
+                >
+                  <strong>{skill.name}</strong>
+                  <span className="home-skill-tooltip" role="tooltip">
+                    {skill.description}
+                  </span>
+                </button>
+              ))
+            ) : (
+              <span className="home-skill-empty">该专家暂无推荐技能，可直接输入问题继续咨询</span>
+            )
+          ) : (
+            experts.map((agent) => (
+              <button
+                className="home-skill-card home-expert-card"
+                key={agent.id}
+                onClick={() => onSelectExpert(agent)}
+                title={agent.description}
+                type="button"
+              >
+                <strong>{agent.name}</strong>
+                <span className="home-skill-tooltip" role="tooltip">
+                  {agent.description}
+                </span>
+              </button>
+            ))
+          )}
         </div>
         <button
-          aria-label="查看更多技能"
+          aria-label={showingExpertSkills ? "查看更多技能" : "查看更多专家"}
           className="home-skill-more"
           onClick={onMore}
-          title="查看更多技能"
+          title={showingExpertSkills ? "查看更多技能" : "查看更多专家"}
           type="button"
         >
           <ChevronRight aria-hidden="true" size={18} />

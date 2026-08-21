@@ -114,9 +114,9 @@ export const onboardingSteps: OnboardingStep[] = [
   {
     id: "quick-skills",
     targetId: "quick-skills",
-    title: "快捷技能推荐",
+    title: "快捷专家与技能",
     description:
-      "按商家运营、商品运营、招商、营销活动和项目管理切换推荐。点击技能卡会自动带入输入框，“更多”进入完整能力目录。",
+      "按业务场景选择专家后，输入框会带入专家标准问，并展示该专家的推荐技能；选择技能会保留专家路由并用技能标准问替换正文。",
     placement: "top",
   },
   {

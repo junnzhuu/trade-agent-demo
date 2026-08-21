@@ -1064,6 +1064,14 @@ button:disabled {
   white-space: nowrap;
 }
 
+.home-skill-empty {
+  padding: 0 8px;
+  color: #777b7f;
+  font-size: 13px;
+  line-height: 38px;
+  white-space: nowrap;
+}
+
 .home-skill-more {
   display: grid;
   width: 42px;
