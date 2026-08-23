@@ -3577,34 +3577,84 @@ button:disabled {
   color: #202527;
 }
 
-.feishu-connection-visual {
+.feishu-authorization-pending {
   display: grid;
-  width: min(520px, 92%);
-  min-height: 124px;
-  grid-template-columns: 76px 34px 76px;
-  place-content: center;
-  place-items: center;
+  width: 100%;
   gap: 14px;
-  border: 1px dashed #dfe3e6;
-  border-radius: 18px;
-  background: rgba(249, 250, 251, 0.6);
-  color: #747b83;
+  justify-items: start;
 }
 
-.feishu-connection-visual > span {
-  display: grid;
-  width: 60px;
-  height: 60px;
-  place-items: center;
-  border: 1px solid #e0e4e6;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #202527;
-  box-shadow: 0 8px 20px rgba(37, 45, 50, 0.06);
+.feishu-authorization-card {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #dfe3e5;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
-.feishu-connection-visual > span:last-child {
-  color: #01aeb0;
+.feishu-authorization-card > header,
+.feishu-authorization-card > div,
+.feishu-authorization-card > footer {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 18px;
+}
+
+.feishu-authorization-card > header strong {
+  color: #222629;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.feishu-authorization-card > header > span {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f0f1f2;
+  color: #656b70;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.feishu-authorization-card > div {
+  color: #767c80;
+  font-size: 13px;
+}
+
+.feishu-authorization-card code {
+  overflow: hidden;
+  color: #292e31;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feishu-authorization-card > footer {
+  min-height: 68px;
+  border-top: 1px solid #e5e8e9;
+  color: #737a7f;
+  font-size: 13px;
+}
+
+.feishu-unlink-button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(216, 69, 69, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 237, 235, 0.9);
+  color: #d53c3c;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.feishu-unlink-button:hover,
+.feishu-unlink-button:focus-visible {
+  border-color: rgba(216, 69, 69, 0.24);
+  background: #ffe5e2;
 }
 
 .feishu-detection-state {

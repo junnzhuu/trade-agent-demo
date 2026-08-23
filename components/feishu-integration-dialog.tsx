@@ -1,14 +1,11 @@
 "use client";
 
 import {
-  Bot,
   Check,
   Info,
   LoaderCircle,
-  MoreHorizontal,
   X,
 } from "lucide-react";
-import Image from "next/image";
 import {
   type KeyboardEvent,
   useCallback,
@@ -241,7 +238,7 @@ export function FeishuIntegrationDialog({
             className={`feishu-integration-step ${integration.step === 2 ? "active" : ""} ${integration.authorized ? "completed" : ""}`}
           >
             <span>{integration.authorized ? <Check size={15} /> : "2"}</span>
-            <strong>开通飞书权限</strong>
+            <strong>完成应用授权</strong>
           </div>
         </div>
 
@@ -278,7 +275,7 @@ export function FeishuIntegrationDialog({
               <>
                 <dl className="feishu-authorization-summary">
                   <div>
-                    <dt>App ID</dt>
+                    <dt>应用 ID</dt>
                     <dd>{integration.appId}</dd>
                   </div>
                   <div>
@@ -305,27 +302,37 @@ export function FeishuIntegrationDialog({
                 </footer>
               </>
             ) : (
-              <>
-                <FeishuConnectionVisual />
-                <footer className="feishu-integration-actions centered">
-                  <button
-                    className="feishu-integration-secondary"
-                    onClick={requestUnlink}
-                    type="button"
-                  >
-                    解绑
-                  </button>
-                  <a
-                    className="feishu-integration-primary"
-                    href={FEISHU_OPEN_PLATFORM_URL}
-                    onClick={() => beginExternalAction("authorize")}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    已创建应用，开通飞书权限
-                  </a>
-                </footer>
-              </>
+              <div className="feishu-authorization-pending">
+                <section className="feishu-authorization-card">
+                  <header>
+                    <strong>应用信息</strong>
+                    <span>待授权</span>
+                  </header>
+                  <div>
+                    <span>应用 ID</span>
+                    <code>{integration.appId}</code>
+                  </div>
+                  <footer>
+                    <span>完成授权后解锁完整能力</span>
+                    <a
+                      className="feishu-integration-primary"
+                      href={FEISHU_OPEN_PLATFORM_URL}
+                      onClick={() => beginExternalAction("authorize")}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      已创建应用，去授权
+                    </a>
+                  </footer>
+                </section>
+                <button
+                  className="feishu-unlink-button"
+                  onClick={requestUnlink}
+                  type="button"
+                >
+                  解绑
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -368,25 +375,6 @@ export function FeishuIntegrationDialog({
           </section>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function FeishuConnectionVisual() {
-  return (
-    <div aria-hidden="true" className="feishu-connection-visual">
-      <span>
-        <Bot size={30} strokeWidth={1.7} />
-      </span>
-      <MoreHorizontal size={28} />
-      <span>
-        <Image
-          alt=""
-          height={31}
-          src="./feishu-line.svg"
-          width={31}
-        />
-      </span>
     </div>
   );
 }
