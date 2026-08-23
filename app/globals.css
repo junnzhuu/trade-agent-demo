@@ -3555,6 +3555,15 @@ button:disabled {
   box-shadow: none;
 }
 
+.feishu-creation-hint {
+  max-width: 480px;
+  margin: 0;
+  color: #666d72;
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+}
+
 .feishu-connection-visual {
   display: grid;
   width: min(520px, 92%);

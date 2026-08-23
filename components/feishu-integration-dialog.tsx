@@ -233,7 +233,7 @@ export function FeishuIntegrationDialog({
             className={`feishu-integration-step ${integration.step === 1 ? "active" : "completed"}`}
           >
             <span>{integration.step === 2 ? <Check size={15} /> : "1"}</span>
-            <strong>配置飞书应用</strong>
+            <strong>绑定飞书应用</strong>
           </div>
           <span aria-hidden="true" className="feishu-integration-step-line" />
           <div
@@ -253,7 +253,9 @@ export function FeishuIntegrationDialog({
               />
             ) : (
               <>
-                <FeishuConnectionVisual />
+                <p className="feishu-creation-hint">
+                  点击下方按钮，自动为您创建飞书应用并绑定应用ID。
+                </p>
                 <a
                   className="feishu-integration-primary"
                   href={FEISHU_OPEN_PLATFORM_URL}

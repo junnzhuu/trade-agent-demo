@@ -265,7 +265,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
     feishuIntegration,
     /授权后，交易智能助手可连接你的飞书消息、云文档、多维表格、会议等核心功能/,
   );
-  assert.match(feishuIntegration, /配置飞书应用/);
+  assert.match(feishuIntegration, /绑定飞书应用/);
+  assert.match(
+    feishuIntegration,
+    /点击下方按钮，自动为您创建飞书应用并绑定应用ID。/,
+  );
   assert.match(feishuIntegration, /开通飞书权限/);
   assert.match(feishuIntegration, /创建飞书应用/);
   assert.match(feishuIntegration, /检测应用创建状态\.\.\./);
