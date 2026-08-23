@@ -3,6 +3,7 @@
 import {
   Bot,
   Check,
+  Info,
   LoaderCircle,
   MoreHorizontal,
   X,
@@ -254,7 +255,8 @@ export function FeishuIntegrationDialog({
             ) : (
               <>
                 <p className="feishu-creation-hint">
-                  点击下方按钮，自动为您创建飞书应用并绑定应用ID。
+                  <Info aria-hidden="true" size={18} />
+                  <span>点击按钮，自动为您创建并绑定飞书应用。</span>
                 </p>
                 <a
                   className="feishu-integration-primary"

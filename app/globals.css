@@ -2886,7 +2886,7 @@ button:disabled {
 .search-dialog {
   position: relative;
   z-index: 1;
-  width: min(720px, calc(100vw - 48px));
+  width: min(620px, calc(100vw - 48px));
   height: min(680px, calc(100dvh - 48px));
   overflow: hidden;
   padding: 24px 26px 28px;
@@ -3556,12 +3556,25 @@ button:disabled {
 }
 
 .feishu-creation-hint {
-  max-width: 480px;
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  align-items: center;
+  gap: 10px;
   margin: 0;
+  padding: 0 16px;
+  border: 1px solid #dfe3e5;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.58);
   color: #666d72;
   font-size: 14px;
   line-height: 1.6;
-  text-align: center;
+  text-align: left;
+}
+
+.feishu-creation-hint svg {
+  flex: none;
+  color: #202527;
 }
 
 .feishu-connection-visual {

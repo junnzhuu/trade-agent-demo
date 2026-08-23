@@ -268,7 +268,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(feishuIntegration, /绑定飞书应用/);
   assert.match(
     feishuIntegration,
-    /点击下方按钮，自动为您创建飞书应用并绑定应用ID。/,
+    /点击按钮，自动为您创建并绑定飞书应用。/,
   );
   assert.match(feishuIntegration, /开通飞书权限/);
   assert.match(feishuIntegration, /创建飞书应用/);
