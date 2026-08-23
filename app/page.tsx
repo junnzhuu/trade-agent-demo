@@ -112,6 +112,7 @@ const agentCapabilities = [
 ];
 
 const composerPlaceholder = "今天帮你做些什么？/ 调用技能";
+const feishuTryNowPrompt = "连接我的飞书，帮我梳理下这周的会议日程";
 
 const modelOptions = [
   { id: "glm-5", label: "glm-5" },
@@ -2370,6 +2371,14 @@ export default function Home() {
         onToast={(message) => {
           setFeedbackNotice(message);
           window.setTimeout(() => setFeedbackNotice(""), 3_000);
+        }}
+        onTryNow={() => {
+          startNewChat();
+          setInput(feishuTryNowPrompt);
+          setFeishuIntegrationOpen(false);
+          window.requestAnimationFrame(() => {
+            composerHandleRef.current?.setText(feishuTryNowPrompt);
+          });
         }}
         open={feishuIntegrationOpen}
       />

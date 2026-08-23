@@ -277,7 +277,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(feishuIntegration, /应用信息/);
   assert.match(feishuIntegration, /应用 ID/);
   assert.match(feishuIntegration, /待授权/);
+  assert.match(feishuIntegration, /已授权/);
   assert.match(feishuIntegration, /已创建应用，去授权/);
+  assert.match(feishuIntegration, /立即体验/);
   assert.match(feishuIntegration, /检测飞书权限开通状态\.\.\./);
   assert.match(feishuIntegration, />\s*解除绑定\s*</);
   assert.doesNotMatch(feishuIntegration, /完成授权后解锁完整能力/);
@@ -299,6 +301,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
   );
   assert.match(css, /\.feishu-authorization-card/);
   assert.match(css, /\.feishu-authorization-actions/);
+  assert.match(
+    css,
+    /\.feishu-integration-step\.completed > span\s*{[^}]*background: #22a45a/s,
+  );
+  assert.match(css, /\.feishu-authorization-card > header > span\.authorized/);
   assert.doesNotMatch(css, /\.feishu-connection-visual/);
   assert.match(css, /\.feishu-detection-state/);
   assert.match(page, /收藏的任务/);
@@ -327,6 +334,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /ONBOARDING_STORAGE_KEY/);
   assert.match(page, /data-tour-id="workspace-navigation"/);
   assert.match(page, /data-tour-id="task-composer"/);
+  assert.match(
+    page,
+    /连接我的飞书，帮我梳理下这周的会议日程/,
+  );
+  assert.match(page, /onTryNow=\{\(\) => \{/);
   assert.match(page, /data-tour-id="feedback"/);
   assert.match(css, /\.account-drawer/);
   assert.match(css, /\.onboarding-bubble/);

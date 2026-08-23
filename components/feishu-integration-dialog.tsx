@@ -28,12 +28,14 @@ type FeishuIntegrationDialogProps = {
   open: boolean;
   onClose: () => void;
   onToast: (message: string) => void;
+  onTryNow: () => void;
 };
 
 export function FeishuIntegrationDialog({
   open,
   onClose,
   onToast,
+  onTryNow,
 }: FeishuIntegrationDialogProps) {
   const [integration, setIntegration] = useState<FeishuIntegrationState>(() =>
     typeof window === "undefined"
@@ -271,42 +273,14 @@ export function FeishuIntegrationDialog({
           <div className="feishu-integration-panel simplified">
             {waitingForAuthorization ? (
               <FeishuDetectionState label="检测飞书权限开通状态..." />
-            ) : integration.authorized ? (
-              <>
-                <dl className="feishu-authorization-summary">
-                  <div>
-                    <dt>应用 ID</dt>
-                    <dd>{integration.appId}</dd>
-                  </div>
-                  <div>
-                    <dt>授权状态</dt>
-                    <dd className="authorized">已授权</dd>
-                  </div>
-                </dl>
-                <footer className="feishu-integration-actions centered">
-                  <button
-                    className="feishu-integration-secondary"
-                    onClick={requestUnlink}
-                    type="button"
-                  >
-                    解除绑定
-                  </button>
-                  <button
-                    className="feishu-integration-primary"
-                    disabled
-                    type="button"
-                  >
-                    <Check size={17} />
-                    已完成授权
-                  </button>
-                </footer>
-              </>
             ) : (
               <div className="feishu-authorization-pending">
                 <section className="feishu-authorization-card">
                   <header>
                     <strong>应用信息</strong>
-                    <span>待授权</span>
+                    <span className={integration.authorized ? "authorized" : undefined}>
+                      {integration.authorized ? "已授权" : "待授权"}
+                    </span>
                   </header>
                   <div>
                     <span>应用 ID</span>
@@ -321,15 +295,25 @@ export function FeishuIntegrationDialog({
                   >
                     解除绑定
                   </button>
-                  <a
-                    className="feishu-integration-primary"
-                    href={FEISHU_OPEN_PLATFORM_URL}
-                    onClick={() => beginExternalAction("authorize")}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    已创建应用，去授权
-                  </a>
+                  {integration.authorized ? (
+                    <button
+                      className="feishu-integration-primary"
+                      onClick={onTryNow}
+                      type="button"
+                    >
+                      立即体验
+                    </button>
+                  ) : (
+                    <a
+                      className="feishu-integration-primary"
+                      href={FEISHU_OPEN_PLATFORM_URL}
+                      onClick={() => beginExternalAction("authorize")}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      已创建应用，去授权
+                    </a>
+                  )}
                 </footer>
               </div>
             )}
