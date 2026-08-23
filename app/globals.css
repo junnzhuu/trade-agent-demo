@@ -3765,6 +3765,20 @@ button:disabled {
   background: #eef0f1;
 }
 
+.feishu-try-now-button {
+  border-color: #d1d5d7;
+  background: #fff;
+  color: #1f2325;
+  box-shadow: 0 5px 14px rgba(20, 25, 27, 0.06);
+}
+
+.feishu-try-now-button:hover,
+.feishu-try-now-button:focus-visible {
+  border-color: #9ca2a5;
+  background: #f3f4f4;
+  color: #111415;
+}
+
 .feishu-auth-entry {
   display: grid;
   grid-template-columns: 154px minmax(0, 1fr);

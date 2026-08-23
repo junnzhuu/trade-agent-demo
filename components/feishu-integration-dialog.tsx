@@ -297,7 +297,7 @@ export function FeishuIntegrationDialog({
                   </button>
                   {integration.authorized ? (
                     <button
-                      className="feishu-integration-primary"
+                      className="feishu-integration-secondary feishu-try-now-button"
                       onClick={onTryNow}
                       type="button"
                     >
@@ -342,7 +342,7 @@ export function FeishuIntegrationDialog({
             role="alertdialog"
           >
             <h3 id="feishu-unlink-title">解除飞书授权？</h3>
-            <p>解除后将清除当前演示凭证和授权状态。</p>
+            <p>解除后将清除当前飞书应用配置和授权状态</p>
             <div>
               <button
                 onClick={() => setUnlinkConfirmationOpen(false)}
