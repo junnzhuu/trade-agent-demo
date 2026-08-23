@@ -115,8 +115,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /专家技能推荐/);
   assert.match(page, /composerHandleRef\.current\?\.setText\(agent\.standardQuestion\)/);
   assert.match(page, /composerHandleRef\.current\?\.setText\(skill\.standardQuestion\)/);
-  assert.match(page, /AutomationWorkspace/);
-  assert.match(page, /今天帮你做些什么？\/ 调用技能/);
+  assert.doesNotMatch(page, /AutomationWorkspace|<span>自动化<\/span>/);
+  assert.match(page, /const composerPlaceholder = "今天帮你做些什么？"/);
   assert.match(page, /composerSkillOptions/);
   assert.match(page, /composer-skill-list/);
   assert.match(page, /skillMenuRef\.current\?\.contains/);

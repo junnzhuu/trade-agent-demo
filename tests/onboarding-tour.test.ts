@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { onboardingSteps } from "../lib/onboarding-tour";
 
-test("defines a stable sixteen-step full product tour", () => {
-  assert.equal(onboardingSteps.length, 16);
-  assert.equal(new Set(onboardingSteps.map((step) => step.id)).size, 16);
+test("defines a stable fifteen-step full product tour", () => {
+  assert.equal(onboardingSteps.length, 15);
+  assert.equal(new Set(onboardingSteps.map((step) => step.id)).size, 15);
   assert.equal(onboardingSteps[0].id, "welcome");
-  assert.equal(onboardingSteps.at(-1)?.id, "automation");
+  assert.equal(onboardingSteps.at(-1)?.id, "experts-and-skills");
   assert.ok(
     onboardingSteps
       .filter((step) => step.id !== "welcome")

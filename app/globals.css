@@ -2788,48 +2788,6 @@ button:disabled {
   font-size: 12px;
 }
 
-.automation-workspace {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  display: grid;
-  width: min(520px, calc(100% - 40px));
-  place-items: center;
-  transform: translate(-50%, -50%);
-  text-align: center;
-}
-
-.automation-mark {
-  display: grid;
-  width: 58px;
-  height: 58px;
-  place-items: center;
-  border: 1px solid #d8d8d8;
-  border-radius: 18px;
-  background: #f3f3f3;
-}
-
-.automation-workspace h1 {
-  margin: 18px 0 7px;
-  font-size: 28px;
-  font-weight: 700;
-}
-
-.automation-workspace p {
-  margin: 0;
-  color: #6f6f6f;
-  font-size: 14px;
-}
-
-.automation-workspace > span {
-  margin-top: 18px;
-  padding: 6px 10px;
-  border: 1px solid #dddddd;
-  border-radius: 999px;
-  color: #777777;
-  font-size: 12px;
-}
-
 .search-modal-layer {
   position: fixed;
   z-index: 100;

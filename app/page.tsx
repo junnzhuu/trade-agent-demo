@@ -28,7 +28,6 @@ import {
   Trash2,
   Users,
   WandSparkles,
-  Workflow,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -112,7 +111,7 @@ const agentCapabilities = [
   "项目管理 Agent",
 ];
 
-const composerPlaceholder = "今天帮你做些什么？/ 调用技能";
+const composerPlaceholder = "今天帮你做些什么？";
 const feishuTryNowPrompt = "连接我的飞书，帮我梳理下这周的会议日程";
 
 const modelOptions = [
@@ -137,7 +136,7 @@ const feedbackReasons = [
 
 type ModelId = (typeof modelOptions)[number]["id"];
 
-type WorkspaceView = "chat" | "experts" | "automation";
+type WorkspaceView = "chat" | "experts";
 type LibraryDialog = "favorites" | "archive";
 type FeedbackMode = "answer" | "general";
 type FeedbackImage = { id: string; name: string; url: string };
@@ -1495,9 +1494,6 @@ export default function Home() {
       } else if (stepId === "experts-and-skills") {
         activeViewRef.current = "experts";
         setActiveView("experts");
-      } else if (stepId === "automation") {
-        activeViewRef.current = "automation";
-        setActiveView("automation");
       }
     });
     return () => window.cancelAnimationFrame(frame);
@@ -1721,19 +1717,6 @@ export default function Home() {
             <Users size={18} strokeWidth={1.7} />
             <span>专家 · 技能</span>
           </button>
-          <button
-            aria-current={activeView === "automation" ? "page" : undefined}
-            className={activeView === "automation" ? "active" : ""}
-            onClick={() => {
-              activeViewRef.current = "automation";
-              setActiveView("automation");
-              setMobileSidebarOpen(false);
-            }}
-            type="button"
-          >
-            <Workflow size={18} strokeWidth={1.7} />
-            <span>自动化</span>
-          </button>
         </nav>
 
         {pinnedTasks.length ? (
@@ -1911,8 +1894,6 @@ export default function Home() {
             onSummonAgent={summonExpert}
             onUseSkill={useExpertSkill}
           />
-        ) : activeView === "automation" ? (
-          <AutomationWorkspace />
         ) : messages.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-content">
@@ -2601,19 +2582,6 @@ export default function Home() {
         />
       ) : null}
     </main>
-  );
-}
-
-function AutomationWorkspace() {
-  return (
-    <div className="automation-workspace" data-tour-id="automation">
-      <div className="automation-mark" aria-hidden="true">
-        <Workflow size={26} strokeWidth={1.6} />
-      </div>
-      <h1>自动化</h1>
-      <p>把重复的运营任务交给 Agent 按计划自动执行。</p>
-      <span>演示能力即将开放</span>
-    </div>
   );
 }
 

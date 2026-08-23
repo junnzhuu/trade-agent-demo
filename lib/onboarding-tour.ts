@@ -20,8 +20,7 @@ export type OnboardingStepId =
   | "agent-execution"
   | "answer-actions"
   | "feedback"
-  | "experts-and-skills"
-  | "automation";
+  | "experts-and-skills";
 
 export type OnboardingStep = {
   id: OnboardingStepId;
@@ -42,9 +41,9 @@ export const onboardingSteps: OnboardingStep[] = [
   {
     id: "workspace-navigation",
     targetId: "workspace-navigation",
-    title: "三个核心工作入口",
+    title: "两个核心工作入口",
     description:
-      "“新建任务”开启新对话；“专家 · 技能”查看业务能力；“自动化”用于承接可定时执行的重复工作。",
+      "“新建任务”用于开启新对话；“专家 · 技能”用于查看完整的业务专家与技能目录。",
     placement: "right",
   },
   {
@@ -148,15 +147,7 @@ export const onboardingSteps: OnboardingStep[] = [
     targetId: "experts-and-skills",
     title: "场景、专家与技能目录",
     description:
-      "先选择业务场景，再按子 Agent 专家筛选能力。技能卡会展示用途、标准问，并支持一键带入新任务。",
-    placement: "bottom",
-  },
-  {
-    id: "automation",
-    targetId: "automation",
-    title: "将重复工作交给 Agent",
-    description:
-      "自动化用于承接定时运营监控、活动跟进和项目检查等重复任务。你已了解当前演示版的全部主要能力。",
+      "先选择业务场景，再查看对应专家与技能。技能卡会展示用途、标准问，并支持一键带入新任务。你已了解当前版本的全部主要能力。",
     placement: "bottom",
   },
 ];
