@@ -10,31 +10,27 @@ import {
 } from "../lib/home-skill-recommendations";
 
 test("recommends experts first and exposes their mounted skills", () => {
-  const recommendedExperts = getHomeExperts("recommended");
-  assert.equal(recommendedExperts.length, 7);
-  assert.equal(recommendedExperts[0]?.name, "商品经营分析专家");
-  assert.ok(recommendedExperts.every((expert) => expert.skills.length > 0));
-
   const merchantExperts = getHomeExperts("merchant");
-  assert.equal(merchantExperts.length, 7);
+  assert.equal(merchantExperts.length, 12);
+  assert.equal(merchantExperts[0]?.name, "商家运营专家");
   const analysisExpert = getHomeExpertById("data-analysis-agent");
   assert.equal(analysisExpert?.name, "商品经营分析专家");
   assert.equal(analysisExpert?.skills.length, 2);
 });
 
-test("uses the requested merchant skills for the default recommendations", () => {
-  const recommendations = getHomeSkills("recommended");
+test("uses the requested merchant skills for the default scene", () => {
+  const recommendations = getHomeSkills("merchant");
 
   assert.deepEqual(
     recommendations.map((skill) => skill.name),
     [
-      "商家资质查询",
-      "商家违规单查询",
-      "商家直发资格查询",
       "单品诊断",
+      "答疑能力",
+      "商家违规单查询",
+      "商家资质查询",
       "手续费订单查询与解析",
       "受损单诊断",
-      "出价权限查询",
+      "商家商品体验综合分解读",
     ],
   );
 
@@ -68,11 +64,11 @@ test("provides up to six stable questions for every scene", () => {
 test("provides five business category tabs with up to seven skills each", () => {
   assert.deepEqual(
     homeSkillCategories.map((category) => category.label),
-    ["为你推荐", "商家运营", "商品运营", "招商", "营销活动", "项目管理"],
+    ["商家运营", "商品运营", "招商", "营销活动", "项目管理"],
   );
 
   assert.equal(getHomeSkills("merchant").length, 7);
-  for (const category of homeSkillCategories.slice(2)) {
+  for (const category of homeSkillCategories.slice(1)) {
     assert.equal(getHomeSkills(category.id).length, 5);
   }
 });

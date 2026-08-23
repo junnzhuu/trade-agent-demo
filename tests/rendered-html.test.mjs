@@ -149,15 +149,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /\n  ArrowUp,/);
   assert.doesNotMatch(page, /\n  Square,/);
   assert.match(page, /添加文件/);
-  assert.match(page, /快捷召唤专家/);
-  assert.match(page, /召唤更多专家/);
-  assert.match(page, /quickComposerExperts\.map/);
-  assert.match(page, /onMouseEnter=\{\(\) => openExpertMenu\(\)\}/);
-  assert.match(page, /className="quick-expert-menu-check"/);
-  assert.match(
-    page,
-    /setComposerText\(input\.trim\(\) \? input : agent\.standardQuestion\)/,
-  );
+  assert.doesNotMatch(page, /快捷召唤专家/);
+  assert.doesNotMatch(page, /召唤更多专家/);
+  assert.doesNotMatch(page, /composer-quick-expert-menu/);
   assert.match(page, /updateTask\(taskId, \(task\) => \(\{ \.\.\.task, targetAgent \}\)\)/);
   assert.match(page, /计划模式/);
   assert.match(page, /className="plan-mode-tag"/);
@@ -166,16 +160,13 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /role="switch"/);
   assert.match(
     page,
-    /<span>添加文件<\/span>[\s\S]*<span>专家<\/span>[\s\S]*<strong>计划模式<\/strong>/,
+    /className="add-menu"[\s\S]*?<span>添加文件<\/span>[\s\S]*?<strong>计划模式<\/strong>/,
   );
   assert.doesNotMatch(
     page,
-    /className="add-menu"[\s\S]*?<span>技能<\/span>[\s\S]*?<strong>计划模式<\/strong>/,
+    /className="add-menu"[\s\S]*?<span>(?:技能|专家)<\/span>[\s\S]*?<strong>计划模式<\/strong>/,
   );
-  assert.match(css, /\.quick-expert-menu/);
-  assert.match(css, /\.quick-expert-menu\.right/);
-  assert.match(css, /\.quick-expert-menu\.left/);
-  assert.match(css, /\.quick-expert-menu-check\s*{[^}]*color:\s*#01c1c2/s);
+  assert.doesNotMatch(css, /\.quick-expert-menu/);
   assert.doesNotMatch(page, /addMenuView|mode-menu|openExperts|openSkills/);
   assert.doesNotMatch(page, /aria-label="添加附件"/);
   assert.doesNotMatch(page, /BrainCircuit/);
@@ -385,10 +376,15 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.home-skill-tabs\s*{[^}]*gap: 0/s);
   assert.match(css, /\.home-skill-card\s*{[^}]*min-height: 38px/s);
   assert.match(css, /\.home-skill-card\s*{[^}]*padding: 0 15px/s);
+  assert.doesNotMatch(css, /\.home-skill-card\s*{[^}]*max-width:/s);
   assert.doesNotMatch(page, /home-skill-category-icon/);
   assert.match(css, /\.home-skill-cards\s*{[^}]*display: flex/s);
-  assert.match(css, /\.home-skill-more/);
-  assert.match(page, /showingExpertSkills \? "查看更多技能" : "查看更多专家"/);
+  assert.match(css, /\.home-skill-scroll-button/);
+  assert.match(page, /canScrollPrevious/);
+  assert.match(page, /canScrollNext/);
+  assert.match(page, /<ArrowDownRight/);
+  assert.match(css, /\.home-skill-option\s*{[^}]*background: rgba\(229, 231, 232, 0\.82\)/s);
+  assert.doesNotMatch(page, /onMore=/);
   assert.match(css, /\.home-skill-tooltip/);
   assert.match(css, /\.home-skill-card:hover \.home-skill-tooltip/);
   assert.match(page, /role="tooltip"/);

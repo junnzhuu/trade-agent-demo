@@ -92,7 +92,7 @@ export const onboardingSteps: OnboardingStep[] = [
     targetId: "add-menu",
     title: "添加内容与能力",
     description:
-      "加号菜单包含添加文件、快捷专家和计划模式。选择专家后会在当前任务中持续路由，输入 / 仍可调用技能。",
+      "加号菜单包含添加文件和计划模式。可从首页专家推荐或专家 · 技能页面选择专家，输入 / 仍可调用技能。",
     placement: "right",
   },
   {

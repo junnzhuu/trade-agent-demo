@@ -14,7 +14,7 @@ test("defines a stable sixteen-step full product tour", () => {
   );
   assert.match(
     onboardingSteps.find((step) => step.id === "add-menu")?.description ?? "",
-    /添加文件、快捷专家和计划模式/,
+    /添加文件和计划模式/,
   );
   assert.equal(
     onboardingSteps.some((step) =>
