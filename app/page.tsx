@@ -2720,6 +2720,9 @@ function HomeSuggestedQuestions({
   onSelect: (question: string) => void;
 }) {
   if (!questions.length) return null;
+  const questionRows = [questions.slice(0, 3), questions.slice(3, 6)].filter(
+    (row) => row.length > 0,
+  );
 
   return (
     <section
@@ -2728,16 +2731,30 @@ function HomeSuggestedQuestions({
     >
       <p>不知道怎么问？试试这些问法</p>
       <div className="home-suggested-question-list">
-        {questions.map((question) => (
-          <button
-            key={question.id}
-            onClick={() => onSelect(question.standardQuestion)}
-            title={question.standardQuestion}
-            type="button"
+        {questionRows.map((row, rowIndex) => (
+          <div
+            className={`home-suggested-question-row row-${rowIndex + 1}`}
+            key={rowIndex}
           >
-            <WandSparkles aria-hidden="true" size={15} strokeWidth={1.8} />
-            <span>{question.standardQuestion}</span>
-          </button>
+            {row.map((question) => (
+              <button
+                key={question.id}
+                onClick={() => onSelect(question.standardQuestion)}
+                title={question.standardQuestion}
+                type="button"
+              >
+                <Image
+                  alt=""
+                  aria-hidden="true"
+                  className="home-suggested-question-star"
+                  height={14}
+                  src="./recommended-question-star.svg"
+                  width={14}
+                />
+                <span>{question.standardQuestion}</span>
+              </button>
+            ))}
+          </div>
         ))}
       </div>
     </section>
