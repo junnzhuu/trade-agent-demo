@@ -113,33 +113,17 @@ button:disabled {
 
 .sidebar-brand {
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
-  gap: 7px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
   align-items: center;
   min-height: 66px;
   padding: 14px 10px 9px 13px;
 }
 
-.brand-mark {
-  display: grid;
-  width: 38px;
-  height: 36px;
-  place-items: center;
-}
-
-.brand-mark img {
+.sidebar-title-image {
   display: block;
-  width: 28px;
-  height: 23px;
-}
-
-.sidebar-brand strong {
-  overflow: hidden;
-  color: #17191d;
-  font-size: 15px;
-  font-weight: 760;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
+  width: min(143px, 100%);
+  height: auto;
 }
 
 .sidebar-toggle,
@@ -646,6 +630,13 @@ button:disabled {
 
 .account-drawer-integration > span:first-of-type {
   min-width: 0;
+}
+
+.feishu-authorization-icon {
+  display: block;
+  width: 17px;
+  height: 17px;
+  object-fit: contain;
 }
 
 .account-drawer-integration .feishu-integration-alert-dot {

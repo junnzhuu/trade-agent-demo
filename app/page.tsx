@@ -17,7 +17,6 @@ import {
   PanelLeftOpen,
   Pencil,
   Pin,
-  Plug,
   Plus,
   RotateCcw,
   Search,
@@ -1664,10 +1663,14 @@ export default function Home() {
         <header className="sidebar-brand">
           {sidebarOpen ? (
             <>
-              <span className="brand-mark" aria-hidden="true">
-                <Image alt="" height={23} src="./logo.svg" width={28} />
-              </span>
-              <strong>交易智能助手</strong>
+              <Image
+                alt="交易智能助手"
+                className="sidebar-title-image"
+                height={31}
+                priority
+                src="./sidebar-title.svg"
+                width={143}
+              />
               <div className="sidebar-header-actions" data-tour-id="sidebar-tools">
                 <button
                   aria-label="收起侧栏"
@@ -1821,7 +1824,14 @@ export default function Home() {
                 role="menuitem"
                 type="button"
               >
-                <Plug size={17} />
+                <Image
+                  alt=""
+                  aria-hidden="true"
+                  className="feishu-authorization-icon"
+                  height={17}
+                  src="./feishu-line.svg"
+                  width={17}
+                />
                 <span>飞书授权</span>
                 {!feishuIntegrationAuthorized ? (
                   <>

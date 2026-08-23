@@ -4,10 +4,10 @@ import {
   Bot,
   Check,
   LoaderCircle,
-  MessageSquare,
   MoreHorizontal,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import {
   type KeyboardEvent,
   useCallback,
@@ -376,7 +376,12 @@ function FeishuConnectionVisual() {
       </span>
       <MoreHorizontal size={28} />
       <span>
-        <MessageSquare size={29} strokeWidth={1.7} />
+        <Image
+          alt=""
+          height={31}
+          src="./feishu-line.svg"
+          width={31}
+        />
       </span>
     </div>
   );

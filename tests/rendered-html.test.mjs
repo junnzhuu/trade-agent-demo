@@ -46,7 +46,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(layout, /version-switcher\.js/);
   assert.match(page, /交易业务智能工作台/);
   assert.match(page, /交易智能助手/);
-  assert.match(page, /\.\/logo\.svg/);
+  assert.match(page, /\.\/sidebar-title\.svg/);
   assert.match(page, /日常运营 Agent/);
   assert.match(page, /营销活动 Agent/);
   assert.match(page, /演示数据/);
@@ -248,6 +248,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /加入反馈群/);
   assert.doesNotMatch(page, />\s*设置\s*</);
   assert.match(page, /飞书授权/);
+  assert.match(page, /sidebar-title\.svg/);
+  assert.match(page, /feishu-line\.svg/);
   assert.match(page, /完成飞书授权，解锁完整功能/);
   assert.match(page, /feishuIntegrationAuthorized/);
   assert.match(page, /className="account-drawer-integration"/);
@@ -404,7 +406,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.plan-mode-tag/);
   assert.match(css, /\.plan-mode-tag:hover \.plan-mode-tag-close-icon/);
   assert.doesNotMatch(css, /\.selected-skill-chips/);
-  assert.match(css, /\.brand-mark img/);
+  assert.match(css, /\.sidebar-title-image/);
   assert.match(css, /prefers-reduced-motion/);
   assert.match(nextConfig, /output: "export"/);
   assert.match(workflow, /actions\/deploy-pages@v4/);
