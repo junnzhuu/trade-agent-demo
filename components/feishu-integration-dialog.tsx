@@ -289,7 +289,7 @@ export function FeishuIntegrationDialog({
                     onClick={requestUnlink}
                     type="button"
                   >
-                    解绑
+                    解除绑定
                   </button>
                   <button
                     className="feishu-integration-primary"
@@ -312,26 +312,25 @@ export function FeishuIntegrationDialog({
                     <span>应用 ID</span>
                     <code>{integration.appId}</code>
                   </div>
-                  <footer>
-                    <span>完成授权后解锁完整能力</span>
-                    <a
-                      className="feishu-integration-primary"
-                      href={FEISHU_OPEN_PLATFORM_URL}
-                      onClick={() => beginExternalAction("authorize")}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      已创建应用，去授权
-                    </a>
-                  </footer>
                 </section>
-                <button
-                  className="feishu-unlink-button"
-                  onClick={requestUnlink}
-                  type="button"
-                >
-                  解绑
-                </button>
+                <footer className="feishu-authorization-actions">
+                  <button
+                    className="feishu-unlink-button"
+                    onClick={requestUnlink}
+                    type="button"
+                  >
+                    解除绑定
+                  </button>
+                  <a
+                    className="feishu-integration-primary"
+                    href={FEISHU_OPEN_PLATFORM_URL}
+                    onClick={() => beginExternalAction("authorize")}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    已创建应用，去授权
+                  </a>
+                </footer>
               </div>
             )}
           </div>

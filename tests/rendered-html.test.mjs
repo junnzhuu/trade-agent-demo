@@ -279,7 +279,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(feishuIntegration, /待授权/);
   assert.match(feishuIntegration, /已创建应用，去授权/);
   assert.match(feishuIntegration, /检测飞书权限开通状态\.\.\./);
-  assert.match(feishuIntegration, />\s*解绑\s*</);
+  assert.match(feishuIntegration, />\s*解除绑定\s*</);
+  assert.doesNotMatch(feishuIntegration, /完成授权后解锁完整能力/);
   assert.doesNotMatch(feishuIntegration, /QRCodeSVG|获取授权链接\/二维码/);
   assert.doesNotMatch(feishuIntegration, /feishu-credential-fields/);
   assert.doesNotMatch(feishuIntegration, /等待授权后自动填入/);
@@ -297,6 +298,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
     /\.account-drawer-integration \.feishu-integration-alert-dot\s*{[^}]*margin-left: auto/s,
   );
   assert.match(css, /\.feishu-authorization-card/);
+  assert.match(css, /\.feishu-authorization-actions/);
   assert.doesNotMatch(css, /\.feishu-connection-visual/);
   assert.match(css, /\.feishu-detection-state/);
   assert.match(page, /收藏的任务/);

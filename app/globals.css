@@ -3594,8 +3594,7 @@ button:disabled {
 }
 
 .feishu-authorization-card > header,
-.feishu-authorization-card > div,
-.feishu-authorization-card > footer {
+.feishu-authorization-card > div {
   display: flex;
   min-height: 54px;
   align-items: center;
@@ -3633,11 +3632,12 @@ button:disabled {
   white-space: nowrap;
 }
 
-.feishu-authorization-card > footer {
-  min-height: 68px;
-  border-top: 1px solid #e5e8e9;
-  color: #737a7f;
-  font-size: 13px;
+.feishu-authorization-actions {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .feishu-unlink-button {
