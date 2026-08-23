@@ -3427,11 +3427,11 @@ button:disabled {
   position: relative;
   z-index: 1;
   display: grid;
-  width: min(880px, calc(100vw - 48px));
+  width: min(720px, calc(100vw - 48px));
   max-height: calc(100vh - 48px);
-  gap: 24px;
+  gap: 18px;
   overflow: auto;
-  padding: 26px 30px 30px;
+  padding: 22px 26px 24px;
   border: 1px solid rgba(255, 255, 255, 0.76);
   border-radius: 26px;
   background: rgba(250, 251, 251, 0.94);
@@ -3450,20 +3450,20 @@ button:disabled {
 
 .feishu-integration-header > div {
   display: grid;
-  gap: 14px;
+  gap: 9px;
 }
 
 .feishu-integration-header p {
   margin: 0;
   color: #7d8490;
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .feishu-integration-header h2 {
   margin: 0;
   color: #202326;
-  font-size: 25px;
+  font-size: 23px;
   font-weight: 720;
   letter-spacing: -0.035em;
 }
@@ -3546,10 +3546,10 @@ button:disabled {
 }
 
 .feishu-integration-panel.simplified {
-  min-height: 286px;
+  min-height: 220px;
   place-items: center;
   align-content: center;
-  gap: 28px;
+  gap: 20px;
   border: 0;
   background: transparent;
   box-shadow: none;
@@ -3557,12 +3557,12 @@ button:disabled {
 
 .feishu-connection-visual {
   display: grid;
-  width: min(650px, 88%);
-  min-height: 162px;
-  grid-template-columns: 96px 42px 96px;
+  width: min(520px, 92%);
+  min-height: 124px;
+  grid-template-columns: 76px 34px 76px;
   place-content: center;
   place-items: center;
-  gap: 18px;
+  gap: 14px;
   border: 1px dashed #dfe3e6;
   border-radius: 18px;
   background: rgba(249, 250, 251, 0.6);
@@ -3571,11 +3571,11 @@ button:disabled {
 
 .feishu-connection-visual > span {
   display: grid;
-  width: 76px;
-  height: 76px;
+  width: 60px;
+  height: 60px;
   place-items: center;
   border: 1px solid #e0e4e6;
-  border-radius: 17px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.92);
   color: #202527;
   box-shadow: 0 8px 20px rgba(37, 45, 50, 0.06);
@@ -3587,7 +3587,7 @@ button:disabled {
 
 .feishu-detection-state {
   display: grid;
-  min-height: 230px;
+  min-height: 176px;
   place-items: center;
   align-content: center;
   gap: 10px;
