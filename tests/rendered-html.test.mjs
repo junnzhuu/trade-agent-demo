@@ -100,13 +100,15 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /HomeSkillDiscovery/);
   assert.match(
     page,
-    /<HomeSkillDiscovery[\s\S]*<Composer[\s\S]*<FeatureBannerCarousel/,
+    /<HomeSkillDiscovery[\s\S]*<Composer[\s\S]*<HomeSuggestedQuestions/,
   );
-  assert.match(page, /aria-label="新功能推荐"/);
-  assert.match(page, /window\.setInterval/);
-  assert.match(page, /}, 5000\)/);
-  assert.match(page, /立即体验/);
-  assert.match(page, /onSelect\(activeSkill\.standardQuestion\)/);
+  assert.match(page, /aria-label="猜你想问"/);
+  assert.match(page, /不知道怎么问？试试这些问法/);
+  assert.doesNotMatch(page, /大家都在问这些问题/);
+  assert.doesNotMatch(page, /FeatureBannerCarousel/);
+  assert.doesNotMatch(page, /aria-label="新功能推荐"/);
+  assert.doesNotMatch(page, /立即体验/);
+  assert.match(page, /setSelectedComposerSkills\(\[\]\)[\s\S]*setText\(question\)/);
   assert.match(page, /专家推荐/);
   assert.match(page, /专家技能推荐/);
   assert.match(page, /composerHandleRef\.current\?\.setText\(agent\.standardQuestion\)/);
@@ -204,8 +206,10 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /点击加入反馈群/);
   assert.match(css, /\.answer-actions/);
   assert.doesNotMatch(css, /\.audience-scenario-strip/);
-  assert.match(css, /\.feature-banner-carousel/);
-  assert.match(css, /@keyframes feature-banner-enter/);
+  assert.match(css, /\.home-suggested-questions/);
+  assert.match(css, /\.home-suggested-question-list/);
+  assert.doesNotMatch(css, /\.feature-banner-carousel/);
+  assert.doesNotMatch(css, /@keyframes feature-banner-enter/);
   assert.match(css, /\.audience-answer-footer\.merchant/);
   assert.match(
     css,
@@ -341,7 +345,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.home-skill-card:hover \.home-skill-tooltip/);
   assert.match(page, /role="tooltip"/);
   assert.doesNotMatch(page, /home-skill-card-heading/);
-  assert.match(page, /getHomeBannerSkills/);
+  assert.match(page, /getHomeSuggestedQuestions/);
   assert.match(css, /\.skill-grid/);
   assert.match(css, /\.skill-card-title-row/);
   assert.match(css, /\.skill-sort-tabs/);
@@ -396,10 +400,13 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(workflow, /codex\/交易智能助手-v2\.1/);
   assert.match(workflow, /codex\/交易智能助手-v2\.2/);
   assert.match(workflow, /codex\/交易智能助手-v2\.3-integrated/);
+  assert.match(workflow, /codex\/交易智能助手-v2\.4/);
   assert.match(workflow, /versions\/classic/);
   assert.match(workflow, /versions\/audience-isolation/);
   assert.match(workflow, /versions\/scene-agent-skill/);
   assert.match(workflow, /versions\/integrated-expert-skills/);
+  assert.match(workflow, /versions\/expert-recommendations/);
+  assert.match(versionSwitcher, /v2\.5/);
   assert.match(versionSwitcher, /v2\.4/);
   assert.match(versionSwitcher, /v2\.3/);
   assert.match(versionSwitcher, /v2\.2/);
@@ -409,6 +416,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(versionSwitcher, /专家技能一体化/);
   assert.match(versionSwitcher, /场景化专家技能/);
   assert.match(versionSwitcher, /对商\/对内知识隔离/);
+  assert.match(versionSwitcher, /猜你想问/);
   assert.match(versionSwitcher, /ta-version-latest/);
   assert.match(versionSwitcher, /最新版/);
   assert.match(versionSwitcher, /latest: true/);

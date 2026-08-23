@@ -35,12 +35,6 @@ const recommendedMerchantSkillIds = [
   "bid-permission",
 ];
 
-const bannerMerchantSkillIds = [
-  "merchant-qualification",
-  "merchant-violation",
-  "direct-shipping",
-];
-
 function getMerchantSkillsById(skillIds: string[]) {
   const merchantExpert = expertCatalog.find((expert) => expert.id === "merchant");
   if (!merchantExpert) return [];
@@ -48,10 +42,6 @@ function getMerchantSkillsById(skillIds: string[]) {
     const skill = merchantExpert.skills.find((item) => item.id === skillId);
     return skill ? [skill] : [];
   });
-}
-
-export function getHomeBannerSkills(): ExpertSkill[] {
-  return getMerchantSkillsById(bannerMerchantSkillIds);
 }
 
 export function getHomeSkills(categoryId: HomeSkillCategoryId): ExpertSkill[] {
@@ -66,6 +56,12 @@ export function getHomeSkills(categoryId: HomeSkillCategoryId): ExpertSkill[] {
   }
 
   return expert.skills.slice(0, 7);
+}
+
+export function getHomeSuggestedQuestions(
+  categoryId: HomeSkillCategoryId,
+): ExpertSkill[] {
+  return getHomeSkills(categoryId).slice(0, 6);
 }
 
 const recommendedExperts = merchantOperationAgents

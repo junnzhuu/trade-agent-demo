@@ -77,10 +77,9 @@ import {
 } from "@/lib/task-history";
 import { ConcurrentTaskScheduler } from "@/lib/task-scheduler";
 import {
-  getHomeBannerSkills,
   getHomeExpertById,
   getHomeExperts,
-  getHomeSkills,
+  getHomeSuggestedQuestions,
   homeSkillCategories,
   type HomeSkillCategoryId,
 } from "@/lib/home-skill-recommendations";
@@ -337,7 +336,10 @@ export default function Home() {
       })) ?? [],
     [selectedHomeExpert],
   );
-  const bannerSkills = useMemo(() => getHomeBannerSkills(), []);
+  const homeSuggestedQuestions = useMemo(
+    () => getHomeSuggestedQuestions(selectedHomeSkillCategory),
+    [selectedHomeSkillCategory],
+  );
   const feishuIntegrationSnapshot = useSyncExternalStore(
     subscribeToFeishuIntegration,
     getFeishuIntegrationStorageSnapshot,
@@ -1954,8 +1956,8 @@ export default function Home() {
                 tourPanel={tourComposerPanel}
                 ref={composerHandleRef}
               />
-              <FeatureBannerCarousel
-                skills={bannerSkills}
+              <HomeSuggestedQuestions
+                questions={homeSuggestedQuestions}
                 onSelect={(question) => {
                   setSelectedComposerSkills([]);
                   composerHandleRef.current?.setText(question);
@@ -2710,92 +2712,34 @@ function HomeSkillDiscovery({
   );
 }
 
-function FeatureBannerCarousel({
-  skills,
+function HomeSuggestedQuestions({
+  questions,
   onSelect,
 }: {
-  skills: ReturnType<typeof getHomeSkills>;
+  questions: ReturnType<typeof getHomeSuggestedQuestions>;
   onSelect: (question: string) => void;
 }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [hovered, setHovered] = useState(false);
-  const [focusWithin, setFocusWithin] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const updatePreference = () => setReducedMotion(media.matches);
-    updatePreference();
-    media.addEventListener("change", updatePreference);
-    return () => media.removeEventListener("change", updatePreference);
-  }, []);
-
-  useEffect(() => {
-    if (hovered || focusWithin || reducedMotion || skills.length < 2) return;
-    const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % skills.length);
-    }, 5000);
-    return () => window.clearInterval(timer);
-  }, [focusWithin, hovered, reducedMotion, skills.length]);
-
-  const activeSkill = skills[activeIndex] ?? skills[0];
-  if (!activeSkill) return null;
-
-  const BannerIcon =
-    activeIndex === 0 ? ClipboardList : activeIndex === 1 ? Search : Workflow;
+  if (!questions.length) return null;
 
   return (
     <section
-      aria-label="新功能推荐"
-      className="feature-banner-carousel"
-      onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-          setFocusWithin(false);
-        }
-      }}
-      onFocusCapture={() => setFocusWithin(true)}
-      onKeyDown={(event) => {
-        if (event.key === "ArrowDown") {
-          event.preventDefault();
-          setActiveIndex((current) => (current + 1) % skills.length);
-        } else if (event.key === "ArrowUp") {
-          event.preventDefault();
-          setActiveIndex(
-            (current) => (current - 1 + skills.length) % skills.length,
-          );
-        }
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      tabIndex={0}
+      aria-label="猜你想问"
+      className="home-suggested-questions"
     >
-      <div aria-label="选择推荐功能" className="feature-banner-dots">
-        {skills.map((skill, index) => (
+      <p>不知道怎么问？试试这些问法</p>
+      <div className="home-suggested-question-list">
+        {questions.map((question) => (
           <button
-            aria-label={`查看${skill.name}`}
-            aria-pressed={index === activeIndex}
-            className={index === activeIndex ? "active" : ""}
-            key={skill.id}
-            onClick={() => setActiveIndex(index)}
+            key={question.id}
+            onClick={() => onSelect(question.standardQuestion)}
+            title={question.standardQuestion}
             type="button"
-          />
+          >
+            <WandSparkles aria-hidden="true" size={15} strokeWidth={1.8} />
+            <span>{question.standardQuestion}</span>
+          </button>
         ))}
       </div>
-      <article className="feature-banner-slide" key={activeSkill.id}>
-        <span className="feature-banner-visual" aria-hidden="true">
-          <BannerIcon size={24} strokeWidth={1.7} />
-        </span>
-        <span className="feature-banner-copy">
-          <strong>{activeSkill.name}</strong>
-          <span>{activeSkill.description}</span>
-        </span>
-        <button
-          onClick={() => onSelect(activeSkill.standardQuestion)}
-          type="button"
-        >
-          立即体验
-        </button>
-      </article>
     </section>
   );
 }

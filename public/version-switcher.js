@@ -20,14 +20,23 @@
   const isIntegratedExpertSkills = currentPath.includes(
     "/versions/integrated-expert-skills/",
   );
+  const isExpertRecommendations = currentPath.includes(
+    "/versions/expert-recommendations/",
+  );
 
   const versions = [
+    {
+      id: "v2.5",
+      name: "v2.5",
+      detail: "猜你想问",
+      href: `${rootPath || ""}/`,
+      latest: true,
+    },
     {
       id: "v2.4",
       name: "v2.4",
       detail: "技能平铺与专家标签",
-      href: `${rootPath || ""}/`,
-      latest: true,
+      href: `${rootPath || ""}/versions/expert-recommendations/`,
     },
     {
       id: "v2.3",
@@ -62,7 +71,9 @@
         ? "v2.2"
         : isIntegratedExpertSkills
           ? "v2.3"
-          : "v2.4";
+          : isExpertRecommendations
+            ? "v2.4"
+            : "v2.5";
 
   const root = document.createElement("div");
   root.id = "trade-agent-version-switcher";

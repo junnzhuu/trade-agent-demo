@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { expertCatalog } from "../lib/expert-catalog";
 import {
-  getHomeBannerSkills,
   getHomeExpertById,
   getHomeExperts,
+  getHomeSuggestedQuestions,
   getHomeSkills,
   homeSkillCategories,
 } from "../lib/home-skill-recommendations";
@@ -52,10 +52,16 @@ test("uses the requested merchant skills for the default recommendations", () =>
   );
 });
 
-test("keeps the banner limited to the three merchant queries", () => {
-  assert.deepEqual(
-    getHomeBannerSkills().map((skill) => skill.name),
-    ["商家资质查询", "商家违规单查询", "商家直发资格查询"],
+test("provides up to six stable questions for every scene", () => {
+  for (const category of homeSkillCategories) {
+    const questions = getHomeSuggestedQuestions(category.id);
+    assert.ok(questions.length > 0 && questions.length <= 6);
+    assert.deepEqual(questions, getHomeSkills(category.id).slice(0, 6));
+  }
+
+  assert.notDeepEqual(
+    getHomeSuggestedQuestions("merchant").map((item) => item.id),
+    getHomeSuggestedQuestions("product").map((item) => item.id),
   );
 });
 
