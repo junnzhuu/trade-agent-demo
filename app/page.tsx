@@ -1822,14 +1822,14 @@ export default function Home() {
                 type="button"
               >
                 <Plug size={17} />
-                <span>飞书集成</span>
+                <span>飞书授权</span>
                 {!feishuIntegrationAuthorized ? (
                   <>
                     <span
                       aria-hidden="true"
                       className="feishu-integration-alert-dot"
                     />
-                    <span className="sr-only">飞书集成未完成</span>
+                    <span className="sr-only">飞书授权未完成</span>
                   </>
                 ) : null}
               </button>
@@ -1882,8 +1882,8 @@ export default function Home() {
             aria-hidden="true"
             className="feishu-integration-alert-dot"
           />
-          <span>完成飞书集成，解锁完整功能</span>
-          <span className="sr-only">飞书集成未完成</span>
+          <span>完成飞书授权，解锁完整功能</span>
+          <span className="sr-only">飞书授权未完成</span>
         </button>
       ) : null}
 

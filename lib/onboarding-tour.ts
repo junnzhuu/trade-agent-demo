@@ -76,7 +76,7 @@ export const onboardingSteps: OnboardingStep[] = [
     targetId: "account-content",
     title: "个人中心",
     description:
-      "这里可以查看收藏内容、加入反馈群和配置飞书集成。之后也可从这里重新播放本指引。",
+      "这里可以查看收藏内容、加入反馈群和完成飞书授权。之后也可从这里重新播放本指引。",
     placement: "right",
   },
   {

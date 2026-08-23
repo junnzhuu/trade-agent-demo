@@ -1,14 +1,13 @@
 "use client";
 
 import {
+  Bot,
   Check,
-  ExternalLink,
-  Info,
-  Link2,
   LoaderCircle,
+  MessageSquare,
+  MoreHorizontal,
   X,
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 import {
   type KeyboardEvent,
   useCallback,
@@ -187,12 +186,11 @@ export function FeishuIntegrationDialog({
     integrationRef.current = initialFeishuIntegrationState;
     setIntegration(initialFeishuIntegrationState);
     setUnlinkConfirmationOpen(false);
-    onToast("已解除飞书集成");
+    onToast("已解除飞书授权");
   };
 
   if (!open) return null;
 
-  const hasCredentials = Boolean(integration.appId && integration.appSecret);
   const waitingForCreation = integration.pendingExternalAction === "create";
   const waitingForAuthorization =
     integration.pendingExternalAction === "authorize";
@@ -200,7 +198,7 @@ export function FeishuIntegrationDialog({
   return (
     <div className="feishu-integration-layer">
       <button
-        aria-label="关闭飞书集成"
+        aria-label="关闭飞书授权"
         className="feishu-integration-scrim"
         onClick={closeDialog}
         type="button"
@@ -215,8 +213,10 @@ export function FeishuIntegrationDialog({
       >
         <header className="feishu-integration-header">
           <div>
-            <span>飞书集成</span>
-            <h2 id="feishu-integration-title">应用和授权</h2>
+            <h2 id="feishu-integration-title">飞书授权</h2>
+            <p>
+              授权后，交易智能助手可连接你的飞书消息、云文档、多维表格、会议等核心功能。
+            </p>
           </div>
           <button
             aria-label="关闭"
@@ -233,135 +233,96 @@ export function FeishuIntegrationDialog({
             className={`feishu-integration-step ${integration.step === 1 ? "active" : "completed"}`}
           >
             <span>{integration.step === 2 ? <Check size={15} /> : "1"}</span>
-            <strong>绑定应用</strong>
+            <strong>配置飞书应用</strong>
           </div>
           <span aria-hidden="true" className="feishu-integration-step-line" />
           <div
             className={`feishu-integration-step ${integration.step === 2 ? "active" : ""} ${integration.authorized ? "completed" : ""}`}
           >
             <span>{integration.authorized ? <Check size={15} /> : "2"}</span>
-            <strong>完成授权</strong>
+            <strong>开通飞书权限</strong>
           </div>
         </div>
 
         {integration.step === 1 ? (
-          <div className="feishu-integration-panel">
-            <p className="feishu-integration-notice">
-              <Info size={17} />
-              授权后将自动创建飞书机器人并获取 App ID 和 App Secret
-            </p>
-
-            <button
-              className="feishu-integration-primary wide"
-              onClick={() =>
-                persist({ ...integrationRef.current, linkRevealed: true })
-              }
-              type="button"
-            >
-              <Link2 size={17} />
-              获取授权链接/二维码
-            </button>
-
-            {integration.linkRevealed ? (
-              <div className="feishu-auth-entry">
-                <div className="feishu-auth-qr" title="飞书开放平台创建机器人">
-                  <QRCodeSVG
-                    bgColor="transparent"
-                    fgColor="#17191b"
-                    level="M"
-                    marginSize={1}
-                    size={132}
-                    value={FEISHU_OPEN_PLATFORM_URL}
-                  />
-                </div>
-                <div>
-                  <strong>使用飞书扫码，或通过链接继续</strong>
-                  <span>完成后返回本页面，演示凭证将自动填入。</span>
-                  <a
-                    href={FEISHU_OPEN_PLATFORM_URL}
-                    onClick={() => beginExternalAction("create")}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    前往飞书开放平台创建机器人
-                    <ExternalLink size={15} />
-                  </a>
-                  {waitingForCreation ? (
-                    <small>
-                      <LoaderCircle size={14} />
-                      等待创建结果
-                    </small>
-                  ) : null}
-                </div>
-              </div>
-            ) : null}
-
-            <footer className="feishu-integration-actions">
-              <button
-                className="feishu-integration-primary"
-                disabled={!hasCredentials}
-                onClick={() => persist({ ...integrationRef.current, step: 2 })}
-                type="button"
-              >
-                下一步
-              </button>
-              <span>当前仅展示演示凭证</span>
-            </footer>
-          </div>
-        ) : (
-          <div className="feishu-integration-panel">
-            <div className="feishu-integration-second-step-heading">
-              <p className="feishu-integration-notice">
-                <Info size={17} />
-                完成授权后解锁完整能力
-              </p>
-              <button onClick={requestUnlink} type="button">
-                解除绑定
-              </button>
-            </div>
-
-            <dl className="feishu-authorization-summary">
-              <div>
-                <dt>App ID</dt>
-                <dd>{integration.appId}</dd>
-              </div>
-              <div>
-                <dt>授权状态</dt>
-                <dd
-                  className={
-                    integration.authorized ? "authorized" : "pending"
-                  }
-                >
-                  {integration.authorized ? "已授权" : "待授权"}
-                </dd>
-              </div>
-            </dl>
-
-            <footer className="feishu-integration-actions">
-              {integration.authorized ? (
-                <button
-                  className="feishu-integration-primary"
-                  disabled
-                  type="button"
-                >
-                  <Check size={17} />
-                  已完成授权
-                </button>
-              ) : (
+          <div className="feishu-integration-panel simplified">
+            {waitingForCreation ? (
+              <FeishuDetectionState
+                detail="应用创建后，将自动跳转"
+                label="检测应用创建状态..."
+              />
+            ) : (
+              <>
+                <FeishuConnectionVisual />
                 <a
                   className="feishu-integration-primary"
                   href={FEISHU_OPEN_PLATFORM_URL}
-                  onClick={() => beginExternalAction("authorize")}
+                  onClick={() => beginExternalAction("create")}
                   rel="noreferrer"
                   target="_blank"
                 >
-                  {waitingForAuthorization ? (
-                    <LoaderCircle size={17} />
-                  ) : null}
-                  完成授权
+                  创建飞书应用
                 </a>
-              )}
-            </footer>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="feishu-integration-panel simplified">
+            {waitingForAuthorization ? (
+              <FeishuDetectionState label="检测飞书权限开通状态..." />
+            ) : integration.authorized ? (
+              <>
+                <dl className="feishu-authorization-summary">
+                  <div>
+                    <dt>App ID</dt>
+                    <dd>{integration.appId}</dd>
+                  </div>
+                  <div>
+                    <dt>授权状态</dt>
+                    <dd className="authorized">已授权</dd>
+                  </div>
+                </dl>
+                <footer className="feishu-integration-actions centered">
+                  <button
+                    className="feishu-integration-secondary"
+                    onClick={requestUnlink}
+                    type="button"
+                  >
+                    解绑
+                  </button>
+                  <button
+                    className="feishu-integration-primary"
+                    disabled
+                    type="button"
+                  >
+                    <Check size={17} />
+                    已完成授权
+                  </button>
+                </footer>
+              </>
+            ) : (
+              <>
+                <FeishuConnectionVisual />
+                <footer className="feishu-integration-actions centered">
+                  <button
+                    className="feishu-integration-secondary"
+                    onClick={requestUnlink}
+                    type="button"
+                  >
+                    解绑
+                  </button>
+                  <a
+                    className="feishu-integration-primary"
+                    href={FEISHU_OPEN_PLATFORM_URL}
+                    onClick={() => beginExternalAction("authorize")}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    已创建应用，开通飞书权限
+                  </a>
+                </footer>
+              </>
+            )}
           </div>
         )}
       </section>
@@ -386,7 +347,7 @@ export function FeishuIntegrationDialog({
             }}
             role="alertdialog"
           >
-            <h3 id="feishu-unlink-title">解除飞书集成？</h3>
+            <h3 id="feishu-unlink-title">解除飞书授权？</h3>
             <p>解除后将清除当前演示凭证和授权状态。</p>
             <div>
               <button
@@ -403,6 +364,36 @@ export function FeishuIntegrationDialog({
           </section>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function FeishuConnectionVisual() {
+  return (
+    <div aria-hidden="true" className="feishu-connection-visual">
+      <span>
+        <Bot size={30} strokeWidth={1.7} />
+      </span>
+      <MoreHorizontal size={28} />
+      <span>
+        <MessageSquare size={29} strokeWidth={1.7} />
+      </span>
+    </div>
+  );
+}
+
+function FeishuDetectionState({
+  detail,
+  label,
+}: {
+  detail?: string;
+  label: string;
+}) {
+  return (
+    <div aria-live="polite" className="feishu-detection-state" role="status">
+      <LoaderCircle aria-hidden="true" size={46} />
+      <strong>{label}</strong>
+      {detail ? <span>{detail}</span> : null}
     </div>
   );
 }

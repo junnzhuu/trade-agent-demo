@@ -33,9 +33,10 @@ test("creates deterministic demo credentials after returning", () => {
   assert.match(result.state.appId, /^cli_demo_/);
   assert.match(result.state.appSecret, /^demo_/);
   assert.equal(result.state.pendingExternalAction, null);
+  assert.equal(result.state.step, 2);
   assert.equal(
     result.toast,
-    "飞书机器人创建成功，App ID 和 App Secret 已自动填入。",
+    "飞书应用创建成功，请继续开通飞书权限",
   );
 });
 

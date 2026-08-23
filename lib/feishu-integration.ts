@@ -97,10 +97,11 @@ export function completeFeishuExternalAction(
       state: {
         ...state,
         ...credentials,
+        step: 2,
         linkRevealed: true,
         pendingExternalAction: null,
       },
-      toast: "飞书机器人创建成功，App ID 和 App Secret 已自动填入。",
+      toast: "飞书应用创建成功，请继续开通飞书权限",
     };
   }
 

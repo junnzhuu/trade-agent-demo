@@ -247,24 +247,31 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, />\s*我要反馈\s*</);
   assert.match(page, /加入反馈群/);
   assert.doesNotMatch(page, />\s*设置\s*</);
-  assert.match(page, /飞书集成/);
-  assert.match(page, /完成飞书集成，解锁完整功能/);
+  assert.match(page, /飞书授权/);
+  assert.match(page, /完成飞书授权，解锁完整功能/);
   assert.match(page, /feishuIntegrationAuthorized/);
   assert.match(page, /className="account-drawer-integration"/);
   assert.match(page, /className="feishu-integration-alert-dot"/);
-  assert.match(page, /飞书集成未完成/);
+  assert.match(page, /飞书授权未完成/);
   assert.match(
     page,
     /!feishuIntegrationAuthorized \? \([\s\S]*className="feishu-integration-alert-dot"/,
   );
   assert.match(page, /useSyncExternalStore/);
-  assert.match(feishuIntegration, /应用和授权/);
+  assert.match(feishuIntegration, /飞书授权/);
   assert.match(
     feishuIntegration,
-    /授权后将自动创建飞书机器人并获取 App ID 和 App Secret/,
+    /授权后，交易智能助手可连接你的飞书消息、云文档、多维表格、会议等核心功能/,
   );
-  assert.match(feishuIntegration, /获取授权链接\/二维码/);
-  assert.match(feishuIntegration, /完成授权后解锁完整能力/);
+  assert.match(feishuIntegration, /配置飞书应用/);
+  assert.match(feishuIntegration, /开通飞书权限/);
+  assert.match(feishuIntegration, /创建飞书应用/);
+  assert.match(feishuIntegration, /检测应用创建状态\.\.\./);
+  assert.match(feishuIntegration, /应用创建后，将自动跳转/);
+  assert.match(feishuIntegration, /已创建应用，开通飞书权限/);
+  assert.match(feishuIntegration, /检测飞书权限开通状态\.\.\./);
+  assert.match(feishuIntegration, />\s*解绑\s*</);
+  assert.doesNotMatch(feishuIntegration, /QRCodeSVG|获取授权链接\/二维码/);
   assert.doesNotMatch(feishuIntegration, /feishu-credential-fields/);
   assert.doesNotMatch(feishuIntegration, /等待授权后自动填入/);
   assert.doesNotMatch(feishuIntegration, /返回上一步/);
@@ -280,7 +287,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
     css,
     /\.account-drawer-integration \.feishu-integration-alert-dot\s*{[^}]*margin-left: auto/s,
   );
-  assert.match(css, /\.feishu-auth-qr/);
+  assert.match(css, /\.feishu-connection-visual/);
+  assert.match(css, /\.feishu-detection-state/);
   assert.match(page, /收藏的任务/);
   assert.match(page, /收藏的答案/);
   assert.match(page, /创建时间：/);
