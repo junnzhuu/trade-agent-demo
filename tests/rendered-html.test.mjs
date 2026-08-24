@@ -104,7 +104,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   );
   assert.match(page, /aria-label="猜你想问"/);
   assert.match(page, /不知道怎么问？试试这些问法/);
-  assert.match(page, /home-suggested-question-row/);
+  assert.doesNotMatch(page, /home-suggested-question-row/);
   assert.match(page, /home-suggested-question-star/);
   assert.doesNotMatch(page, /大家都在问这些问题/);
   assert.doesNotMatch(page, /FeatureBannerCarousel/);
@@ -208,7 +208,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(css, /\.audience-scenario-strip/);
   assert.match(css, /\.home-suggested-questions/);
   assert.match(css, /\.home-suggested-question-list/);
-  assert.match(css, /\.home-suggested-question-row\.row-2/);
+  assert.match(css, /\.home-suggested-question-list\s*{[^}]*overflow-x: auto/s);
+  assert.doesNotMatch(css, /\.home-suggested-question-row\.row-2/);
   assert.match(page, /recommended-question-star\.svg/);
   assert.doesNotMatch(css, /\.feature-banner-carousel/);
   assert.doesNotMatch(css, /@keyframes feature-banner-enter/);
@@ -381,7 +382,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /aria-pressed=\{selectedExpertId === agent\.id\}/);
   assert.match(page, /aria-pressed=\{selectedSkillKeys\.includes\(skill\.key\)\}/);
   assert.doesNotMatch(page, /<ArrowDownRight/);
-  assert.match(css, /\.empty-state h1\s*{[^}]*margin: 0 0 32px/s);
+  assert.match(css, /\.empty-state h1\s*{[^}]*margin: 0 0 48px/s);
   assert.match(css, /\.home-skill-option\s*{[^}]*background: rgba\(255, 255, 255, 0\.68\)/s);
   assert.match(page, /onShowMore/);
   assert.match(css, /\.home-skill-tooltip/);
