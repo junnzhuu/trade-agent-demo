@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 const targetDirectory = process.argv[2];
 const scriptSource = process.argv[3];
-const versionedScriptSource = `${scriptSource}?v=2.7.1`;
+const versionedScriptSource = `${scriptSource}?v=2.8.0`;
 
 if (!targetDirectory || !scriptSource) {
   throw new Error(

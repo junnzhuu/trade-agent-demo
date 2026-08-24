@@ -70,3 +70,26 @@ export function getHomeExpertById(
   if (!expertId) return undefined;
   return allHomeExperts.find((agent) => agent.id === expertId);
 }
+
+export type ExpertComposerSelectionAction =
+  | "fill_expert_question"
+  | "preserve_text"
+  | "preserve_compatible_skill"
+  | "remove_incompatible_skill";
+
+export function getExpertComposerSelectionAction({
+  expertId,
+  input,
+  selectedSkillExpertId,
+}: {
+  expertId: string;
+  input: string;
+  selectedSkillExpertId?: string;
+}): ExpertComposerSelectionAction {
+  if (selectedSkillExpertId) {
+    return selectedSkillExpertId === expertId
+      ? "preserve_compatible_skill"
+      : "remove_incompatible_skill";
+  }
+  return input.trim() ? "preserve_text" : "fill_expert_question";
+}

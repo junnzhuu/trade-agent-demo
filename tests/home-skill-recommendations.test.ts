@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   frequentHomeExperts,
   frequentHomeSkills,
+  getExpertComposerSelectionAction,
   getHomeExpertById,
   getHomeSuggestedQuestions,
 } from "../lib/home-skill-recommendations";
@@ -45,4 +46,31 @@ test("keeps merchant suggested questions stable and capped at six", () => {
   assert.equal(questions.length, 6);
   assert.deepEqual(questions, getHomeSuggestedQuestions());
   assert.ok(questions.every((question) => question.standardQuestion));
+});
+
+test("selects the correct composer action when binding an expert", () => {
+  assert.equal(
+    getExpertComposerSelectionAction({ expertId: "a", input: "" }),
+    "fill_expert_question",
+  );
+  assert.equal(
+    getExpertComposerSelectionAction({ expertId: "a", input: "已有问题" }),
+    "preserve_text",
+  );
+  assert.equal(
+    getExpertComposerSelectionAction({
+      expertId: "a",
+      input: "技能标准问",
+      selectedSkillExpertId: "a",
+    }),
+    "preserve_compatible_skill",
+  );
+  assert.equal(
+    getExpertComposerSelectionAction({
+      expertId: "a",
+      input: "技能标准问",
+      selectedSkillExpertId: "b",
+    }),
+    "remove_incompatible_skill",
+  );
 });
