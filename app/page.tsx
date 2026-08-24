@@ -12,7 +12,6 @@ import {
   Ellipsis,
   FilePlus2,
   ImagePlus,
-  Info,
   LoaderCircle,
   PanelLeftClose,
   PanelLeftOpen,
@@ -2413,24 +2412,8 @@ function HomeSkillDiscovery({
   onShowMore: () => void;
   selectedSkillKeys: string[];
 }) {
-  const tooltipId = "home-discovery-info-skills";
-
   return (
     <section aria-label="常用技能" className="home-skill-discovery">
-      <div className="home-discovery-heading">
-        <strong className="home-discovery-title">常用技能</strong>
-        <button
-          aria-describedby={tooltipId}
-          aria-label="了解常用技能"
-          className="home-discovery-info"
-          type="button"
-        >
-          <Info aria-hidden="true" size={15} />
-          <span id={tooltipId} role="tooltip">
-            技能是专家处理具体任务时调用的专项能力。选择后，将按该技能执行并自动绑定所属专家。
-          </span>
-        </button>
-      </div>
       <div className="home-discovery-options">
         {skills.map((skill) => (
           <button

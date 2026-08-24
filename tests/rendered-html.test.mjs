@@ -113,7 +113,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /setSelectedComposerSkills\(\[\]\)[\s\S]*setText\(question\)/);
   assert.match(page, /aria-label="常用技能"/);
   assert.match(page, /更多技能/);
-  assert.match(page, /技能是专家处理具体任务时调用的专项能力/);
+  assert.doesNotMatch(page, /className="home-discovery-title"/);
+  assert.doesNotMatch(page, /className="home-discovery-info"/);
+  assert.doesNotMatch(page, /了解常用技能/);
   assert.match(page, /composerHandleRef\.current\?\.replaceWithSkill\(skill\)/);
   assert.match(page, /getExpertComposerSelectionAction/);
   assert.match(page, /removeSkillTokenPreservingText/);
@@ -362,8 +364,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
     css,
     /\.home-skill-card\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(120%\)/s,
   );
-  assert.match(css, /background: rgba\(218, 222, 225, 0\.66\)/);
-  assert.match(css, /\.home-skill-discovery\s*{[^}]*grid-template-columns: 116px/s);
+  assert.match(css, /\.home-skill-discovery\s*{[^}]*display: block/s);
+  assert.doesNotMatch(css, /\.home-skill-discovery\s*{[^}]*grid-template-columns:/s);
   assert.match(css, /\.home-skill-card\s*{[^}]*min-height: 32px/s);
   assert.match(css, /\.home-skill-card\s*{[^}]*padding: 0 11px/s);
   assert.match(css, /\.home-discovery-more\s*{[^}]*min-height: 32px/s);
@@ -371,11 +373,13 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(css, /\.home-skill-card\s*{[^}]*max-width:/s);
   assert.doesNotMatch(page, /home-skill-category-icon/);
   assert.match(css, /\.home-discovery-options\s*{[^}]*display: flex/s);
-  assert.match(css, /\.home-discovery-info/);
+  assert.doesNotMatch(css, /\.home-discovery-info/);
   assert.match(page, /aria-pressed=\{selectedSkillKeys\.includes\(skill\.key\)\}/);
   assert.doesNotMatch(page, /<ArrowDownRight/);
   assert.match(css, /\.empty-state h1\s*{[^}]*margin: 0 0 48px/s);
-  assert.match(css, /\.home-skill-option\s*{[^}]*background: rgba\(255, 255, 255, 0\.68\)/s);
+  assert.match(css, /\.home-skill-option\s*{[^}]*background: rgba\(255, 255, 255, 0\.76\)/s);
+  assert.match(css, /\.home-skill-card:hover,[\s\S]*border-color: #01c1c2/s);
+  assert.match(css, /\.home-skill-card\.selected\s*{[^}]*color: #009fa0/s);
   assert.match(page, /onShowMore/);
   assert.match(css, /\.home-skill-tooltip/);
   assert.match(css, /\.home-skill-card:hover \.home-skill-tooltip/);
@@ -412,6 +416,10 @@ test("ships the trading agent workspace instead of the starter preview", async (
     /\.summon-agent-button\s*{[^}]*background:\s*#171717;[^}]*color:\s*#ffffff;/s,
   );
   assert.match(css, /\.composer-expert-tag/);
+  assert.match(
+    css,
+    /\.composer-expert-tag\s*{[^}]*background: rgba\(1, 193, 194, 0\.1\);[^}]*color: #007f80;/s,
+  );
   assert.match(
     css,
     /\.expert-workspace > h1,[\s\S]*\.expert-directory-heading h2,[\s\S]*\.skill-directory-heading h3\s*{[^}]*font-size: 28px/s,
