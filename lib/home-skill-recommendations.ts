@@ -4,61 +4,64 @@ import {
   quickComposerExperts,
   type SubAgentDefinition,
 } from "./agent-skill-catalog";
+import type { ComposerSkillOption } from "./composer-skills";
 
-export type HomeSkillCategoryId =
-  | "merchant"
-  | "product"
-  | "acquisition"
-  | "campaign"
-  | "project";
+const frequentExpertIds = [
+  "merchant-operation-agent",
+  "data-analysis-agent",
+  "ab-analysis-agent",
+  "deposit-agent",
+  "trade-data-query",
+] as const;
 
-export const homeSkillCategories: Array<{
-  id: HomeSkillCategoryId;
-  label: string;
-}> = [
-  { id: "merchant", label: "商家运营" },
-  { id: "product", label: "商品运营" },
-  { id: "acquisition", label: "招商" },
-  { id: "campaign", label: "营销活动" },
-  { id: "project", label: "项目管理" },
-];
-
-export function getHomeSkills(categoryId: HomeSkillCategoryId): ExpertSkill[] {
-  const expert = expertCatalog.find((item) => item.id === categoryId);
-
-  if (!expert) return [];
-
-  return expert.skills.slice(0, 7);
-}
-
-export function getHomeSuggestedQuestions(
-  categoryId: HomeSkillCategoryId,
-): ExpertSkill[] {
-  return getHomeSkills(categoryId).slice(0, 6);
-}
+const frequentSkillMounts = [
+  ["data-analysis-agent", "spu_diagnosis"],
+  ["ab-analysis-agent", "ab-analysis-assistant"],
+  ["deposit-agent", "deposit-bill-basic-query"],
+  ["trade-data-query", "dewu-trade-api-invoke"],
+  ["trade-data-query", "commodity_data_query_guide"],
+] as const;
 
 const allHomeExperts = Array.from(
   new Map(
-    [
-      ...merchantOperationAgents,
-      ...quickComposerExperts,
-    ].map((agent) => [
+    [...merchantOperationAgents, ...quickComposerExperts].map((agent) => [
       agent.id,
       agent,
     ]),
   ).values(),
 );
 
-export function getHomeExperts(
-  categoryId: HomeSkillCategoryId,
-): SubAgentDefinition[] {
-  if (categoryId === "merchant") return merchantOperationAgents;
-  if (categoryId === "product") return quickComposerExperts.slice(3, 4);
-  if (categoryId === "project") return quickComposerExperts.slice(2, 3);
-  if (categoryId === "acquisition" || categoryId === "campaign") {
-    return quickComposerExperts.slice(1, 2);
-  }
-  return [];
+function requireExpert(expertId: string): SubAgentDefinition {
+  const expert = allHomeExperts.find((agent) => agent.id === expertId);
+  if (!expert) throw new Error(`Missing home expert: ${expertId}`);
+  return expert;
+}
+
+export const frequentHomeExperts = frequentExpertIds.map(requireExpert);
+
+export const frequentHomeSkills: ComposerSkillOption[] = frequentSkillMounts.map(
+  ([expertId, skillId]) => {
+    const expert = requireExpert(expertId);
+    const skill = expert.skills.find((item) => item.id === skillId);
+    if (!skill) throw new Error(`Missing home skill: ${expertId}/${skillId}`);
+    return {
+      id: skill.id,
+      key: skill.mountKey,
+      name: skill.name,
+      description: skill.description,
+      standardQuestion: skill.standardQuestion,
+      expertId: expert.id,
+      expertName: expert.name,
+      expertLabel: expert.name,
+    };
+  },
+);
+
+export function getHomeSuggestedQuestions(): ExpertSkill[] {
+  return (
+    expertCatalog.find((expert) => expert.id === "merchant")?.skills.slice(0, 6) ??
+    []
+  );
 }
 
 export function getHomeExpertById(

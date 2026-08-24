@@ -7,13 +7,13 @@ import {
   Bookmark,
   Check,
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   ClipboardList,
   Copy,
   Ellipsis,
   FilePlus2,
   ImagePlus,
+  Info,
   LoaderCircle,
   PanelLeftClose,
   PanelLeftOpen,
@@ -34,6 +34,7 @@ import Image from "next/image";
 import {
   type FormEvent,
   type KeyboardEvent,
+  type ReactNode,
   forwardRef,
   useCallback,
   useEffect,
@@ -76,11 +77,10 @@ import {
 } from "@/lib/task-history";
 import { ConcurrentTaskScheduler } from "@/lib/task-scheduler";
 import {
+  frequentHomeExperts,
+  frequentHomeSkills,
   getHomeExpertById,
-  getHomeExperts,
   getHomeSuggestedQuestions,
-  homeSkillCategories,
-  type HomeSkillCategoryId,
 } from "@/lib/home-skill-recommendations";
 import {
   buildPromptWithSkills,
@@ -223,8 +223,6 @@ export default function Home() {
     useState<SubAgentDefinition | null>(null);
   const [planMode, setPlanMode] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState<ModelId>("glm-5");
-  const [selectedHomeSkillCategory, setSelectedHomeSkillCategory] =
-    useState<HomeSkillCategoryId>("merchant");
   const [recentTasks, setRecentTasks] = useState<RecentTask[]>([]);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -314,32 +312,11 @@ export default function Home() {
     () => recentTasks.filter((task) => task.archived),
     [recentTasks],
   );
-  const homeExperts = useMemo(
-    () => getHomeExperts(selectedHomeSkillCategory),
-    [selectedHomeSkillCategory],
-  );
   const selectedHomeExpert = useMemo(
     () => getHomeExpertById(selectedComposerExpert?.id),
     [selectedComposerExpert?.id],
   );
-  const selectedHomeExpertSkills = useMemo<ComposerSkillOption[]>(
-    () =>
-      selectedHomeExpert?.skills.map((skill) => ({
-        id: skill.id,
-        key: skill.mountKey,
-        name: skill.name,
-        description: skill.description,
-        standardQuestion: skill.standardQuestion,
-        expertId: selectedHomeExpert.id,
-        expertName: selectedHomeExpert.name,
-        expertLabel: selectedHomeExpert.name,
-      })) ?? [],
-    [selectedHomeExpert],
-  );
-  const homeSuggestedQuestions = useMemo(
-    () => getHomeSuggestedQuestions(selectedHomeSkillCategory),
-    [selectedHomeSkillCategory],
-  );
+  const homeSuggestedQuestions = useMemo(() => getHomeSuggestedQuestions(), []);
   const feishuIntegrationSnapshot = useSyncExternalStore(
     subscribeToFeishuIntegration,
     getFeishuIntegrationStorageSnapshot,
@@ -1899,23 +1876,25 @@ export default function Home() {
             <div className="empty-state-content">
               <h1>Hi 哈基咪(Manbo)，有什么可以帮你的？</h1>
               <HomeSkillDiscovery
-                experts={homeExperts}
-                onSelectCategory={(category) => {
-                  setSelectedHomeSkillCategory(category);
-                  setSelectedComposerSkills([]);
-                  clearComposerExpert();
-                }}
+                experts={frequentHomeExperts}
+                skills={frequentHomeSkills}
                 onSelectExpert={(agent) => {
                   selectQuickComposerExpert(agent);
                   composerHandleRef.current?.setText(agent.standardQuestion);
                 }}
                 onSelectSkill={(skill) => {
+                  const owner = getHomeExpertById(skill.expertId);
+                  if (owner) selectQuickComposerExpert(owner);
                   setSelectedComposerSkills([skill]);
                   composerHandleRef.current?.setText(skill.standardQuestion);
                 }}
-                selectedCategory={selectedHomeSkillCategory}
-                selectedExpert={selectedHomeExpert}
-                skills={selectedHomeExpertSkills}
+                onShowMore={() => {
+                  activeViewRef.current = "experts";
+                  setActiveView("experts");
+                  setMobileSidebarOpen(false);
+                }}
+                selectedExpertId={selectedHomeExpert?.id}
+                selectedSkillKeys={selectedComposerSkills.map((skill) => skill.key)}
               />
               <Composer
                 input={input}
@@ -2586,174 +2565,108 @@ export default function Home() {
 }
 
 function HomeSkillDiscovery({
-  selectedCategory,
-  selectedExpert,
   experts,
   skills,
-  onSelectCategory,
   onSelectExpert,
   onSelectSkill,
+  onShowMore,
+  selectedExpertId,
+  selectedSkillKeys,
 }: {
-  selectedCategory: HomeSkillCategoryId;
-  selectedExpert?: SubAgentDefinition;
   experts: SubAgentDefinition[];
   skills: ComposerSkillOption[];
-  onSelectCategory: (category: HomeSkillCategoryId) => void;
   onSelectExpert: (agent: SubAgentDefinition) => void;
   onSelectSkill: (skill: ComposerSkillOption) => void;
+  onShowMore: () => void;
+  selectedExpertId?: string;
+  selectedSkillKeys: string[];
 }) {
-  const showingExpertSkills = Boolean(selectedExpert);
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const [canScrollPrevious, setCanScrollPrevious] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(false);
-
-  const updateScrollControls = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    const remainingScroll =
-      container.scrollWidth - container.clientWidth - container.scrollLeft;
-    setCanScrollPrevious(container.scrollLeft > 2);
-    setCanScrollNext(remainingScroll > 2);
-  }, []);
-
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    container.scrollTo({ left: 0, behavior: "auto" });
-    const animationFrame = requestAnimationFrame(updateScrollControls);
-    const resizeObserver =
-      typeof ResizeObserver === "undefined"
-        ? null
-        : new ResizeObserver(updateScrollControls);
-    resizeObserver?.observe(container);
-    container.addEventListener("scroll", updateScrollControls, {
-      passive: true,
-    });
-
-    return () => {
-      cancelAnimationFrame(animationFrame);
-      resizeObserver?.disconnect();
-      container.removeEventListener("scroll", updateScrollControls);
-    };
-  }, [
-    experts.length,
-    selectedCategory,
-    selectedExpert?.id,
-    skills.length,
-    updateScrollControls,
-  ]);
-
-  const scrollByPage = (direction: -1 | 1) => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    container.scrollBy({
-      left: direction * Math.max(160, container.clientWidth * 0.8),
-      behavior: reduceMotion ? "auto" : "smooth",
-    });
-  };
-
-  const itemType = showingExpertSkills ? "技能" : "专家";
   return (
     <section
-      aria-label={showingExpertSkills ? "专家技能推荐" : "专家推荐"}
+      aria-label="常用专家与技能"
       className="home-skill-discovery"
       data-tour-id="quick-skills"
     >
-      <div aria-label="业务场景" className="home-skill-tabs" role="tablist">
-        {homeSkillCategories.map((category) => (
+      <HomeDiscoveryRow
+        info="专家是负责特定业务领域的 Agent。选择后，该专家会在当前任务中持续回答和处理问题。"
+        label="常用专家"
+      >
+        {experts.map((agent) => (
           <button
-            aria-controls="home-expert-skill-cards"
-            aria-selected={selectedCategory === category.id}
-            className={selectedCategory === category.id ? "selected" : ""}
-            id={`home-skill-tab-${category.id}`}
-            key={category.id}
-            onClick={() => onSelectCategory(category.id)}
-            role="tab"
+            aria-pressed={selectedExpertId === agent.id}
+            className={`home-skill-card home-expert-card${selectedExpertId === agent.id ? " selected" : ""}`}
+            key={agent.id}
+            onClick={() => onSelectExpert(agent)}
+            title={agent.description}
             type="button"
           >
-            {category.label}
+            <strong>{agent.name}</strong>
+            <span className="home-skill-tooltip" role="tooltip">
+              {agent.description}
+            </span>
           </button>
         ))}
-      </div>
+        <button className="home-discovery-more" onClick={onShowMore} type="button">
+          更多专家
+          <ChevronRight aria-hidden="true" size={15} />
+        </button>
+      </HomeDiscoveryRow>
 
-      <div className="home-skill-strip">
-        {canScrollPrevious ? (
-          <button
-            aria-label={`浏览上一组${itemType}`}
-            className="home-skill-scroll-button previous"
-            onClick={() => scrollByPage(-1)}
-            title={`浏览上一组${itemType}`}
-            type="button"
-          >
-            <ChevronLeft aria-hidden="true" size={18} />
-          </button>
-        ) : null}
-        <div
-          aria-labelledby={`home-skill-tab-${selectedCategory}`}
-          className="home-skill-cards"
-          id="home-expert-skill-cards"
-          ref={scrollContainerRef}
-          role="tabpanel"
-        >
-          {showingExpertSkills ? (
-            skills.length ? (
-              skills.map((skill) => (
-                <button
-                  className="home-skill-card home-skill-option"
-                  key={skill.key}
-                  onClick={() => onSelectSkill(skill)}
-                  title={skill.description}
-                  type="button"
-                >
-                  <strong>{skill.name}</strong>
-                  <ArrowDownRight
-                    aria-hidden="true"
-                    className="home-skill-option-arrow"
-                    size={15}
-                    strokeWidth={1.8}
-                  />
-                  <span className="home-skill-tooltip" role="tooltip">
-                    {skill.description}
-                  </span>
-                </button>
-              ))
-            ) : (
-              <span className="home-skill-empty">该专家暂无推荐技能，可直接输入问题继续咨询</span>
-            )
-          ) : (
-            experts.map((agent) => (
+      <HomeDiscoveryRow
+        info="技能是专家处理具体任务时调用的专项能力。选择后，将按该技能执行并自动绑定所属专家。"
+        label="常用技能"
+      >
+        {skills.map((skill) => (
               <button
-                className="home-skill-card home-expert-card"
-                key={agent.id}
-                onClick={() => onSelectExpert(agent)}
-                title={agent.description}
+            aria-pressed={selectedSkillKeys.includes(skill.key)}
+            className={`home-skill-card home-skill-option${selectedSkillKeys.includes(skill.key) ? " selected" : ""}`}
+            key={skill.key}
+            onClick={() => onSelectSkill(skill)}
+            title={`${skill.expertName}｜${skill.description}`}
                 type="button"
               >
-                <strong>{agent.name}</strong>
+            <strong>{skill.name}</strong>
+            <ArrowDownRight aria-hidden="true" size={14} strokeWidth={1.8} />
                 <span className="home-skill-tooltip" role="tooltip">
-                  {agent.description}
+              {skill.expertName}｜{skill.description}
                 </span>
               </button>
-            ))
-          )}
-        </div>
-        {canScrollNext ? (
-          <button
-            aria-label={`浏览下一组${itemType}`}
-            className="home-skill-scroll-button next"
-            onClick={() => scrollByPage(1)}
-            title={`浏览下一组${itemType}`}
-            type="button"
-          >
-            <ChevronRight aria-hidden="true" size={18} />
-          </button>
-        ) : null}
-      </div>
+        ))}
+        <button className="home-discovery-more" onClick={onShowMore} type="button">
+          更多技能
+          <ChevronRight aria-hidden="true" size={15} />
+        </button>
+      </HomeDiscoveryRow>
     </section>
+  );
+}
+
+function HomeDiscoveryRow({
+  children,
+  info,
+  label,
+}: {
+  children: ReactNode;
+  info: string;
+  label: string;
+}) {
+  const tooltipId = `home-discovery-info-${label === "常用专家" ? "experts" : "skills"}`;
+  return (
+    <div className="home-discovery-row">
+      <div className="home-discovery-heading">
+        <strong>{label}</strong>
+        <button
+          aria-describedby={tooltipId}
+          aria-label={`了解${label}`}
+          className="home-discovery-info"
+          type="button"
+        >
+          <Info aria-hidden="true" size={15} />
+          <span id={tooltipId} role="tooltip">{info}</span>
+        </button>
+      </div>
+      <div className="home-discovery-options">{children}</div>
+    </div>
   );
 }
 

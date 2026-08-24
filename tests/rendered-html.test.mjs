@@ -111,8 +111,13 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /aria-label="新功能推荐"/);
   assert.doesNotMatch(page, /立即体验/);
   assert.match(page, /setSelectedComposerSkills\(\[\]\)[\s\S]*setText\(question\)/);
-  assert.match(page, /专家推荐/);
-  assert.match(page, /专家技能推荐/);
+  assert.match(page, /aria-label="常用专家与技能"/);
+  assert.match(page, /label="常用专家"/);
+  assert.match(page, /label="常用技能"/);
+  assert.match(page, /更多专家/);
+  assert.match(page, /更多技能/);
+  assert.match(page, /专家是负责特定业务领域的 Agent/);
+  assert.match(page, /技能是专家处理具体任务时调用的专项能力/);
   assert.match(page, /composerHandleRef\.current\?\.setText\(agent\.standardQuestion\)/);
   assert.match(page, /composerHandleRef\.current\?\.setText\(skill\.standardQuestion\)/);
   assert.doesNotMatch(page, /AutomationWorkspace|<span>自动化<\/span>/);
@@ -358,33 +363,29 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.scene-grid/);
   assert.match(css, /\.agent-filter-tabs/);
   assert.match(css, /\.home-skill-discovery/);
-  assert.match(css, /\.home-skill-cards/);
+  assert.match(css, /\.home-discovery-options/);
   assert.doesNotMatch(
     css,
     /\.home-skill-discovery\s*{[^}]*(?:background|backdrop-filter|border:)/s,
   );
-  assert.match(
-    css,
-    /\.home-skill-tabs\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(120%\)/s,
-  );
+  assert.match(css, /\.home-discovery-options\s*{[^}]*overflow-x: auto/s);
   assert.match(
     css,
     /\.home-skill-card\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(120%\)/s,
   );
   assert.match(css, /background: rgba\(218, 222, 225, 0\.66\)/);
-  assert.match(css, /\.home-skill-tabs\s*{[^}]*width: max-content/s);
-  assert.match(css, /\.home-skill-tabs\s*{[^}]*gap: 0/s);
+  assert.match(css, /\.home-discovery-row\s*{[^}]*grid-template-columns: 92px/s);
   assert.match(css, /\.home-skill-card\s*{[^}]*min-height: 38px/s);
   assert.match(css, /\.home-skill-card\s*{[^}]*padding: 0 15px/s);
   assert.doesNotMatch(css, /\.home-skill-card\s*{[^}]*max-width:/s);
   assert.doesNotMatch(page, /home-skill-category-icon/);
-  assert.match(css, /\.home-skill-cards\s*{[^}]*display: flex/s);
-  assert.match(css, /\.home-skill-scroll-button/);
-  assert.match(page, /canScrollPrevious/);
-  assert.match(page, /canScrollNext/);
+  assert.match(css, /\.home-discovery-options\s*{[^}]*display: flex/s);
+  assert.match(css, /\.home-discovery-info/);
+  assert.match(page, /aria-pressed=\{selectedExpertId === agent\.id\}/);
+  assert.match(page, /aria-pressed=\{selectedSkillKeys\.includes\(skill\.key\)\}/);
   assert.match(page, /<ArrowDownRight/);
   assert.match(css, /\.home-skill-option\s*{[^}]*background: rgba\(229, 231, 232, 0\.82\)/s);
-  assert.doesNotMatch(page, /onMore=/);
+  assert.match(page, /onShowMore/);
   assert.match(css, /\.home-skill-tooltip/);
   assert.match(css, /\.home-skill-card:hover \.home-skill-tooltip/);
   assert.match(page, /role="tooltip"/);
@@ -445,11 +446,15 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(workflow, /codex\/交易智能助手-v2\.2/);
   assert.match(workflow, /codex\/交易智能助手-v2\.3-integrated/);
   assert.match(workflow, /codex\/交易智能助手-v2\.4/);
+  assert.match(workflow, /codex\/交易智能助手-v2\.5/);
   assert.match(workflow, /versions\/classic/);
   assert.match(workflow, /versions\/audience-isolation/);
   assert.match(workflow, /versions\/scene-agent-skill/);
   assert.match(workflow, /versions\/integrated-expert-skills/);
   assert.match(workflow, /versions\/expert-recommendations/);
+  assert.match(workflow, /versions\/question-suggestions/);
+  assert.match(versionSwitcher, /v2\.6/);
+  assert.match(versionSwitcher, /常用专家与技能/);
   assert.match(versionSwitcher, /v2\.5/);
   assert.match(versionSwitcher, /v2\.4/);
   assert.match(versionSwitcher, /v2\.3/);

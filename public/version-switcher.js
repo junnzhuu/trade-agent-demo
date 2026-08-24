@@ -23,14 +23,23 @@
   const isExpertRecommendations = currentPath.includes(
     "/versions/expert-recommendations/",
   );
+  const isQuestionSuggestions = currentPath.includes(
+    "/versions/question-suggestions/",
+  );
 
   const versions = [
+    {
+      id: "v2.6",
+      name: "v2.6",
+      detail: "常用专家与技能",
+      href: `${rootPath || ""}/`,
+      latest: true,
+    },
     {
       id: "v2.5",
       name: "v2.5",
       detail: "猜你想问",
-      href: `${rootPath || ""}/`,
-      latest: true,
+      href: `${rootPath || ""}/versions/question-suggestions/`,
     },
     {
       id: "v2.4",
@@ -73,7 +82,9 @@
           ? "v2.3"
           : isExpertRecommendations
             ? "v2.4"
-            : "v2.5";
+            : isQuestionSuggestions
+              ? "v2.5"
+              : "v2.6";
 
   const root = document.createElement("div");
   root.id = "trade-agent-version-switcher";

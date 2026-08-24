@@ -113,9 +113,9 @@ export const onboardingSteps: OnboardingStep[] = [
   {
     id: "quick-skills",
     targetId: "quick-skills",
-    title: "快捷专家与技能",
+    title: "选择常用专家或技能",
     description:
-      "按业务场景选择专家后，输入框会带入专家标准问，并展示该专家的推荐技能；选择技能会保留专家路由并用技能标准问替换正文。",
+      "常用专家会在当前任务中持续处理问题；常用技能会自动绑定所属专家并带入标准问。点击更多可查看完整目录。",
     placement: "top",
   },
   {
@@ -147,7 +147,7 @@ export const onboardingSteps: OnboardingStep[] = [
     targetId: "experts-and-skills",
     title: "场景、专家与技能目录",
     description:
-      "先选择业务场景，再查看对应专家与技能。技能卡会展示用途、标准问，并支持一键带入新任务。你已了解当前版本的全部主要能力。",
+      "完整目录按场景查看专家与技能。技能卡会展示用途、标准问，并支持一键带入新任务。你已了解当前版本的全部主要能力。",
     placement: "bottom",
   },
 ];
