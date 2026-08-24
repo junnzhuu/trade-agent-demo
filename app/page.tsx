@@ -2,7 +2,6 @@
 
 import {
   Archive,
-  ArrowDownRight,
   Bot,
   Bookmark,
   Check,
@@ -2482,7 +2481,6 @@ function HomeSkillDiscovery({
                 type="button"
               >
                 <strong>{skill.name}</strong>
-                <ArrowDownRight aria-hidden="true" size={14} strokeWidth={1.8} />
                 <span className="home-skill-tooltip" role="tooltip">
                   {skill.expertName}｜{skill.description}
                 </span>
