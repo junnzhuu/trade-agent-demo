@@ -915,7 +915,7 @@ button:disabled {
 }
 
 .empty-state h1 {
-  margin: 0 0 24px;
+  margin: 0 0 18px;
   font-size: clamp(24px, 1.75vw, 31px);
   font-weight: 470;
   letter-spacing: -0.035em;
@@ -926,35 +926,35 @@ button:disabled {
 .home-skill-discovery {
   display: grid;
   width: min(920px, 100%);
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .home-discovery-row {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: 82px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .home-discovery-heading {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
   color: #303336;
   white-space: nowrap;
 }
 
 .home-discovery-heading > strong {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 620;
 }
 
 .home-discovery-info {
   position: relative;
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   place-items: center;
   padding: 0;
   border: 0;
@@ -970,7 +970,6 @@ button:disabled {
 }
 
 .home-discovery-info span {
-  position: relative;
   position: absolute;
   bottom: calc(100% + 8px);
   left: 0;
@@ -1007,10 +1006,10 @@ button:disabled {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 5px 2px 7px;
+  padding: 3px 1px 5px;
   scrollbar-width: none;
 }
 
@@ -1021,11 +1020,11 @@ button:disabled {
 .home-skill-card {
   position: relative;
   display: flex;
-  min-height: 38px;
+  min-height: 32px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  padding: 0 15px;
+  padding: 0 11px;
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.68);
@@ -1060,13 +1059,13 @@ button:disabled {
 }
 
 .home-skill-card > strong {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 520;
   white-space: nowrap;
 }
 
 .home-skill-option {
-  gap: 7px;
+  gap: 5px;
   border-color: rgba(208, 211, 213, 0.72);
   background: rgba(229, 231, 232, 0.82);
   color: #252729;
@@ -1085,16 +1084,16 @@ button:disabled {
 
 .home-discovery-more {
   display: inline-flex;
-  min-height: 38px;
+  min-height: 32px;
   flex: 0 0 auto;
   align-items: center;
-  gap: 5px;
-  padding: 0 14px;
+  gap: 4px;
+  padding: 0 11px;
   border: 1px solid rgba(191, 195, 198, 0.68);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
   color: #393c3f;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 560;
   white-space: nowrap;
   -webkit-backdrop-filter: blur(18px) saturate(120%);
