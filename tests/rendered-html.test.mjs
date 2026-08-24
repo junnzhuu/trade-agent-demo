@@ -385,8 +385,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.home-discovery-info/);
   assert.match(page, /aria-pressed=\{selectedExpertId === agent\.id\}/);
   assert.match(page, /aria-pressed=\{selectedSkillKeys\.includes\(skill\.key\)\}/);
-  assert.match(page, /<ArrowDownRight/);
-  assert.match(css, /\.home-skill-option\s*{[^}]*background: rgba\(229, 231, 232, 0\.82\)/s);
+  assert.doesNotMatch(page, /<ArrowDownRight/);
+  assert.match(css, /\.empty-state h1\s*{[^}]*margin: 0 0 32px/s);
+  assert.match(css, /\.home-skill-option\s*{[^}]*background: rgba\(255, 255, 255, 0\.68\)/s);
   assert.match(page, /onShowMore/);
   assert.match(css, /\.home-skill-tooltip/);
   assert.match(css, /\.home-skill-card:hover \.home-skill-tooltip/);

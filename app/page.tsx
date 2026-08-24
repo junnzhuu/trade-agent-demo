@@ -2,7 +2,6 @@
 
 import {
   Archive,
-  ArrowDownRight,
   Bot,
   Bookmark,
   Check,
@@ -2617,20 +2616,19 @@ function HomeSkillDiscovery({
         label="常用技能"
       >
         {skills.map((skill) => (
-              <button
+          <button
             aria-pressed={selectedSkillKeys.includes(skill.key)}
             className={`home-skill-card home-skill-option${selectedSkillKeys.includes(skill.key) ? " selected" : ""}`}
             key={skill.key}
             onClick={() => onSelectSkill(skill)}
             title={`${skill.expertName}｜${skill.description}`}
-                type="button"
-              >
+            type="button"
+          >
             <strong>{skill.name}</strong>
-            <ArrowDownRight aria-hidden="true" size={14} strokeWidth={1.8} />
-                <span className="home-skill-tooltip" role="tooltip">
+            <span className="home-skill-tooltip" role="tooltip">
               {skill.expertName}｜{skill.description}
-                </span>
-              </button>
+            </span>
+          </button>
         ))}
         <button className="home-discovery-more" onClick={onShowMore} type="button">
           更多技能
