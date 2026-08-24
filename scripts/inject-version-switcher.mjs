@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 const targetDirectory = process.argv[2];
 const scriptSource = process.argv[3];
+const versionedScriptSource = `${scriptSource}?v=2.7.1`;
 
 if (!targetDirectory || !scriptSource) {
   throw new Error(
@@ -26,12 +27,13 @@ await cp("public/version-switcher.js", join(targetDirectory, "version-switcher.j
 
 for (const htmlFile of await collectHtmlFiles(targetDirectory)) {
   const html = await readFile(htmlFile, "utf8");
-  if (html.includes("version-switcher.js")) continue;
+  const existingScriptPattern =
+    /<script\s+src="[^"]*\/version-switcher\.js(?:\?[^\"]*)?"\s+defer(?:="")?><\/script>/;
+  const versionSwitcherScript = `<script src="${versionedScriptSource}" defer></script>`;
   await writeFile(
     htmlFile,
-    html.replace(
-      "</body>",
-      `<script src="${scriptSource}" defer></script></body>`,
-    ),
+    existingScriptPattern.test(html)
+      ? html.replace(existingScriptPattern, versionSwitcherScript)
+      : html.replace("</body>", `${versionSwitcherScript}</body>`),
   );
 }
