@@ -34,7 +34,6 @@ import Image from "next/image";
 import {
   type FormEvent,
   type KeyboardEvent,
-  type ReactNode,
   forwardRef,
   useCallback,
   useEffect,
@@ -46,7 +45,6 @@ import {
 } from "react";
 import { ExpertSkillWorkspace } from "@/components/expert-skill-workspace";
 import { FeishuIntegrationDialog } from "@/components/feishu-integration-dialog";
-import { OnboardingTour } from "@/components/onboarding-tour";
 import type {
   AgentSkillDefinition,
   SubAgentDefinition,
@@ -67,7 +65,6 @@ import {
   getFavoriteAnswers,
   getFavoriteTasks,
   getTaskActivityIndicator,
-  initialRecentTasks,
   prependRecentTask,
   restoreArchivedTask,
   type RecentTask,
@@ -88,10 +85,6 @@ import {
   filterComposerSkills,
   type ComposerSkillOption,
 } from "@/lib/composer-skills";
-import {
-  onboardingSteps,
-  type OnboardingStepId,
-} from "@/lib/onboarding-tour";
 import {
   getQuestionSuggestions,
   type QuestionSuggestion,
@@ -140,19 +133,11 @@ type WorkspaceView = "chat" | "experts";
 type LibraryDialog = "favorites" | "archive";
 type FeedbackMode = "answer" | "general";
 type FeedbackImage = { id: string; name: string; url: string };
-type TourComposerPanel = "add" | "model" | null;
 type ComposerHandle = {
   insertSkill: (skill: ComposerSkillOption) => void;
   setText: (value: string) => void;
 };
 type ComposerExpertOption = TaskTargetAgent;
-type TourOrigin = {
-  activeView: WorkspaceView;
-  activeTaskId: string | null;
-  sidebarOpen: boolean;
-  mobileSidebarOpen: boolean;
-  recentTasks: RecentTask[];
-};
 
 type PromptRunJob = {
   kind: "prompt";
@@ -250,10 +235,6 @@ export default function Home() {
   const [deleteConfirmationTaskId, setDeleteConfirmationTaskId] = useState<
     string | null
   >(null);
-  const [tourActive, setTourActive] = useState(false);
-  const [tourStepIndex, setTourStepIndex] = useState(0);
-  const [tourComposerPanel, setTourComposerPanel] =
-    useState<TourComposerPanel>(null);
   const activeTaskIdRef = useRef<string | null>(null);
   const activeViewRef = useRef<WorkspaceView>("chat");
   const mountedRef = useRef(true);
@@ -269,8 +250,6 @@ export default function Home() {
   const deleteCancelRef = useRef<HTMLButtonElement | null>(null);
   const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
   const favoriteToastTimerRef = useRef<number | null>(null);
-  const tourOriginRef = useRef<TourOrigin | null>(null);
-  const tourInitializedRef = useRef(false);
   const composerHandleRef = useRef<ComposerHandle | null>(null);
 
   const filteredTasks = useMemo(
@@ -1345,137 +1324,6 @@ export default function Home() {
     }
   };
 
-  const startOnboarding = useCallback(() => {
-    tourOriginRef.current = {
-      activeView,
-      activeTaskId,
-      sidebarOpen,
-      mobileSidebarOpen,
-      recentTasks,
-    };
-    setRecentTasks((current) => {
-      const presetIds = new Set(initialRecentTasks.map((task) => task.id));
-      if (current.some((task) => presetIds.has(task.id))) return current;
-      return [...initialRecentTasks, ...current];
-    });
-    setSearchOpen(false);
-    setLibraryDialog(null);
-    setTaskMenuId(null);
-    setAccountMenuOpen(false);
-    setTourComposerPanel(null);
-    setTourStepIndex(0);
-    setTourActive(true);
-  }, [activeTaskId, activeView, mobileSidebarOpen, recentTasks, sidebarOpen]);
-
-  const dismissOnboarding = useCallback(() => {
-    setTourActive(false);
-    setTourComposerPanel(null);
-    setTaskMenuId(null);
-    setAccountMenuOpen(false);
-    setSearchOpen(false);
-    setLibraryDialog(null);
-    closeFeedback();
-
-    const origin = tourOriginRef.current;
-    if (origin) {
-      activeViewRef.current = origin.activeView;
-      activeTaskIdRef.current = origin.activeTaskId;
-      setActiveView(origin.activeView);
-      setActiveTaskId(origin.activeTaskId);
-      setSidebarOpen(origin.sidebarOpen);
-      setMobileSidebarOpen(origin.mobileSidebarOpen);
-      setRecentTasks(origin.recentTasks);
-    }
-    tourOriginRef.current = null;
-    requestAnimationFrame(() => accountButtonRef.current?.focus());
-  }, [closeFeedback]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      if (tourInitializedRef.current) return;
-      tourInitializedRef.current = true;
-      startOnboarding();
-    }, 500);
-    return () => window.clearTimeout(timer);
-  }, [startOnboarding]);
-
-  useEffect(() => {
-    if (!tourActive) return;
-    const stepId: OnboardingStepId = onboardingSteps[tourStepIndex].id;
-    const frame = window.requestAnimationFrame(() => {
-      setSearchOpen(false);
-      setLibraryDialog(null);
-      setTaskMenuId(null);
-      setAccountMenuOpen(false);
-      setFeedbackTargetId(null);
-      setTourComposerPanel(null);
-
-      if (
-        [
-          "workspace-navigation",
-          "sidebar-tools",
-          "recent-tasks",
-          "task-management",
-          "account-content",
-        ].includes(stepId)
-      ) {
-        setSidebarOpen(true);
-        setMobileSidebarOpen(false);
-      }
-
-      if (
-        [
-          "workspace-navigation",
-          "sidebar-tools",
-          "recent-tasks",
-          "task-management",
-          "account-content",
-          "task-composer",
-          "add-menu",
-          "run-modes",
-          "model-and-send",
-          "quick-skills",
-        ].includes(stepId)
-      ) {
-        activeViewRef.current = "chat";
-        activeTaskIdRef.current = null;
-        setActiveView("chat");
-        setActiveTaskId(null);
-      }
-
-      if (stepId === "recent-tasks" || stepId === "task-management") {
-        setRecentExpanded(true);
-      }
-      if (stepId === "task-management") {
-        setTaskMenuId("preset-bid-limits");
-      } else if (stepId === "account-content") {
-        setAccountMenuOpen(true);
-      } else if (stepId === "add-menu") {
-        setTourComposerPanel("add");
-      } else if (stepId === "run-modes") {
-        setTourComposerPanel("add");
-      } else if (stepId === "model-and-send") {
-        setTourComposerPanel("model");
-      } else if (
-        stepId === "agent-execution" ||
-        stepId === "answer-actions" ||
-        stepId === "feedback"
-      ) {
-        activeViewRef.current = "chat";
-        activeTaskIdRef.current = "preset-bid-limits";
-        setActiveView("chat");
-        setActiveTaskId("preset-bid-limits");
-        if (stepId === "feedback") {
-          openFeedback("preset-bid-limits-assistant");
-        }
-      } else if (stepId === "experts-and-skills") {
-        activeViewRef.current = "experts";
-        setActiveView("experts");
-      }
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [openFeedback, tourActive, tourStepIndex]);
-
   const clearComposerExpert = useCallback(() => {
     setSelectedComposerExpert(null);
     const taskId = activeTaskIdRef.current;
@@ -1640,7 +1488,7 @@ export default function Home() {
                 src="./sidebar-title.svg"
                 width={143}
               />
-              <div className="sidebar-header-actions" data-tour-id="sidebar-tools">
+              <div className="sidebar-header-actions">
                 <button
                   aria-label="收起侧栏"
                   className="sidebar-toggle"
@@ -1672,11 +1520,7 @@ export default function Home() {
           )}
         </header>
 
-        <nav
-          aria-label="工作台导航"
-          className="primary-sidebar-nav"
-          data-tour-id="workspace-navigation"
-        >
+        <nav aria-label="工作台导航" className="primary-sidebar-nav">
           <button aria-label="新建任务" onClick={startNewChat} type="button">
             <Plus size={19} strokeWidth={1.8} />
             <span>新建任务</span>
@@ -1748,7 +1592,6 @@ export default function Home() {
             <div
               aria-label="账号操作"
               className="account-drawer"
-              data-tour-id="account-content"
               role="menu"
             >
               <button
@@ -1798,18 +1641,6 @@ export default function Home() {
                     <span className="sr-only">飞书授权未完成</span>
                   </>
                 ) : null}
-              </button>
-              <span aria-hidden="true" className="account-drawer-divider" />
-              <button
-                onClick={() => {
-                  setAccountMenuOpen(false);
-                  startOnboarding();
-                }}
-                role="menuitem"
-                type="button"
-              >
-                <WandSparkles size={17} />
-                新手指引
               </button>
             </div>
           ) : null}
@@ -1912,7 +1743,6 @@ export default function Home() {
                 selectedModelId={selectedModelId}
                 selectModel={setSelectedModelId}
                 togglePlanMode={() => setPlanMode((current) => !current)}
-                tourPanel={tourComposerPanel}
                 ref={composerHandleRef}
               />
               <HomeSuggestedQuestions
@@ -1952,11 +1782,6 @@ export default function Home() {
                             }
                             onGenerateInternal={() =>
                               generateInternalFromFallback(message.id)
-                            }
-                            forceOpen={
-                              tourActive &&
-                              onboardingSteps[tourStepIndex].id ===
-                                "agent-execution"
                             }
                           />
                           {!message.pending ? (
@@ -2003,7 +1828,6 @@ export default function Home() {
                 selectedModelId={selectedModelId}
                 selectModel={setSelectedModelId}
                 togglePlanMode={() => setPlanMode((current) => !current)}
-                tourPanel={tourComposerPanel}
                 ref={composerHandleRef}
               />
             </div>
@@ -2386,7 +2210,7 @@ export default function Home() {
             onSubmit={submitFeedback}
             role="dialog"
           >
-            <header data-tour-id="feedback">
+            <header>
               <h2 id="feedback-dialog-title">
                 {feedbackMode === "general" ? "意见反馈" : "提交反馈"}
               </h2>
@@ -2542,24 +2366,6 @@ export default function Home() {
         </div>
       ) : null}
 
-      {tourActive ? (
-        <OnboardingTour
-          onBack={() =>
-            setTourStepIndex((current) => Math.max(0, current - 1))
-          }
-          onNext={() => {
-            if (tourStepIndex === onboardingSteps.length - 1) {
-              dismissOnboarding();
-            } else {
-              setTourStepIndex((current) => current + 1);
-            }
-          }}
-          onSkip={dismissOnboarding}
-          step={onboardingSteps[tourStepIndex]}
-          stepCount={onboardingSteps.length}
-          stepIndex={tourStepIndex}
-        />
-      ) : null}
     </main>
   );
 }
@@ -2581,92 +2387,113 @@ function HomeSkillDiscovery({
   selectedExpertId?: string;
   selectedSkillKeys: string[];
 }) {
+  const [activeToolType, setActiveToolType] = useState<"experts" | "skills">(
+    "experts",
+  );
+  const showingExperts = activeToolType === "experts";
+  const info = showingExperts
+    ? "专家是负责特定业务领域的 Agent。选择后，该专家会在当前任务中持续回答和处理问题。"
+    : "技能是专家处理具体任务时调用的专项能力。选择后，将按该技能执行并自动绑定所属专家。";
+  const tooltipId = `home-discovery-info-${activeToolType}`;
+
   return (
-    <section
-      aria-label="常用专家与技能"
-      className="home-skill-discovery"
-      data-tour-id="quick-skills"
-    >
-      <HomeDiscoveryRow
-        info="专家是负责特定业务领域的 Agent。选择后，该专家会在当前任务中持续回答和处理问题。"
-        label="常用专家"
-      >
-        {experts.map((agent) => (
+    <section aria-label="常用工具" className="home-skill-discovery">
+      <div className="home-discovery-heading">
+        <div
+          aria-label="切换常用工具"
+          className="home-discovery-tabs"
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault();
+            const nextType = showingExperts ? "skills" : "experts";
+            setActiveToolType(nextType);
+            requestAnimationFrame(() =>
+              document.getElementById(`home-tool-tab-${nextType}`)?.focus(),
+            );
+          }}
+          role="tablist"
+        >
           <button
-            aria-pressed={selectedExpertId === agent.id}
-            className={`home-skill-card home-expert-card${selectedExpertId === agent.id ? " selected" : ""}`}
-            key={agent.id}
-            onClick={() => onSelectExpert(agent)}
-            title={agent.description}
+            aria-controls="home-tool-panel"
+            aria-selected={showingExperts}
+            className={showingExperts ? "selected" : ""}
+            id="home-tool-tab-experts"
+            onClick={() => setActiveToolType("experts")}
+            role="tab"
+            tabIndex={showingExperts ? 0 : -1}
             type="button"
           >
-            <strong>{agent.name}</strong>
-            <span className="home-skill-tooltip" role="tooltip">
-              {agent.description}
-            </span>
+            常用专家
           </button>
-        ))}
-        <button className="home-discovery-more" onClick={onShowMore} type="button">
-          更多专家
-          <ChevronRight aria-hidden="true" size={15} />
-        </button>
-      </HomeDiscoveryRow>
-
-      <HomeDiscoveryRow
-        info="技能是专家处理具体任务时调用的专项能力。选择后，将按该技能执行并自动绑定所属专家。"
-        label="常用技能"
-      >
-        {skills.map((skill) => (
-              <button
-            aria-pressed={selectedSkillKeys.includes(skill.key)}
-            className={`home-skill-card home-skill-option${selectedSkillKeys.includes(skill.key) ? " selected" : ""}`}
-            key={skill.key}
-            onClick={() => onSelectSkill(skill)}
-            title={`${skill.expertName}｜${skill.description}`}
-                type="button"
-              >
-            <strong>{skill.name}</strong>
-            <ArrowDownRight aria-hidden="true" size={14} strokeWidth={1.8} />
-                <span className="home-skill-tooltip" role="tooltip">
-              {skill.expertName}｜{skill.description}
-                </span>
-              </button>
-        ))}
-        <button className="home-discovery-more" onClick={onShowMore} type="button">
-          更多技能
-          <ChevronRight aria-hidden="true" size={15} />
-        </button>
-      </HomeDiscoveryRow>
-    </section>
-  );
-}
-
-function HomeDiscoveryRow({
-  children,
-  info,
-  label,
-}: {
-  children: ReactNode;
-  info: string;
-  label: string;
-}) {
-  const tooltipId = `home-discovery-info-${label === "常用专家" ? "experts" : "skills"}`;
-  return (
-    <div className="home-discovery-row">
-      <div className="home-discovery-heading">
-        <strong>{label}</strong>
+          <button
+            aria-controls="home-tool-panel"
+            aria-selected={!showingExperts}
+            className={!showingExperts ? "selected" : ""}
+            id="home-tool-tab-skills"
+            onClick={() => setActiveToolType("skills")}
+            role="tab"
+            tabIndex={!showingExperts ? 0 : -1}
+            type="button"
+          >
+            常用技能
+          </button>
+        </div>
         <button
           aria-describedby={tooltipId}
-          aria-label={`了解${label}`}
+          aria-label={`了解${showingExperts ? "常用专家" : "常用技能"}`}
           className="home-discovery-info"
           type="button"
         >
           <Info aria-hidden="true" size={15} />
-          <span id={tooltipId} role="tooltip">{info}</span>
+          <span id={tooltipId} role="tooltip">
+            {info}
+          </span>
         </button>
       </div>
-      <div className="home-discovery-options">{children}</div>
-    </div>
+      <div
+        aria-labelledby={`home-tool-tab-${activeToolType}`}
+        className="home-discovery-options"
+        id="home-tool-panel"
+        role="tabpanel"
+      >
+        {showingExperts
+          ? experts.map((agent) => (
+              <button
+                aria-pressed={selectedExpertId === agent.id}
+                className={`home-skill-card home-expert-card${selectedExpertId === agent.id ? " selected" : ""}`}
+                key={agent.id}
+                onClick={() => onSelectExpert(agent)}
+                title={agent.description}
+                type="button"
+              >
+                <strong>{agent.name}</strong>
+                <span className="home-skill-tooltip" role="tooltip">
+                  {agent.description}
+                </span>
+              </button>
+            ))
+          : skills.map((skill) => (
+              <button
+                aria-pressed={selectedSkillKeys.includes(skill.key)}
+                className={`home-skill-card home-skill-option${selectedSkillKeys.includes(skill.key) ? " selected" : ""}`}
+                key={skill.key}
+                onClick={() => onSelectSkill(skill)}
+                title={`${skill.expertName}｜${skill.description}`}
+                type="button"
+              >
+                <strong>{skill.name}</strong>
+                <ArrowDownRight aria-hidden="true" size={14} strokeWidth={1.8} />
+                <span className="home-skill-tooltip" role="tooltip">
+                  {skill.expertName}｜{skill.description}
+                </span>
+              </button>
+            ))}
+        <button className="home-discovery-more" onClick={onShowMore} type="button">
+          {showingExperts ? "更多专家" : "更多技能"}
+          <ChevronRight aria-hidden="true" size={15} />
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -2761,7 +2588,6 @@ function SidebarTaskSection({
   return (
     <section
       className={`recent-section ${title === "置顶任务" ? "pinned-section" : ""}`}
-      data-tour-id={title === "最近任务" ? "recent-tasks" : undefined}
     >
       <button
         aria-expanded={expanded}
@@ -2847,11 +2673,6 @@ function SidebarTaskSection({
                   <div
                     aria-label="任务操作"
                     className="task-context-menu"
-                    data-tour-id={
-                      task.id === "preset-bid-limits"
-                        ? "task-management"
-                        : undefined
-                    }
                     role="menu"
                   >
                     <button
@@ -2938,7 +2759,6 @@ function AssistantExecution({
     <section
       aria-label="Agent 执行过程"
       className={`assistant-execution ${message.pending ? "running" : "completed"}`}
-      data-tour-id="agent-execution"
     >
       {message.answeringAgent ? (
         <header
@@ -3116,12 +2936,7 @@ function AnswerActions({
   };
 
   return (
-    <div
-      aria-label="回答操作"
-      className="answer-actions"
-      data-tour-id="answer-actions"
-      role="toolbar"
-    >
+    <div aria-label="回答操作" className="answer-actions" role="toolbar">
       <button
         aria-label={copied ? "已复制" : "复制回答"}
         onClick={() => void copyAnswer()}
@@ -3227,7 +3042,6 @@ const Composer = forwardRef<ComposerHandle, {
   selectedModelId: ModelId;
   selectModel: (modelId: ModelId) => void;
   togglePlanMode: () => void;
-  tourPanel: TourComposerPanel;
 }>(function Composer({
   input,
   onInput,
@@ -3244,7 +3058,6 @@ const Composer = forwardRef<ComposerHandle, {
   selectedModelId,
   selectModel,
   togglePlanMode,
-  tourPanel,
 }, ref) {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
@@ -3281,8 +3094,8 @@ const Composer = forwardRef<ComposerHandle, {
     () => new Set(selectedSkills.map((skill) => skill.key)),
     [selectedSkills],
   );
-  const visibleAddMenuOpen = tourPanel === "add" || (!tourPanel && addMenuOpen);
-  const visibleModelMenuOpen = tourPanel === "model" || (!tourPanel && modelMenuOpen);
+  const visibleAddMenuOpen = addMenuOpen;
+  const visibleModelMenuOpen = modelMenuOpen;
   const visibleSuggestionsOpen =
     suggestionsOpen &&
     questionSuggestions.length > 0 &&
@@ -3748,11 +3561,7 @@ const Composer = forwardRef<ComposerHandle, {
   };
 
   return (
-    <form
-      className="minimal-composer"
-      data-tour-id="task-composer"
-      onSubmit={onSubmit}
-    >
+    <form className="minimal-composer" onSubmit={onSubmit}>
       {visibleSuggestionsOpen && (
         <section
           aria-label="问题联想"
@@ -3936,12 +3745,7 @@ const Composer = forwardRef<ComposerHandle, {
             </button>
 
             {visibleAddMenuOpen && (
-              <div
-                aria-label="添加内容"
-                className="add-menu"
-                data-tour-id="add-menu"
-                role="menu"
-              >
+              <div aria-label="添加内容" className="add-menu" role="menu">
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   role="menuitem"
@@ -3953,7 +3757,6 @@ const Composer = forwardRef<ComposerHandle, {
                 <button
                   aria-checked={planMode}
                   className="mode-switch-row"
-                  data-tour-id="run-modes"
                   onClick={togglePlanMode}
                   role="switch"
                   type="button"
@@ -4002,11 +3805,7 @@ const Composer = forwardRef<ComposerHandle, {
         </div>
 
         <div className="composer-right-actions">
-          <div
-            className="model-control"
-            data-tour-id="model-and-send"
-            ref={modelControlRef}
-          >
+          <div className="model-control" ref={modelControlRef}>
             <button
               aria-expanded={visibleModelMenuOpen}
               aria-haspopup="menu"

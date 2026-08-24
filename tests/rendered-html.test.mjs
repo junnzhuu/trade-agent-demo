@@ -111,9 +111,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /aria-label="新功能推荐"/);
   assert.doesNotMatch(page, /立即体验/);
   assert.match(page, /setSelectedComposerSkills\(\[\]\)[\s\S]*setText\(question\)/);
-  assert.match(page, /aria-label="常用专家与技能"/);
-  assert.match(page, /label="常用专家"/);
-  assert.match(page, /label="常用技能"/);
+  assert.match(page, /aria-label="常用工具"/);
+  assert.match(page, /aria-label="切换常用工具"/);
+  assert.match(page, /role="tablist"/);
+  assert.match(page, /setActiveToolType\("experts"\)/);
+  assert.match(page, /setActiveToolType\("skills"\)/);
   assert.match(page, /更多专家/);
   assert.match(page, /更多技能/);
   assert.match(page, /专家是负责特定业务领域的 Agent/);
@@ -332,25 +334,16 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /deleteConfirmationTaskId/);
   assert.match(page, /复制请求 ID/);
   assert.match(page, /ID: Manbo/);
-  assert.match(page, /新手指引/);
-  assert.match(page, /OnboardingTour/);
-  assert.match(
-    page,
-    /useEffect\(\(\) => \{\s*const timer = window\.setTimeout\(\(\) => \{\s*if \(tourInitializedRef\.current\) return;\s*tourInitializedRef\.current = true;\s*startOnboarding\(\);\s*\}, 500\)/,
-  );
-  assert.match(page, /recentTasks: RecentTask\[]/);
-  assert.doesNotMatch(page, /ONBOARDING_STORAGE_KEY/);
-  assert.match(page, /data-tour-id="workspace-navigation"/);
-  assert.match(page, /data-tour-id="task-composer"/);
+  assert.doesNotMatch(page, /新手指引/);
+  assert.doesNotMatch(page, /OnboardingTour|startOnboarding|tourActive/);
+  assert.doesNotMatch(page, /data-tour-id/);
   assert.match(
     page,
     /连接我的飞书，帮我梳理下这周的会议日程/,
   );
   assert.match(page, /onTryNow=\{\(\) => \{/);
-  assert.match(page, /data-tour-id="feedback"/);
   assert.match(css, /\.account-drawer/);
-  assert.match(css, /\.onboarding-bubble/);
-  assert.match(css, /\.onboarding-spotlight/);
+  assert.doesNotMatch(css, /\.onboarding-bubble|\.onboarding-spotlight/);
   assert.match(css, /\.answer-more-menu/);
   assert.match(css, /\.library-dialog/);
   assert.match(css, /\.favorite-answer-row/);
@@ -368,13 +361,15 @@ test("ships the trading agent workspace instead of the starter preview", async (
     css,
     /\.home-skill-discovery\s*{[^}]*(?:background|backdrop-filter|border:)/s,
   );
-  assert.match(css, /\.home-discovery-options\s*{[^}]*overflow-x: auto/s);
+  assert.match(css, /\.home-discovery-tabs/);
+  assert.match(css, /\.home-discovery-options\s*{[^}]*overflow: visible/s);
+  assert.doesNotMatch(css, /\.home-discovery-options\s*{[^}]*overflow-x: auto/s);
   assert.match(
     css,
     /\.home-skill-card\s*{[^}]*backdrop-filter: blur\(18px\) saturate\(120%\)/s,
   );
   assert.match(css, /background: rgba\(218, 222, 225, 0\.66\)/);
-  assert.match(css, /\.home-discovery-row\s*{[^}]*grid-template-columns: 82px/s);
+  assert.match(css, /\.home-skill-discovery\s*{[^}]*grid-template-columns: 190px/s);
   assert.match(css, /\.home-skill-card\s*{[^}]*min-height: 32px/s);
   assert.match(css, /\.home-skill-card\s*{[^}]*padding: 0 11px/s);
   assert.match(css, /\.home-discovery-more\s*{[^}]*min-height: 32px/s);
@@ -449,12 +444,16 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(workflow, /codex\/交易智能助手-v2\.3-integrated/);
   assert.match(workflow, /codex\/交易智能助手-v2\.4/);
   assert.match(workflow, /codex\/交易智能助手-v2\.5/);
+  assert.match(workflow, /codex\/交易智能助手-v2\.6/);
   assert.match(workflow, /versions\/classic/);
   assert.match(workflow, /versions\/audience-isolation/);
   assert.match(workflow, /versions\/scene-agent-skill/);
   assert.match(workflow, /versions\/integrated-expert-skills/);
   assert.match(workflow, /versions\/expert-recommendations/);
   assert.match(workflow, /versions\/question-suggestions/);
+  assert.match(workflow, /versions\/common-experts-skills/);
+  assert.match(versionSwitcher, /v2\.7/);
+  assert.match(versionSwitcher, /常用工具切换/);
   assert.match(versionSwitcher, /v2\.6/);
   assert.match(versionSwitcher, /常用专家与技能/);
   assert.match(versionSwitcher, /v2\.5/);

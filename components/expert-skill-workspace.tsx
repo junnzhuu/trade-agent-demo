@@ -67,7 +67,6 @@ export function ExpertSkillWorkspace({
       <ul
         aria-label="业务场景"
         className="scene-grid"
-        data-tour-id="experts-and-skills"
       >
         {sceneCatalog.map((scene) => {
           const selected = scene.id === selectedScene.id;

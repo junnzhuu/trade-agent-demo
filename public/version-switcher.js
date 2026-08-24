@@ -26,14 +26,23 @@
   const isQuestionSuggestions = currentPath.includes(
     "/versions/question-suggestions/",
   );
+  const isCommonExpertsSkills = currentPath.includes(
+    "/versions/common-experts-skills/",
+  );
 
   const versions = [
+    {
+      id: "v2.7",
+      name: "v2.7",
+      detail: "常用工具切换",
+      href: `${rootPath || ""}/`,
+      latest: true,
+    },
     {
       id: "v2.6",
       name: "v2.6",
       detail: "常用专家与技能",
-      href: `${rootPath || ""}/`,
-      latest: true,
+      href: `${rootPath || ""}/versions/common-experts-skills/`,
     },
     {
       id: "v2.5",
@@ -84,7 +93,9 @@
             ? "v2.4"
             : isQuestionSuggestions
               ? "v2.5"
-              : "v2.6";
+              : isCommonExpertsSkills
+                ? "v2.6"
+                : "v2.7";
 
   const root = document.createElement("div");
   root.id = "trade-agent-version-switcher";
