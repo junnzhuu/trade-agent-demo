@@ -4,8 +4,10 @@ import {
   frequentHomeExperts,
   frequentHomeSkills,
   getExpertComposerSelectionAction,
+  getHomeCategorySkills,
   getHomeExpertById,
   getHomeSuggestedQuestions,
+  homeSkillCategories,
 } from "../lib/home-skill-recommendations";
 
 test("provides the five fixed common experts in catalog order", () => {
@@ -46,6 +48,20 @@ test("keeps merchant suggested questions stable and capped at six", () => {
   assert.equal(questions.length, 6);
   assert.deepEqual(questions, getHomeSuggestedQuestions());
   assert.ok(questions.every((question) => question.standardQuestion));
+});
+
+test("provides six homepage scenes with scene-specific skills and questions", () => {
+  assert.deepEqual(
+    homeSkillCategories.map((category) => category.label),
+    ["为你推荐", "商家运营", "商品运营", "招商", "营销活动", "项目管理"],
+  );
+  for (const category of homeSkillCategories) {
+    const skills = getHomeCategorySkills(category.id);
+    const questions = getHomeSuggestedQuestions(category.id);
+    assert.ok(skills.length > 0 && skills.length <= 5);
+    assert.ok(questions.length > 0 && questions.length <= 6);
+    assert.ok(skills.every((skill) => skill.standardQuestion));
+  }
 });
 
 test("selects the correct composer action when binding an expert", () => {

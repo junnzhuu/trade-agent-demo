@@ -6,6 +6,26 @@ import {
 } from "./agent-skill-catalog";
 import type { ComposerSkillOption } from "./composer-skills";
 
+export type HomeSkillCategoryId =
+  | "recommended"
+  | "merchant"
+  | "product"
+  | "acquisition"
+  | "campaign"
+  | "project";
+
+export const homeSkillCategories: Array<{
+  id: HomeSkillCategoryId;
+  label: string;
+}> = [
+  { id: "recommended", label: "为你推荐" },
+  { id: "merchant", label: "商家运营" },
+  { id: "product", label: "商品运营" },
+  { id: "acquisition", label: "招商" },
+  { id: "campaign", label: "营销活动" },
+  { id: "project", label: "项目管理" },
+];
+
 const frequentExpertIds = [
   "merchant-operation-agent",
   "data-analysis-agent",
@@ -57,9 +77,40 @@ export const frequentHomeSkills: ComposerSkillOption[] = frequentSkillMounts.map
   },
 );
 
-export function getHomeSuggestedQuestions(): ExpertSkill[] {
+function toComposerSkill(
+  expertId: string,
+  expertName: string,
+  skill: ExpertSkill,
+): ComposerSkillOption {
+  return {
+    id: skill.id,
+    key: `${expertId}:${skill.id}`,
+    name: skill.name,
+    description: skill.description,
+    standardQuestion: skill.standardQuestion,
+    expertId,
+    expertName,
+    expertLabel: expertName,
+  };
+}
+
+export function getHomeCategorySkills(
+  categoryId: HomeSkillCategoryId,
+): ComposerSkillOption[] {
+  if (categoryId === "recommended") return frequentHomeSkills;
+  const expert = expertCatalog.find((item) => item.id === categoryId);
+  if (!expert) return [];
+  return expert.skills
+    .slice(0, 5)
+    .map((skill) => toComposerSkill(expert.id, expert.name, skill));
+}
+
+export function getHomeSuggestedQuestions(
+  categoryId: HomeSkillCategoryId = "recommended",
+): ExpertSkill[] {
+  const expertId = categoryId === "recommended" ? "merchant" : categoryId;
   return (
-    expertCatalog.find((expert) => expert.id === "merchant")?.skills.slice(0, 6) ??
+    expertCatalog.find((expert) => expert.id === expertId)?.skills.slice(0, 6) ??
     []
   );
 }

@@ -112,6 +112,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /立即体验/);
   assert.match(page, /setSelectedComposerSkills\(\[\]\)[\s\S]*setText\(question\)/);
   assert.match(page, /aria-label="常用技能"/);
+  assert.match(page, /aria-label="业务场景"/);
+  assert.match(page, /homeSkillCategories\.map/);
+  assert.match(page, /selectedHomeSkillCategory/);
   assert.match(page, /更多技能/);
   assert.doesNotMatch(page, /className="home-discovery-title"/);
   assert.doesNotMatch(page, /className="home-discovery-info"/);
@@ -381,6 +384,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /<ArrowDownRight/);
   assert.match(css, /\.empty-state h1\s*{[^}]*margin: 0 0 48px/s);
   assert.match(css, /\.home-skill-option\s*{[^}]*background: rgba\(255, 255, 255, 0\.76\)/s);
+  assert.match(css, /\.home-skill-tabs\s*{/);
+  assert.match(css, /\.home-skill-tabs button\.selected\s*{/);
+  assert.match(css, /\.home-discovery-options\s*{[^}]*margin-top: 42px/s);
   assert.match(css, /\.home-skill-card:hover,[\s\S]*border-color: #01c1c2/s);
   assert.match(css, /\.home-skill-card\.selected\s*{[^}]*color: #009fa0/s);
   assert.match(
@@ -452,6 +458,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(workflow, /codex\/交易智能助手-v2\.6/);
   assert.match(workflow, /codex\/交易智能助手-v2\.7/);
   assert.match(workflow, /codex\/交易智能助手-v2\.8/);
+  assert.match(workflow, /codex\/交易智能助手-v2\.9/);
   assert.match(workflow, /versions\/classic/);
   assert.match(workflow, /versions\/audience-isolation/);
   assert.match(workflow, /versions\/scene-agent-skill/);
@@ -461,6 +468,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(workflow, /versions\/common-experts-skills/);
   assert.match(workflow, /versions\/common-tools-switcher/);
   assert.match(workflow, /versions\/skill-direct-expert-routing/);
+  assert.match(workflow, /versions\/simplified-skill-routing/);
+  assert.match(versionSwitcher, /v2\.10/);
+  assert.match(versionSwitcher, /场景选择与技能推荐/);
   assert.match(versionSwitcher, /v2\.9/);
   assert.match(versionSwitcher, /技能轻选与入口精简/);
   assert.match(versionSwitcher, /v2\.8/);
