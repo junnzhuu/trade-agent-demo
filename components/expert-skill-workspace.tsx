@@ -13,10 +13,8 @@ type AgentSelection = "all" | string;
 type SkillSort = "hot" | "latest";
 
 export function ExpertSkillWorkspace({
-  onSummonAgent,
   onUseSkill,
 }: {
-  onSummonAgent: (agent: SubAgentDefinition) => void;
   onUseSkill: (
     agent: SubAgentDefinition,
     skill: AgentSkillDefinition,
@@ -139,9 +137,7 @@ export function ExpertSkillWorkspace({
             ))}
           </div>
 
-          <div
-            className={`agent-introduction ${selectedAgent ? "summonable" : ""}`}
-          >
+          <div className="agent-introduction">
             <div className="agent-introduction-copy">
               <strong>{selectedAgent?.name ?? "商家运营场景"}</strong>
               <p>
@@ -149,16 +145,6 @@ export function ExpertSkillWorkspace({
                   "覆盖商品经营分析、AB 实验、寄存、交易查询、订单、逆向等专业能力。"}
               </p>
             </div>
-            {selectedAgent ? (
-              <button
-                aria-label={`召唤专家：${selectedAgent.name}`}
-                className="summon-agent-button"
-                onClick={() => onSummonAgent(selectedAgent)}
-                type="button"
-              >
-                召唤
-              </button>
-            ) : null}
           </div>
 
           <div className="skill-directory-heading">
@@ -192,8 +178,8 @@ export function ExpertSkillWorkspace({
 
           {selectedAgent && selectedAgent.skills.length === 0 ? (
             <div className="agent-empty-state">
-              <strong>该专家暂无挂载技能</strong>
-              <span>可直接召唤专家处理相关问题</span>
+              <strong>该专家暂无可用技能</strong>
+              <span>能力建设中</span>
             </div>
           ) : (
             <ul

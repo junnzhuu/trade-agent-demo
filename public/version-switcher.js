@@ -32,14 +32,23 @@
   const isCommonToolsSwitcher = currentPath.includes(
     "/versions/common-tools-switcher/",
   );
+  const isSkillDirectExpertRouting = currentPath.includes(
+    "/versions/skill-direct-expert-routing/",
+  );
 
   const versions = [
+    {
+      id: "v2.9",
+      name: "v2.9",
+      detail: "技能轻选与入口精简",
+      href: `${rootPath || ""}/`,
+      latest: true,
+    },
     {
       id: "v2.8",
       name: "v2.8",
       detail: "技能直达与快捷专家",
-      href: `${rootPath || ""}/`,
-      latest: true,
+      href: `${rootPath || ""}/versions/skill-direct-expert-routing/`,
     },
     {
       id: "v2.7",
@@ -106,7 +115,9 @@
                 ? "v2.6"
                 : isCommonToolsSwitcher
                   ? "v2.7"
-                  : "v2.8";
+                  : isSkillDirectExpertRouting
+                    ? "v2.8"
+                    : "v2.9";
 
   const root = document.createElement("div");
   root.id = "trade-agent-version-switcher";
