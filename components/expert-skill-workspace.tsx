@@ -6,6 +6,7 @@ import {
   getSceneStats,
   sceneCatalog,
   type AgentSkillDefinition,
+  type SceneDefinition,
   type SubAgentDefinition,
 } from "@/lib/agent-skill-catalog";
 
@@ -13,14 +14,16 @@ type AgentSelection = "all" | string;
 type SkillSort = "hot" | "latest";
 
 export function ExpertSkillWorkspace({
+  initialSceneId = sceneCatalog[0].id,
   onUseSkill,
 }: {
+  initialSceneId?: SceneDefinition["id"];
   onUseSkill: (
     agent: SubAgentDefinition,
     skill: AgentSkillDefinition,
   ) => void;
 }) {
-  const [selectedSceneId, setSelectedSceneId] = useState(sceneCatalog[0].id);
+  const [selectedSceneId, setSelectedSceneId] = useState(initialSceneId);
   const [selectedAgentId, setSelectedAgentId] =
     useState<AgentSelection>("all");
   const [skillSort, setSkillSort] = useState<SkillSort>("hot");

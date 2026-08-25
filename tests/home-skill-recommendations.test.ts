@@ -5,6 +5,7 @@ import {
   frequentHomeSkills,
   getExpertComposerSelectionAction,
   getHomeCategorySkills,
+  getHomeCategoryTargetScene,
   getHomeExpertById,
   getHomeSuggestedQuestions,
   homeSkillCategories,
@@ -61,6 +62,15 @@ test("provides six homepage scenes with scene-specific skills and questions", ()
     assert.ok(skills.length > 0 && skills.length <= 5);
     assert.ok(questions.length > 0 && questions.length <= 6);
     assert.ok(skills.every((skill) => skill.standardQuestion));
+  }
+});
+
+test("routes more skills to the matching scene and recommendations to merchant", () => {
+  assert.equal(getHomeCategoryTargetScene("recommended"), "merchant");
+  for (const category of homeSkillCategories.filter(
+    (item) => item.id !== "recommended",
+  )) {
+    assert.equal(getHomeCategoryTargetScene(category.id), category.id);
   }
 });
 

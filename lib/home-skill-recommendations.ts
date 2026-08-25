@@ -2,6 +2,7 @@ import { expertCatalog, type ExpertSkill } from "./expert-catalog";
 import {
   merchantOperationAgents,
   quickComposerExperts,
+  type SceneDefinition,
   type SubAgentDefinition,
 } from "./agent-skill-catalog";
 import type { ComposerSkillOption } from "./composer-skills";
@@ -25,6 +26,12 @@ export const homeSkillCategories: Array<{
   { id: "campaign", label: "营销活动" },
   { id: "project", label: "项目管理" },
 ];
+
+export function getHomeCategoryTargetScene(
+  categoryId: HomeSkillCategoryId,
+): SceneDefinition["id"] {
+  return categoryId === "recommended" ? "merchant" : categoryId;
+}
 
 const frequentExpertIds = [
   "merchant-operation-agent",

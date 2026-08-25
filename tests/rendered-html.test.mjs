@@ -67,9 +67,13 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /专家 · 技能/);
   assert.match(page, /ExpertSkillWorkspace/);
   assert.match(page, /onUseSkill=\{useExpertSkill\}/);
+  assert.match(page, /initialSceneId=\{expertWorkspaceSceneId\}/);
+  assert.match(page, /getHomeCategoryTargetScene\(selectedHomeSkillCategory\)/);
   assert.match(page, /pendingComposerSkill/);
   assert.match(expertWorkspace, /使用技能：\$\{skill\.name\}/);
   assert.match(expertWorkspace, /className="scene-grid"/);
+  assert.match(expertWorkspace, /useState\(initialSceneId\)/);
+  assert.match(expertWorkspace, /useState<AgentSelection>\("all"\)/);
   assert.doesNotMatch(expertWorkspace, /className="scene-avatar"/);
   assert.doesNotMatch(expertWorkspace, /className="scene-status"/);
   assert.match(expertWorkspace, /商家运营场景/);

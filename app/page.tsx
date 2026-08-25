@@ -45,6 +45,7 @@ import { ExpertSkillWorkspace } from "@/components/expert-skill-workspace";
 import { FeishuIntegrationDialog } from "@/components/feishu-integration-dialog";
 import type {
   AgentSkillDefinition,
+  SceneDefinition,
   SubAgentDefinition,
 } from "@/lib/agent-skill-catalog";
 import {
@@ -73,6 +74,7 @@ import {
 import { ConcurrentTaskScheduler } from "@/lib/task-scheduler";
 import {
   getHomeCategorySkills,
+  getHomeCategoryTargetScene,
   getHomeSuggestedQuestions,
   homeSkillCategories,
   type HomeSkillCategoryId,
@@ -205,6 +207,8 @@ export default function Home() {
     useState<ComposerExpertOption | null>(null);
   const [selectedHomeSkillCategory, setSelectedHomeSkillCategory] =
     useState<HomeSkillCategoryId>("recommended");
+  const [expertWorkspaceSceneId, setExpertWorkspaceSceneId] =
+    useState<SceneDefinition["id"]>("merchant");
   const [planMode, setPlanMode] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState<ModelId>("glm-5");
   const [recentTasks, setRecentTasks] = useState<RecentTask[]>([]);
@@ -1508,6 +1512,7 @@ export default function Home() {
             aria-current={activeView === "experts" ? "page" : undefined}
             className={activeView === "experts" ? "active" : ""}
             onClick={() => {
+              setExpertWorkspaceSceneId("merchant");
               activeViewRef.current = "experts";
               setActiveView("experts");
               setMobileSidebarOpen(false);
@@ -1678,6 +1683,8 @@ export default function Home() {
 
         {activeView === "experts" ? (
           <ExpertSkillWorkspace
+            initialSceneId={expertWorkspaceSceneId}
+            key={expertWorkspaceSceneId}
             onUseSkill={useExpertSkill}
           />
         ) : messages.length === 0 ? (
@@ -1690,6 +1697,9 @@ export default function Home() {
                 skills={homeCategorySkills}
                 onSelectSkill={selectComposerSkill}
                 onShowMore={() => {
+                  setExpertWorkspaceSceneId(
+                    getHomeCategoryTargetScene(selectedHomeSkillCategory),
+                  );
                   activeViewRef.current = "experts";
                   setActiveView("experts");
                   setMobileSidebarOpen(false);
