@@ -6,7 +6,6 @@ import {
   Bookmark,
   Check,
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   ClipboardList,
   Copy,
@@ -2415,7 +2414,6 @@ function HomeSkillDiscovery({
 }) {
   return (
     <section aria-label="常用技能" className="home-skill-discovery">
-      <p className="home-skill-recommendation-label">为你推荐</p>
       <div className="home-discovery-options">
         {skills.map((skill) => (
           <button
@@ -2448,40 +2446,6 @@ function HomeSuggestedQuestions({
   questions: ReturnType<typeof getHomeSuggestedQuestions>;
   onSelect: (question: string) => void;
 }) {
-  const questionListRef = useRef<HTMLDivElement | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateQuestionScrollState = useCallback(() => {
-    const list = questionListRef.current;
-    if (!list) return;
-    const maxScrollLeft = Math.max(0, list.scrollWidth - list.clientWidth);
-    setCanScrollLeft(list.scrollLeft > 2);
-    setCanScrollRight(list.scrollLeft < maxScrollLeft - 2);
-  }, []);
-
-  useEffect(() => {
-    updateQuestionScrollState();
-    const list = questionListRef.current;
-    if (!list) return;
-    const observer = new ResizeObserver(updateQuestionScrollState);
-    observer.observe(list);
-    Array.from(list.children).forEach((child) => observer.observe(child));
-    return () => observer.disconnect();
-  }, [questions, updateQuestionScrollState]);
-
-  const scrollQuestions = (direction: -1 | 1) => {
-    const list = questionListRef.current;
-    if (!list) return;
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    list.scrollBy({
-      behavior: reduceMotion ? "auto" : "smooth",
-      left: direction * Math.max(240, list.clientWidth * 0.8),
-    });
-  };
-
   if (!questions.length) return null;
 
   return (
@@ -2489,50 +2453,26 @@ function HomeSuggestedQuestions({
       aria-label="猜你想问"
       className="home-suggested-questions"
     >
-      <p>试试这样问</p>
-      <div className="home-suggested-question-carousel">
-        <button
-          aria-label="查看上一组问题"
-          className="home-suggested-question-arrow"
-          disabled={!canScrollLeft}
-          onClick={() => scrollQuestions(-1)}
-          type="button"
-        >
-          <ChevronLeft aria-hidden="true" size={18} strokeWidth={1.8} />
-        </button>
-        <div
-          className="home-suggested-question-list"
-          onScroll={updateQuestionScrollState}
-          ref={questionListRef}
-        >
-          {questions.map((question) => (
-            <button
-              key={question.id}
-              onClick={() => onSelect(question.standardQuestion)}
-              title={question.standardQuestion}
-              type="button"
-            >
-              <Image
-                alt=""
-                aria-hidden="true"
-                className="home-suggested-question-star"
-                height={14}
-                src="./recommended-question-star.svg"
-                width={14}
-              />
-              <span>{question.standardQuestion}</span>
-            </button>
-          ))}
-        </div>
-        <button
-          aria-label="查看下一组问题"
-          className="home-suggested-question-arrow"
-          disabled={!canScrollRight}
-          onClick={() => scrollQuestions(1)}
-          type="button"
-        >
-          <ChevronRight aria-hidden="true" size={18} strokeWidth={1.8} />
-        </button>
+      <p>不知道怎么问？试试这些问法</p>
+      <div className="home-suggested-question-list">
+        {questions.map((question) => (
+          <button
+            key={question.id}
+            onClick={() => onSelect(question.standardQuestion)}
+            title={question.standardQuestion}
+            type="button"
+          >
+            <Image
+              alt=""
+              aria-hidden="true"
+              className="home-suggested-question-star"
+              height={14}
+              src="./recommended-question-star.svg"
+              width={14}
+            />
+            <span>{question.standardQuestion}</span>
+          </button>
+        ))}
       </div>
     </section>
   );

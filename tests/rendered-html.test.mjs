@@ -103,13 +103,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
     /<HomeSkillDiscovery[\s\S]*<Composer[\s\S]*<HomeSuggestedQuestions/,
   );
   assert.match(page, /aria-label="猜你想问"/);
-  assert.match(page, /试试这样问/);
-  assert.doesNotMatch(page, /不知道怎么问？试试这些问法/);
-  assert.match(page, /home-skill-recommendation-label">为你推荐/);
-  assert.match(page, /aria-label="查看上一组问题"/);
-  assert.match(page, /aria-label="查看下一组问题"/);
-  assert.match(page, /scrollQuestions\(-1\)/);
-  assert.match(page, /scrollQuestions\(1\)/);
+  assert.match(page, /不知道怎么问？试试这些问法/);
   assert.doesNotMatch(page, /home-suggested-question-row/);
   assert.match(page, /home-suggested-question-star/);
   assert.doesNotMatch(page, /大家都在问这些问题/);
@@ -208,9 +202,6 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.answer-actions/);
   assert.doesNotMatch(css, /\.audience-scenario-strip/);
   assert.match(css, /\.home-suggested-questions/);
-  assert.match(css, /\.home-skill-recommendation-label/);
-  assert.match(css, /\.home-suggested-question-carousel/);
-  assert.match(css, /\.home-suggested-question-arrow/);
   assert.match(css, /\.home-suggested-question-list/);
   assert.match(css, /\.home-suggested-question-list\s*{[^}]*overflow-x: auto/s);
   assert.doesNotMatch(css, /\.home-suggested-question-row\.row-2/);
