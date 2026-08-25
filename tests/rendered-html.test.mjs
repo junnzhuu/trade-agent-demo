@@ -382,11 +382,11 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(css, /\.home-discovery-info/);
   assert.match(page, /aria-pressed=\{selectedSkillKeys\.includes\(skill\.key\)\}/);
   assert.doesNotMatch(page, /<ArrowDownRight/);
-  assert.match(css, /\.empty-state h1\s*{[^}]*margin: 0 0 48px/s);
+  assert.match(css, /\.empty-state h1\s*{[^}]*margin: 0 0 24px/s);
   assert.match(css, /\.home-skill-option\s*{[^}]*background: rgba\(255, 255, 255, 0\.76\)/s);
   assert.match(css, /\.home-skill-tabs\s*{/);
   assert.match(css, /\.home-skill-tabs button\.selected\s*{/);
-  assert.match(css, /\.home-discovery-options\s*{[^}]*margin-top: 42px/s);
+  assert.match(css, /\.home-discovery-options\s*{[^}]*margin-top: 70px/s);
   assert.match(css, /\.home-skill-card:hover,[\s\S]*border-color: #01c1c2/s);
   assert.match(css, /\.home-skill-card\.selected\s*{[^}]*color: #009fa0/s);
   assert.match(

@@ -2394,11 +2394,11 @@ function HomeSkillDiscovery({
               </span>
             </button>
           ))}
+          <button className="home-discovery-more" onClick={onShowMore} type="button">
+            更多技能
+            <ChevronRight aria-hidden="true" size={15} />
+          </button>
         </div>
-        <button className="home-discovery-more" onClick={onShowMore} type="button">
-          更多技能
-          <ChevronRight aria-hidden="true" size={15} />
-        </button>
       </div>
     </section>
   );
