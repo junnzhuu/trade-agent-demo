@@ -422,8 +422,9 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(expertWorkspace, /onSummonAgent/);
   assert.doesNotMatch(expertWorkspace, /召唤专家：/);
   assert.doesNotMatch(expertWorkspace, /summon-agent-button/);
-  assert.match(expertWorkspace, /该专家暂无可用技能/);
-  assert.match(expertWorkspace, /能力建设中/);
+  assert.match(expertWorkspace, /技能建设中，敬请期待/);
+  assert.doesNotMatch(expertWorkspace, /该专家暂无可用技能/);
+  assert.doesNotMatch(expertWorkspace, /相关技能即将接入/);
   assert.match(expertWorkspace, /即将接入，敬请期待/);
   assert.match(expertWorkspace, /aria-disabled/);
   assert.match(page, /selectedComposerExpert/);

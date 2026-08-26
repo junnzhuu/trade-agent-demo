@@ -171,18 +171,13 @@ export function ExpertSkillWorkspace({
                 最新
               </button>
             </div>
-        </div>
+          </div>
 
         {orderedSkills.length === 0 ? (
             <div className="agent-empty-state">
-              <strong>
-                {selectedSceneComingSoon
-                  ? "相关技能即将接入"
-                  : "该专家暂无可用技能"}
-              </strong>
-              <span>{selectedSceneComingSoon ? "敬请期待" : "能力建设中"}</span>
+              <strong>技能建设中，敬请期待</strong>
             </div>
-        ) : (
+          ) : (
             <ul
               aria-label={
                 selectedAgent
