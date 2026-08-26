@@ -142,10 +142,10 @@ export function ExpertSkillWorkspace({
 
           <div className="agent-introduction">
             <div className="agent-introduction-copy">
-              <strong>{selectedAgent?.name ?? "商家运营场景"}</strong>
+              <strong>{selectedAgent?.name ?? `${selectedScene.name}场景`}</strong>
               <p>
                 {selectedAgent?.description ??
-                  "覆盖商品经营分析、AB 实验、寄存、交易查询、订单、逆向等专业能力。"}
+                  `汇总 ${selectedSceneStats.expertCount} 个专家与 ${selectedSceneStats.skillCount} 项技能，可按专家进一步筛选。`}
               </p>
             </div>
           </div>

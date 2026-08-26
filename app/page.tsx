@@ -73,11 +73,12 @@ import {
 } from "@/lib/task-history";
 import { ConcurrentTaskScheduler } from "@/lib/task-scheduler";
 import {
-  getHomeCategorySkills,
+  getHomeCategoryFunctions,
   getHomeCategoryTargetScene,
   getHomeSuggestedQuestions,
-  homeSkillCategories,
-  type HomeSkillCategoryId,
+  homeFunctionCategories,
+  type HomeFunctionCategoryId,
+  type HomeFunctionDefinition,
 } from "@/lib/home-skill-recommendations";
 import {
   buildPromptWithSkills,
@@ -206,7 +207,7 @@ export default function Home() {
   const [selectedComposerExpert, setSelectedComposerExpert] =
     useState<ComposerExpertOption | null>(null);
   const [selectedHomeSkillCategory, setSelectedHomeSkillCategory] =
-    useState<HomeSkillCategoryId>("recommended");
+    useState<HomeFunctionCategoryId>("recommended");
   const [expertWorkspaceSceneId, setExpertWorkspaceSceneId] =
     useState<SceneDefinition["id"]>("merchant");
   const [planMode, setPlanMode] = useState(false);
@@ -294,8 +295,8 @@ export default function Home() {
     () => recentTasks.filter((task) => task.archived),
     [recentTasks],
   );
-  const homeCategorySkills = useMemo(
-    () => getHomeCategorySkills(selectedHomeSkillCategory),
+  const homeCategoryFunctions = useMemo(
+    () => getHomeCategoryFunctions(selectedHomeSkillCategory),
     [selectedHomeSkillCategory],
   );
   const homeSuggestedQuestions = useMemo(
@@ -517,14 +518,6 @@ export default function Home() {
       }
     },
     [updateTask],
-  );
-
-  const selectComposerSkill = useCallback(
-    (skill: ComposerSkillOption) => {
-      bindComposerSkill(skill);
-      composerHandleRef.current?.replaceWithSkill(skill);
-    },
-    [bindComposerSkill],
   );
 
   const executeRunJob = useCallback(
@@ -1694,17 +1687,27 @@ export default function Home() {
               <HomeSkillDiscovery
                 onSelectCategory={setSelectedHomeSkillCategory}
                 selectedCategory={selectedHomeSkillCategory}
-                skills={homeCategorySkills}
-                onSelectSkill={selectComposerSkill}
-                onShowMore={() => {
-                  setExpertWorkspaceSceneId(
-                    getHomeCategoryTargetScene(selectedHomeSkillCategory),
+                functions={homeCategoryFunctions}
+                onSelectFunction={(homeFunction) => {
+                  setSelectedComposerSkills([]);
+                  clearComposerExpert();
+                  composerHandleRef.current?.setText(
+                    homeFunction.standardQuestion,
                   );
+                }}
+                onShowMore={() => {
+                  const targetScene = getHomeCategoryTargetScene(
+                    selectedHomeSkillCategory,
+                  );
+                  if (!targetScene) return;
+                  setExpertWorkspaceSceneId(targetScene);
                   activeViewRef.current = "experts";
                   setActiveView("experts");
                   setMobileSidebarOpen(false);
                 }}
-                selectedSkillKeys={selectedComposerSkills.map((skill) => skill.key)}
+                showMore={
+                  getHomeCategoryTargetScene(selectedHomeSkillCategory) !== null
+                }
               />
               <Composer
                 input={input}
@@ -1728,6 +1731,7 @@ export default function Home() {
                 questions={homeSuggestedQuestions}
                 onSelect={(question) => {
                   setSelectedComposerSkills([]);
+                  clearComposerExpert();
                   composerHandleRef.current?.setText(question);
                 }}
               />
@@ -2351,23 +2355,23 @@ export default function Home() {
 
 function HomeSkillDiscovery({
   selectedCategory,
-  skills,
+  functions,
   onSelectCategory,
-  onSelectSkill,
+  onSelectFunction,
   onShowMore,
-  selectedSkillKeys,
+  showMore,
 }: {
-  selectedCategory: HomeSkillCategoryId;
-  skills: ComposerSkillOption[];
-  onSelectCategory: (category: HomeSkillCategoryId) => void;
-  onSelectSkill: (skill: ComposerSkillOption) => void;
+  selectedCategory: HomeFunctionCategoryId;
+  functions: HomeFunctionDefinition[];
+  onSelectCategory: (category: HomeFunctionCategoryId) => void;
+  onSelectFunction: (homeFunction: HomeFunctionDefinition) => void;
   onShowMore: () => void;
-  selectedSkillKeys: string[];
+  showMore: boolean;
 }) {
   return (
-    <section aria-label="常用技能" className="home-skill-discovery">
+    <section aria-label="推荐功能" className="home-skill-discovery">
       <div aria-label="业务场景" className="home-skill-tabs" role="tablist">
-        {homeSkillCategories.map((category) => (
+        {homeFunctionCategories.map((category) => (
           <button
             aria-controls="home-scene-skills"
             aria-selected={selectedCategory === category.id}
@@ -2389,25 +2393,30 @@ function HomeSkillDiscovery({
           id="home-scene-skills"
           role="tabpanel"
         >
-          {skills.map((skill) => (
+          {functions.map((homeFunction) => (
             <button
-              aria-pressed={selectedSkillKeys.includes(skill.key)}
-              className={`home-skill-card home-skill-option${selectedSkillKeys.includes(skill.key) ? " selected" : ""}`}
-              key={skill.key}
-              onClick={() => onSelectSkill(skill)}
-              title={`${skill.expertName}｜${skill.description}`}
+              className="home-skill-card home-skill-option"
+              key={homeFunction.id}
+              onClick={() => onSelectFunction(homeFunction)}
+              title={homeFunction.description}
               type="button"
             >
-              <strong>{skill.name}</strong>
+              <strong>{homeFunction.name}</strong>
               <span className="home-skill-tooltip" role="tooltip">
-                {skill.expertName}｜{skill.description}
+                {homeFunction.description}
               </span>
             </button>
           ))}
-          <button className="home-discovery-more" onClick={onShowMore} type="button">
-            更多技能
-            <ChevronRight aria-hidden="true" size={15} />
-          </button>
+          {showMore ? (
+            <button
+              className="home-discovery-more"
+              onClick={onShowMore}
+              type="button"
+            >
+              更多功能
+              <ChevronRight aria-hidden="true" size={15} />
+            </button>
+          ) : null}
         </div>
       </div>
     </section>

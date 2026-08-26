@@ -387,9 +387,7 @@ export const merchantOperationAgents: SubAgentDefinition[] = [
   }),
 ];
 
-export const quickComposerExperts: SubAgentDefinition[] = [
-  merchantOperationAgents[0],
-  defineAgent({
+const marketingAcquisitionCampaignAgent = defineAgent({
     id: "marketing-acquisition-campaign-agent",
     originalName: "营销招商活动专家",
     name: "营销招商活动专家",
@@ -397,25 +395,82 @@ export const quickComposerExperts: SubAgentDefinition[] = [
     standardQuestion:
       "请召唤营销招商活动专家，围绕【活动/招商需求】制定执行方案和商家沟通建议。",
     skills: [],
-  }),
-  defineAgent({
+  });
+
+const mrdWritingAgent = defineAgent({
     id: "mrd-writing-agent",
     originalName: "MRD撰写专家",
     name: "MRD撰写专家",
     description: "根据业务背景、用户问题和目标输出结构化 MRD。",
     standardQuestion:
-      "请召唤 MRD 撰写专家，根据【需求背景】撰写一份完整的 MRD。",
-    skills: [],
-  }),
-  defineAgent({
+      "请为我写一份MRD，我的需求如下：\n1.需求名称\n2.需求背景\n3.需求价值\n4.需求详情",
+    skills: [
+      {
+        id: "mrd-writing",
+        name: "MRD撰写",
+        description:
+          "辅助完成需求背景、价值、功能详情、协同方等内容的识别和深挖，撰写MRD文档。",
+        standardQuestion:
+          "请为我写一份MRD，我的需求如下：\n1.需求名称\n2.需求背景\n3.需求价值\n4.需求详情",
+      },
+    ],
+  });
+
+const productOperationAgent = defineAgent({
     id: "product-operation-agent",
     originalName: "商品运营专家",
     name: "商品运营专家",
     description: "分析商品经营表现、问题原因并提供运营建议。",
-    standardQuestion:
-      "请召唤商品运营专家，分析商品【商品ID】在【时间范围】内的经营表现并给出运营建议。",
-    skills: [],
-  }),
+    standardQuestion: "分析管理二级类目【请填写管二类目名称】新增趋势词",
+    skills: [
+      {
+        id: "opportunity-insight",
+        name: "商机洞察",
+        description:
+          "专注于低效query分析、新增趋势词分析、捞月集创建和查询、相似趋势词查询、电商机会词（趋势词）、全网机会商品、全网机会品牌、雷达搬运AI发品相关信息查询和数据分析。",
+        standardQuestion: "分析管理二级类目【请填写管二类目名称】新增趋势词",
+      },
+      {
+        id: "product-detail-diagnosis",
+        name: "商详内容诊断",
+        description:
+          "面向得物商品详情页的内容质量诊断，支持对比品牌官网、旗舰店等外部信息，识别货号、版本、配件、工艺等内容缺失，同时检查现有商详的内容合规性与阅读体验，并输出有依据、可直接补充或修改的优化建议。",
+        standardQuestion:
+          "帮我诊断一下商品【请填写商品ID】的商品详情页，看看有哪些内容缺失或需要修改，并给出优化建议",
+      },
+    ],
+  });
+
+const projectManagementAgent = defineAgent({
+  id: "project-management-agent",
+  originalName: "项目管理专家",
+  name: "项目管理专家",
+  description: "负责版本提需流程、需求进度查询及 RDC 提报。",
+  standardQuestion: "帮我查询【请填写版本号】版本我的需求进展",
+  skills: [
+    {
+      id: "requirement-process",
+      name: "提需流程答疑",
+      description:
+        "查询各版本信息&里程碑日期、提需资格、日常迭代/独立项目提需流程、RDC提报入口等提需信息",
+      standardQuestion: "帮我查询【请填写版本号】版本我的需求进展",
+    },
+    {
+      id: "rdc-submission",
+      name: "RDC提报",
+      description:
+        "依据需求文档链接及任务提示词，自动在RDC系统提报MRD/PRD。",
+      standardQuestion:
+        "帮我在RDC上的【请填写项目名称】【请填写版本号】提报一个MRD/PRD【请填写MRD/PRD文档链接】",
+    },
+  ],
+});
+
+export const quickComposerExperts: SubAgentDefinition[] = [
+  merchantOperationAgents[0],
+  marketingAcquisitionCampaignAgent,
+  mrdWritingAgent,
+  productOperationAgent,
 ];
 
 export const sceneCatalog: SceneDefinition[] = [
@@ -425,10 +480,20 @@ export const sceneCatalog: SceneDefinition[] = [
     status: "available",
     agents: merchantOperationAgents,
   },
-  { id: "product", name: "商品运营", status: "coming-soon", agents: [] },
+  {
+    id: "product",
+    name: "商品运营",
+    status: "available",
+    agents: [productOperationAgent],
+  },
   { id: "acquisition", name: "招商", status: "coming-soon", agents: [] },
   { id: "campaign", name: "营销活动", status: "coming-soon", agents: [] },
-  { id: "project", name: "项目管理", status: "coming-soon", agents: [] },
+  {
+    id: "project",
+    name: "项目管理",
+    status: "available",
+    agents: [mrdWritingAgent, projectManagementAgent],
+  },
 ];
 
 export function getSceneStats(scene: SceneDefinition) {

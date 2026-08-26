@@ -76,7 +76,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(expertWorkspace, /useState<AgentSelection>\("all"\)/);
   assert.doesNotMatch(expertWorkspace, /className="scene-avatar"/);
   assert.doesNotMatch(expertWorkspace, /className="scene-status"/);
-  assert.match(expertWorkspace, /商家运营场景/);
+  assert.match(expertWorkspace, /`\$\{selectedScene\.name\}场景`/);
   assert.match(expertWorkspace, /className="agent-filter-tabs"/);
   assert.match(expertWorkspace, /className="expert-directory-heading"/);
   assert.match(
@@ -114,16 +114,18 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /FeatureBannerCarousel/);
   assert.doesNotMatch(page, /aria-label="新功能推荐"/);
   assert.doesNotMatch(page, /立即体验/);
-  assert.match(page, /setSelectedComposerSkills\(\[\]\)[\s\S]*setText\(question\)/);
-  assert.match(page, /aria-label="常用技能"/);
+  assert.match(page, /setSelectedComposerSkills\(\[\]\)[\s\S]*clearComposerExpert\(\)[\s\S]*setText\(question\)/);
+  assert.match(page, /aria-label="推荐功能"/);
   assert.match(page, /aria-label="业务场景"/);
-  assert.match(page, /homeSkillCategories\.map/);
+  assert.match(page, /homeFunctionCategories\.map/);
   assert.match(page, /selectedHomeSkillCategory/);
-  assert.match(page, /更多技能/);
+  assert.match(page, /更多功能/);
+  assert.match(page, /functions=\{homeCategoryFunctions\}/);
+  assert.match(page, /showMore=\{/);
   assert.doesNotMatch(page, /className="home-discovery-title"/);
   assert.doesNotMatch(page, /className="home-discovery-info"/);
   assert.doesNotMatch(page, /了解常用技能/);
-  assert.match(page, /composerHandleRef\.current\?\.replaceWithSkill\(skill\)/);
+  assert.match(page, /composer\.replaceWithSkill\(pendingComposerSkill\)/);
   assert.doesNotMatch(page, /getExpertComposerSelectionAction/);
   assert.match(page, /removeSkillTokenPreservingText/);
   assert.doesNotMatch(page, /AutomationWorkspace|<span>自动化<\/span>/);
@@ -146,8 +148,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(page, /aria-haspopup="listbox"/);
   assert.match(page, /data-empty=\{composerIsEmpty\}/);
   assert.match(page, /useImperativeHandle/);
-  assert.match(page, /onSelectSkill\(skill\)/);
-  assert.doesNotMatch(page, /onSelectSkill\(skill\.name\)/);
+  assert.match(page, /onAddSkill\(skill\)/);
+  assert.doesNotMatch(page, /onAddSkill\(skill\.name\)/);
   assert.doesNotMatch(page, /使用「\$\{skillName\}」/);
   assert.match(page, /未找到相关技能/);
   assert.match(page, /搜索技能/);
@@ -384,7 +386,6 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /home-skill-category-icon/);
   assert.match(css, /\.home-discovery-options\s*{[^}]*display: flex/s);
   assert.doesNotMatch(css, /\.home-discovery-info/);
-  assert.match(page, /aria-pressed=\{selectedSkillKeys\.includes\(skill\.key\)\}/);
   assert.doesNotMatch(page, /<ArrowDownRight/);
   assert.match(css, /\.empty-state h1\s*{[^}]*margin: 0 0 24px/s);
   assert.match(css, /\.home-skill-option\s*{[^}]*background: rgba\(255, 255, 255, 0\.76\)/s);

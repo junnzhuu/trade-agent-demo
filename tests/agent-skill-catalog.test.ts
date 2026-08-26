@@ -7,13 +7,37 @@ import {
   sceneCatalog,
 } from "../lib/agent-skill-catalog";
 
-test("defines five scenes with merchant operations available by default", () => {
+test("defines five scenes with merchant, product and project available", () => {
   assert.deepEqual(
     sceneCatalog.map((scene) => scene.name),
     ["商家运营", "商品运营", "招商", "营销活动", "项目管理"],
   );
   assert.equal(sceneCatalog[0].status, "available");
-  assert.ok(sceneCatalog.slice(1).every((scene) => scene.status === "coming-soon"));
+  assert.equal(sceneCatalog[1].status, "available");
+  assert.equal(sceneCatalog[2].status, "coming-soon");
+  assert.equal(sceneCatalog[3].status, "coming-soon");
+  assert.equal(sceneCatalog[4].status, "available");
+});
+
+test("adds the product and project function directories", () => {
+  const product = sceneCatalog.find((scene) => scene.id === "product");
+  const project = sceneCatalog.find((scene) => scene.id === "project");
+
+  assert.ok(product);
+  assert.ok(project);
+  assert.deepEqual(product.agents.map((agent) => agent.name), ["商品运营专家"]);
+  assert.deepEqual(
+    product.agents.flatMap((agent) => agent.skills.map((skill) => skill.name)),
+    ["商机洞察", "商详内容诊断"],
+  );
+  assert.deepEqual(project.agents.map((agent) => agent.name), [
+    "MRD撰写专家",
+    "项目管理专家",
+  ]);
+  assert.deepEqual(
+    project.agents.flatMap((agent) => agent.skills.map((skill) => skill.name)),
+    ["MRD撰写", "提需流程答疑", "RDC提报"],
+  );
 });
 
 test("preserves all workbook agent and skill mount relationships", () => {
