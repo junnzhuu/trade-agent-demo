@@ -415,6 +415,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(css, /\.skill-card-title-row\s*{[^}]*gap: 12px/s);
   assert.match(css, /\.skill-agent-tag/);
   assert.match(css, /\.skill-use-overlay/);
+  assert.match(css, /\.skill-coming-soon-overlay/);
+  assert.match(css, /\.scene-coming-soon-label/);
   assert.match(css, /\.skill-use-overlay button\s*{[^}]*align-self: flex-end/s);
   assert.match(css, /\.skill-card:focus-within \.skill-use-overlay/);
   assert.doesNotMatch(expertWorkspace, /onSummonAgent/);
@@ -422,6 +424,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(expertWorkspace, /summon-agent-button/);
   assert.match(expertWorkspace, /该专家暂无可用技能/);
   assert.match(expertWorkspace, /能力建设中/);
+  assert.match(expertWorkspace, /即将接入，敬请期待/);
+  assert.match(expertWorkspace, /aria-disabled/);
   assert.match(page, /selectedComposerExpert/);
   assert.match(page, /targetAgent/);
   assert.match(page, /Supervisor 已路由至/);

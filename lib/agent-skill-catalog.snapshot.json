@@ -2,10 +2,10 @@
   "source": {
     "sheet": "AGENT&SKILL介绍",
     "range": "A1:M72",
-    "revision": 848,
+    "revision": 849,
     "rawSkillMountCount": 47,
-    "excludedMissingQuestionCount": 4,
-    "visibleSkillMountCount": 43
+    "excludedMissingQuestionCount": 0,
+    "visibleSkillMountCount": 47
   },
   "scenes": [
     {
@@ -404,7 +404,7 @@
     {
       "id": "campaign",
       "name": "营销",
-      "status": "available",
+      "status": "coming-soon",
       "agents": [
         {
           "id": "promo-activity-helper",
@@ -412,7 +412,16 @@
           "name": "营销招商活动助手",
           "description": "辅助查询SPU参与的活动信息、订单参与的活动信息、指定活动ID的活动详情。",
           "standardQuestion": "1. 查询SPU 123 参与的活动信息\n2. 查询活动 123 的活动详情\n3. 查询订单号 123456 使用了哪些优惠活动？",
-          "skills": []
+          "skills": [
+            {
+              "id": "activity-robot-command",
+              "mountKey": "promo-activity-helper:activity-robot-command",
+              "name": "活动助手查询用法",
+              "description": "作为营销招商活动查询 MCP 使用的说明 SKILL，主要说明接口在不同场景下的入参用法",
+              "standardQuestion": "",
+              "availability": "coming-soon"
+            }
+          ]
         },
         {
           "id": "promo-activity-qa",
@@ -420,7 +429,32 @@
           "name": "营销招商活动QA助手",
           "description": "辅助回答营销招商活动在招商过程中的常见问题答疑，支持平商联补券(共补券活动)、\n品牌首单礼金、平台大促活动（超级单品、大促招商基础池、一商折扣、混资加补券）",
           "standardQuestion": "帮我解答一下: 【大促活动、平商共补券报名、首单礼金等营销活动问题】",
-          "skills": []
+          "skills": [
+            {
+              "id": "brand-new-user-gift-qa",
+              "mountKey": "promo-activity-qa:brand-new-user-gift-qa",
+              "name": "品牌首单礼金招商QA问题知识库",
+              "description": "前期以SKILL形式实现的“知识库”，后期迁移到交易知识库中",
+              "standardQuestion": "",
+              "availability": "coming-soon"
+            },
+            {
+              "id": "supply-coupon-qa",
+              "mountKey": "promo-activity-qa:supply-coupon-qa",
+              "name": "平商共补券招商QA问题知识库",
+              "description": "前期以SKILL形式实现的“知识库”，后期迁移到交易知识库中",
+              "standardQuestion": "",
+              "availability": "coming-soon"
+            },
+            {
+              "id": "platform-promotion-activity-qa",
+              "mountKey": "promo-activity-qa:platform-promotion-activity-qa",
+              "name": "平台大促活动招商QA问题知识库",
+              "description": "前期以SKILL形式实现的“知识库”，后期迁移到交易知识库中",
+              "standardQuestion": "",
+              "availability": "coming-soon"
+            }
+          ]
         },
         {
           "id": "nezha-agent",
@@ -543,7 +577,7 @@
     {
       "id": "acquisition",
       "name": "招商",
-      "status": "available",
+      "status": "coming-soon",
       "agents": [
         {
           "id": "goofish-lead-pipeline",

@@ -12,14 +12,14 @@ test("uses the latest Feishu catalog snapshot", () => {
   assert.deepEqual(agentSkillCatalogSource, {
     sheet: "AGENT&SKILL介绍",
     range: "A1:M72",
-    revision: 848,
+    revision: 849,
     rawSkillMountCount: 47,
-    excludedMissingQuestionCount: 4,
-    visibleSkillMountCount: 43,
+    excludedMissingQuestionCount: 0,
+    visibleSkillMountCount: 47,
   });
 });
 
-test("maps source agents to five available scenes in source order", () => {
+test("maps source agents to five scenes and marks previews as coming soon", () => {
   assert.deepEqual(
     sceneCatalog.map((scene) => [scene.id, scene.name]),
     [
@@ -30,7 +30,16 @@ test("maps source agents to five available scenes in source order", () => {
       ["acquisition", "招商"],
     ],
   );
-  assert.ok(sceneCatalog.every((scene) => scene.status === "available"));
+  assert.deepEqual(
+    sceneCatalog.map((scene) => [scene.id, scene.status]),
+    [
+      ["merchant", "available"],
+      ["campaign", "coming-soon"],
+      ["project", "available"],
+      ["product", "available"],
+      ["acquisition", "coming-soon"],
+    ],
+  );
 });
 
 test("preserves all non-bidding experts and usable skill mounts", () => {
@@ -40,7 +49,7 @@ test("preserves all non-bidding experts and usable skill mounts", () => {
 
   assert.deepEqual(stats, {
     merchant: { expertCount: 12, skillCount: 40 },
-    campaign: { expertCount: 3, skillCount: 0 },
+    campaign: { expertCount: 3, skillCount: 4 },
     project: { expertCount: 4, skillCount: 3 },
     product: { expertCount: 5, skillCount: 0 },
     acquisition: { expertCount: 4, skillCount: 0 },
@@ -54,7 +63,7 @@ test("preserves all non-bidding experts and usable skill mounts", () => {
       (total, scene) => total + getSceneStats(scene).skillCount,
       0,
     ),
-    43,
+    47,
   );
   assert.ok(
     sceneCatalog.every((scene) =>
@@ -92,24 +101,72 @@ test("keeps source order, repeated mounts and empty experts", () => {
   );
 });
 
-test("filters only source skills without a standard question", () => {
+test("keeps coming-soon marketing skills without enabling them", () => {
   const allSkills = sceneCatalog.flatMap((scene) =>
     scene.agents.flatMap((agent) => agent.skills),
   );
-  const hiddenSkillIds = [
+  const comingSoonSkillIds = [
     "activity-robot-command",
     "brand-new-user-gift-qa",
     "supply-coupon-qa",
     "platform-promotion-activity-qa",
   ];
 
-  assert.ok(allSkills.every((skill) => skill.standardQuestion.length > 0));
-  assert.ok(allSkills.every((skill) => !hiddenSkillIds.includes(skill.id)));
+  const comingSoonSkills = allSkills.filter((skill) =>
+    comingSoonSkillIds.includes(skill.id),
+  );
+
+  assert.deepEqual(
+    comingSoonSkills.map((skill) => skill.id),
+    comingSoonSkillIds,
+  );
+  assert.ok(
+    comingSoonSkills.every(
+      (skill) =>
+        skill.standardQuestion === "" && skill.availability === "coming-soon",
+    ),
+  );
+  assert.deepEqual(
+    comingSoonSkills.map((skill) => [skill.name, skill.description]),
+    [
+      [
+        "活动助手查询用法",
+        "作为营销招商活动查询 MCP 使用的说明 SKILL，主要说明接口在不同场景下的入参用法",
+      ],
+      [
+        "品牌首单礼金招商QA问题知识库",
+        "前期以SKILL形式实现的“知识库”，后期迁移到交易知识库中",
+      ],
+      [
+        "平商共补券招商QA问题知识库",
+        "前期以SKILL形式实现的“知识库”，后期迁移到交易知识库中",
+      ],
+      [
+        "平台大促活动招商QA问题知识库",
+        "前期以SKILL形式实现的“知识库”，后期迁移到交易知识库中",
+      ],
+    ],
+  );
+  assert.ok(
+    allSkills
+      .filter((skill) => !comingSoonSkillIds.includes(skill.id))
+      .every((skill) => skill.standardQuestion.length > 0),
+  );
   assert.equal(
     allSkills.find((skill) => skill.id === "find-user-fallback")
       ?.standardQuestion,
     "根据找人地图，帮我找",
   );
+});
+
+test("keeps acquisition experts visible while their skills are pending", () => {
+  const acquisitionScene = sceneCatalog.find(
+    (scene) => scene.id === "acquisition",
+  );
+  assert.ok(acquisitionScene);
+  assert.equal(acquisitionScene.status, "coming-soon");
+  assert.equal(acquisitionScene.agents.length, 4);
+  assert.ok(acquisitionScene.agents.every((agent) => agent.skills.length === 0));
 });
 
 test("splits requirement-management skills and keeps them under the source expert", () => {

@@ -6,6 +6,7 @@ export type AgentSkillDefinition = {
   name: string;
   description: string;
   standardQuestion: string;
+  availability?: "available" | "coming-soon";
 };
 
 export type SubAgentDefinition = {
