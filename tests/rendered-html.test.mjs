@@ -95,10 +95,7 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.match(expertWorkspace, /使用该技能/);
   assert.match(expertWorkspace, /useState<SkillSort>\("hot"\)/);
   assert.match(expertWorkspace, /aria-label="技能排序"/);
-  assert.match(
-    expertWorkspace,
-    /skillSort === "hot" \? visibleSkills : \[\.\.\.visibleSkills\]\.reverse\(\)/,
-  );
+  assert.match(expertWorkspace, /const orderedSkills = visibleSkills/);
   assert.match(expertWorkspace, />\s*最热\s*<\/button>/);
   assert.match(expertWorkspace, />\s*最新\s*<\/button>/);
   assert.match(page, /HomeSkillDiscovery/);

@@ -52,8 +52,7 @@ export function ExpertSkillWorkspace({
   const selectedSkillCount = selectedAgent
     ? selectedAgent.skills.length
     : selectedSceneStats.skillCount;
-  const orderedSkills =
-    skillSort === "hot" ? visibleSkills : [...visibleSkills].reverse();
+  const orderedSkills = visibleSkills;
 
   const selectScene = (sceneId: (typeof sceneCatalog)[number]["id"]) => {
     setSelectedSceneId(sceneId);
