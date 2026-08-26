@@ -2207,21 +2207,6 @@ button:disabled {
   min-width: 0;
 }
 
-.scene-coming-soon-notice {
-  display: flex;
-  min-height: 38px;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding: 0 13px;
-  border: 1px solid rgba(214, 214, 214, 0.84);
-  border-radius: 11px;
-  background: rgba(236, 236, 236, 0.74);
-  color: #666666;
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .agent-filter-tabs {
   display: flex;
   width: 100%;

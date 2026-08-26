@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   getSceneStats,
@@ -106,12 +106,6 @@ export function ExpertSkillWorkspace({
         <span>{selectedSceneStats.expertCount} 个</span>
       </div>
       <section className="agent-skill-directory" aria-live="polite">
-        {selectedSceneComingSoon ? (
-          <div className="scene-coming-soon-notice">
-            <Bot aria-hidden="true" size={16} strokeWidth={1.7} />
-            <span>该场景能力即将接入，敬请期待</span>
-          </div>
-        ) : null}
         <div
           aria-label={`${selectedScene.name}专家筛选`}
           className="agent-filter-tabs"
