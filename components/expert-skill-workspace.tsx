@@ -2,6 +2,8 @@
 
 import { Check } from "lucide-react";
 import { useMemo, useState } from "react";
+import { AcquisitionGuide } from "@/components/acquisition-guide";
+import { acquisitionGuide } from "@/lib/acquisition-guide";
 import {
   getSceneStats,
   sceneCatalog,
@@ -71,24 +73,29 @@ export function ExpertSkillWorkspace({
       >
         {sceneCatalog.map((scene) => {
           const selected = scene.id === selectedScene.id;
+          const isAcquisition = scene.id === acquisitionGuide.sceneId;
           const stats = getSceneStats(scene);
           return (
             <li key={scene.id}>
               <button
                 aria-pressed={selected}
-                className={`scene-card ${selected ? "selected" : ""}`}
+                className={`scene-card ${selected ? "selected" : ""} ${isAcquisition ? "scene-card-acquisition" : ""}`}
                 data-testid={`scene-card-${scene.id}`}
                 onClick={() => selectScene(scene.id)}
                 type="button"
               >
                 <span className="scene-card-heading">
                   <strong>{scene.name}</strong>
-                  {scene.status === "coming-soon" ? (
+                  {isAcquisition ? (
+                    <span className="scene-external-label">需配合 DewuClaw</span>
+                  ) : scene.status === "coming-soon" ? (
                     <span className="scene-coming-soon-label">即将接入</span>
                   ) : null}
                 </span>
                 <span className="scene-stat-line">
-                  {stats.expertCount} 个专家 · {stats.skillCount} 项技能
+                  {isAcquisition
+                    ? `${acquisitionGuide.capabilities.length} 类招商能力`
+                    : `${stats.expertCount} 个专家 · ${stats.skillCount} 项技能`}
                 </span>
                 {selected ? (
                   <span className="selection-check" aria-hidden="true">
@@ -101,143 +108,149 @@ export function ExpertSkillWorkspace({
         })}
       </ul>
 
-      <div className="expert-directory-heading">
-        <h2>专家</h2>
-        <span>{selectedSceneStats.expertCount} 个</span>
-      </div>
-      <section className="agent-skill-directory" aria-live="polite">
-        <div
-          aria-label={`${selectedScene.name}专家筛选`}
-          className="agent-filter-tabs"
-          role="tablist"
-        >
-            <button
-              aria-selected={selectedAgentId === "all"}
-              className={selectedAgentId === "all" ? "selected" : ""}
-              onClick={() => setSelectedAgentId("all")}
-              role="tab"
-              type="button"
-            >
-              全部
-            </button>
-            {selectedScene.agents.map((agent) => (
-              <button
-                aria-selected={selectedAgentId === agent.id}
-                className={selectedAgentId === agent.id ? "selected" : ""}
-                key={agent.id}
-                onClick={() => setSelectedAgentId(agent.id)}
-                role="tab"
-                type="button"
-              >
-                {agent.name}
-              </button>
-            ))}
-        </div>
-
-        <div className="agent-introduction">
-            <div className="agent-introduction-copy">
-              <strong>{selectedAgent?.name ?? `${selectedScene.name}场景`}</strong>
-              <p>
-                {selectedAgent?.description ??
-                  `汇总 ${selectedSceneStats.expertCount} 个专家与 ${selectedSceneStats.skillCount} 项技能，可按专家进一步筛选。`}
-              </p>
-            </div>
-        </div>
-
-        <div className="skill-directory-heading">
-            <h3>技能</h3>
-            <span>{selectedSkillCount} 项</span>
+      {selectedScene.id === acquisitionGuide.sceneId ? (
+        <AcquisitionGuide />
+      ) : (
+        <>
+          <div className="expert-directory-heading">
+            <h2>专家</h2>
+            <span>{selectedSceneStats.expertCount} 个</span>
+          </div>
+          <section className="agent-skill-directory" aria-live="polite">
             <div
-              aria-label="技能排序"
-              className="skill-sort-tabs"
+              aria-label={`${selectedScene.name}专家筛选`}
+              className="agent-filter-tabs"
               role="tablist"
             >
-              <button
-                aria-selected={skillSort === "hot"}
-                className={skillSort === "hot" ? "selected" : ""}
-                onClick={() => setSkillSort("hot")}
-                role="tab"
-                type="button"
-              >
-                最热
-              </button>
-              <button
-                aria-selected={skillSort === "latest"}
-                className={skillSort === "latest" ? "selected" : ""}
-                onClick={() => setSkillSort("latest")}
-                role="tab"
-                type="button"
-              >
-                最新
-              </button>
+                <button
+                  aria-selected={selectedAgentId === "all"}
+                  className={selectedAgentId === "all" ? "selected" : ""}
+                  onClick={() => setSelectedAgentId("all")}
+                  role="tab"
+                  type="button"
+                >
+                  全部
+                </button>
+                {selectedScene.agents.map((agent) => (
+                  <button
+                    aria-selected={selectedAgentId === agent.id}
+                    className={selectedAgentId === agent.id ? "selected" : ""}
+                    key={agent.id}
+                    onClick={() => setSelectedAgentId(agent.id)}
+                    role="tab"
+                    type="button"
+                  >
+                    {agent.name}
+                  </button>
+                ))}
             </div>
-          </div>
 
-        {orderedSkills.length === 0 ? (
-            <div className="agent-empty-state">
-              <strong>技能建设中，敬请期待</strong>
+            <div className="agent-introduction">
+                <div className="agent-introduction-copy">
+                  <strong>{selectedAgent?.name ?? `${selectedScene.name}场景`}</strong>
+                  <p>
+                    {selectedAgent?.description ??
+                      `汇总 ${selectedSceneStats.expertCount} 个专家与 ${selectedSceneStats.skillCount} 项技能，可按专家进一步筛选。`}
+                  </p>
+                </div>
             </div>
-          ) : (
-            <ul
-              aria-label={
-                selectedAgent
-                  ? `${selectedAgent.name}技能`
-                  : `${selectedScene.name}全部技能`
-              }
-              className={`skill-grid ${selectedAgent ? "" : "all-skills-grid"}`}
-            >
-              {orderedSkills.map(({ agent, skill }) => {
-                const comingSoon =
-                  selectedSceneComingSoon ||
-                  skill.availability === "coming-soon";
-                return (
-                  <li key={skill.mountKey}>
-                    <article
-                      aria-label={
-                        comingSoon
-                          ? `${skill.name}，即将接入，敬请期待`
-                          : undefined
-                      }
-                      aria-disabled={comingSoon || undefined}
-                      className={`skill-card ${comingSoon ? "coming-soon" : ""}`}
-                      role={comingSoon ? "group" : undefined}
-                    >
-                      <div className="skill-card-title-row">
-                        <strong>{skill.name}</strong>
-                        <span
-                          aria-label={`所属专家：${agent.name}`}
-                          className="skill-agent-tag"
-                          title={agent.name}
+
+            <div className="skill-directory-heading">
+                <h3>技能</h3>
+                <span>{selectedSkillCount} 项</span>
+                <div
+                  aria-label="技能排序"
+                  className="skill-sort-tabs"
+                  role="tablist"
+                >
+                  <button
+                    aria-selected={skillSort === "hot"}
+                    className={skillSort === "hot" ? "selected" : ""}
+                    onClick={() => setSkillSort("hot")}
+                    role="tab"
+                    type="button"
+                  >
+                    最热
+                  </button>
+                  <button
+                    aria-selected={skillSort === "latest"}
+                    className={skillSort === "latest" ? "selected" : ""}
+                    onClick={() => setSkillSort("latest")}
+                    role="tab"
+                    type="button"
+                  >
+                    最新
+                  </button>
+                </div>
+              </div>
+
+            {orderedSkills.length === 0 ? (
+                <div className="agent-empty-state">
+                  <strong>技能建设中，敬请期待</strong>
+                </div>
+              ) : (
+                <ul
+                  aria-label={
+                    selectedAgent
+                      ? `${selectedAgent.name}技能`
+                      : `${selectedScene.name}全部技能`
+                  }
+                  className={`skill-grid ${selectedAgent ? "" : "all-skills-grid"}`}
+                >
+                  {orderedSkills.map(({ agent, skill }) => {
+                    const comingSoon =
+                      selectedSceneComingSoon ||
+                      skill.availability === "coming-soon";
+                    return (
+                      <li key={skill.mountKey}>
+                        <article
+                          aria-label={
+                            comingSoon
+                              ? `${skill.name}，即将接入，敬请期待`
+                              : undefined
+                          }
+                          aria-disabled={comingSoon || undefined}
+                          className={`skill-card ${comingSoon ? "coming-soon" : ""}`}
+                          role={comingSoon ? "group" : undefined}
                         >
-                          {agent.name}
-                        </span>
-                      </div>
-                      <span className="skill-description">
-                        {skill.description}
-                      </span>
-                      {comingSoon ? (
-                        <div className="skill-coming-soon-overlay">
-                          <span>即将接入，敬请期待</span>
-                        </div>
-                      ) : (
-                        <div className="skill-use-overlay">
-                          <p>{skill.standardQuestion}</p>
-                          <button
-                            aria-label={`使用技能：${skill.name}`}
-                            onClick={() => onUseSkill(agent, skill)}
-                            type="button"
-                          >
-                            使用该技能
-                          </button>
-                        </div>
-                      )}
-                    </article>
-                  </li>
-                );
-              })}
-            </ul>
-        )}
-      </section>
+                          <div className="skill-card-title-row">
+                            <strong>{skill.name}</strong>
+                            <span
+                              aria-label={`所属专家：${agent.name}`}
+                              className="skill-agent-tag"
+                              title={agent.name}
+                            >
+                              {agent.name}
+                            </span>
+                          </div>
+                          <span className="skill-description">
+                            {skill.description}
+                          </span>
+                          {comingSoon ? (
+                            <div className="skill-coming-soon-overlay">
+                              <span>即将接入，敬请期待</span>
+                            </div>
+                          ) : (
+                            <div className="skill-use-overlay">
+                              <p>{skill.standardQuestion}</p>
+                              <button
+                                aria-label={`使用技能：${skill.name}`}
+                                onClick={() => onUseSkill(agent, skill)}
+                                type="button"
+                              >
+                                使用该技能
+                              </button>
+                            </div>
+                          )}
+                        </article>
+                      </li>
+                    );
+                  })}
+                </ul>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 }
