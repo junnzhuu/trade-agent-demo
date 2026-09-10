@@ -45,6 +45,14 @@ test("styles the document link as a theme-colored, wrapping action", async () =>
   assert.match(css, /\.acquisition-guide-link:focus-visible\s*\{[^}]*outline: 2px solid #007f80/);
 });
 
+test("uses compact typography only for acquisition and marketing capability cards", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(css, /\.acquisition-capability-card h3\s*\{[^}]*font-size: 14px/);
+  assert.match(css, /\.acquisition-capability-card p\s*\{[^}]*font-size: 13px/);
+  assert.match(css, /\.acquisition-guide-header h2\s*\{[^}]*font-size: 24px/);
+  assert.match(css, /\.acquisition-guide-header p\s*\{[^}]*font-size: 14px/);
+});
+
 test("defines a separate external-use guide without creating executable Skills", () => {
   assert.equal(acquisitionGuide.sceneId, "acquisition");
   assert.equal(acquisitionGuide.title, "招商 Agent 能帮你做什么？");

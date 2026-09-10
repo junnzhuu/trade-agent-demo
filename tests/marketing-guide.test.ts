@@ -88,7 +88,7 @@ test("reuses responsive theme styling and lets the external-use badge wrap", asy
   const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
   assert.match(css, /\.scene-card-marketing \.scene-external-label\s*\{[^}]*max-width: 100%;[^}]*white-space: normal;/);
   assert.match(css, /\.acquisition-capability-grid\s*\{[^}]*grid-template-columns: 1fr/);
-  assert.match(css, /@media \(min-width: 761px\)\s*\{\s*\.acquisition-capability-grid\s*\{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(min-width: 761px\)\s*\{\s*\.acquisition-capability-grid\s*\{\s*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(css, /\.acquisition-guide-link:focus-visible\s*\{[^}]*outline: 2px solid #007f80/);
   assert.doesNotMatch(css, /\.marketing-capability-channel|\.marketing-channel-label|\.marketing-capability-card/);
 });

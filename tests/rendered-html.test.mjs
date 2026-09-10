@@ -406,6 +406,8 @@ test("ships the trading agent workspace instead of the starter preview", async (
   assert.doesNotMatch(page, /home-skill-card-heading/);
   assert.match(page, /getHomeSuggestedQuestions/);
   assert.match(css, /\.skill-grid/);
+  assert.match(css, /\.skill-grid\s*\{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.doesNotMatch(css, /\.skill-grid\s*\{[^}]*grid-template-columns: repeat\(4,/);
   assert.match(css, /\.skill-card-title-row/);
   assert.match(css, /\.skill-sort-tabs/);
   assert.match(css, /\.skill-sort-tabs button\.selected/);

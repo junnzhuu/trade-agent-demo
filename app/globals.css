@@ -2316,7 +2316,7 @@ button:disabled {
 .acquisition-capability-card h3 {
   margin: 0 0 12px;
   color: var(--text);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 650;
   line-height: 1.5;
 }
@@ -2324,13 +2324,13 @@ button:disabled {
 .acquisition-capability-card p {
   margin: 0;
   color: #595f64;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.8;
 }
 
 @media (min-width: 761px) {
   .acquisition-capability-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -2478,7 +2478,7 @@ button:disabled {
 
 .skill-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
