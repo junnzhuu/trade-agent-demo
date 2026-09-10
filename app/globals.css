@@ -2190,21 +2190,25 @@ button:disabled {
   font-weight: 600;
 }
 
-.scene-card-acquisition.selected {
+.scene-card-acquisition.selected,
+.scene-card-marketing.selected {
   background: rgba(255, 255, 255, 0.86);
 }
 
-.scene-card-acquisition .scene-card-heading {
+.scene-card-acquisition .scene-card-heading,
+.scene-card-marketing .scene-card-heading {
   flex-wrap: wrap;
   gap: 6px 8px;
   padding-right: 18px;
 }
 
-.scene-card-acquisition .scene-card-heading strong {
+.scene-card-acquisition .scene-card-heading strong,
+.scene-card-marketing .scene-card-heading strong {
   padding-right: 0;
 }
 
-.scene-card-acquisition .scene-stat-line {
+.scene-card-acquisition .scene-stat-line,
+.scene-card-marketing .scene-stat-line {
   margin-top: 8px;
 }
 
@@ -2218,6 +2222,14 @@ button:disabled {
   font-size: 10px;
   font-weight: 600;
   line-height: 1.2;
+}
+
+.scene-card-marketing .scene-external-label {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .acquisition-guide {

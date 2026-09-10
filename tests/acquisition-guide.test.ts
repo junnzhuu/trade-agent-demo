@@ -50,9 +50,9 @@ test("defines a separate external-use guide without creating executable Skills",
   assert.equal(acquisitionGuide.title, "招商 Agent 能帮你做什么？");
   assert.equal(
     acquisitionGuide.description,
-    "支持招商线索获取、商家信息采集、靶向池清洗与商家触达。目前需配合 DewuClaw 使用，暂不支持在交易智能助手中直接调用。",
+    "支持招商线索获取、商家信息采集、靶向池清洗与商家触达。目前需配合 DewuClaw 使用，暂不支持在交易智能助手中直接调用。具体使用方式请查看下方指南。",
   );
-  assert.equal(acquisitionGuide.documentLabel, "查看招商能力介绍与使用指南");
+  assert.equal(acquisitionGuide.documentLabel, "查看使用指南");
   assert.equal(
     acquisitionGuide.documentUrl,
     "https://poizon.feishu.cn/wiki/V1QTwsP7AiFcdBkypVDcjTaMndb",
@@ -127,15 +127,15 @@ test("shows the DewuClaw guide only for the acquisition scene", () => {
   assert.doesNotMatch(html, /使用该技能|技能建设中，敬请期待/);
   const card = getSceneCard(html, "acquisition");
   assert.match(card, /aria-pressed="true"/);
-  assert.match(card, /需配合 DewuClaw/);
-  assert.match(card, /4 类招商能力/);
+  assert.match(card, />需配合 DewuClaw 使用<\/span>/);
+  assert.match(card, />4 类能力<\/span>/);
   assert.doesNotMatch(card, /即将接入|个专家|项技能/);
   for (const scene of sceneCatalog) {
     getSceneCard(html, scene.id);
   }
 });
 
-test("keeps merchant Skills usable and marketing previews disabled", () => {
+test("keeps merchant Skills usable", () => {
   const merchant = renderWorkspace("merchant");
   assert.doesNotMatch(merchant, /class="acquisition-guide"/);
   assert.match(merchant, /class="agent-filter-tabs"/);
@@ -144,15 +144,6 @@ test("keeps merchant Skills usable and marketing previews disabled", () => {
   assert.equal((merchant.match(/<article\b/g) ?? []).length, 40);
   assert.match(getSceneCard(merchant, "merchant"), /aria-pressed="true"/);
 
-  const marketing = renderWorkspace("campaign");
-  assert.doesNotMatch(marketing, /class="acquisition-guide"/);
-  assert.match(marketing, /class="agent-filter-tabs"/);
-  assert.match(marketing, /class="skill-sort-tabs"/);
-  assert.equal((marketing.match(/<article\b/g) ?? []).length, 4);
-  assert.equal((marketing.match(/aria-disabled="true"/g) ?? []).length, 4);
-  assert.doesNotMatch(marketing, /使用该技能/);
-  assert.match(marketing, /即将接入，敬请期待/);
-  assert.match(getSceneCard(marketing, "campaign"), /即将接入/);
 });
 
 test("preserves requirement-management Skills and the product empty state", () => {

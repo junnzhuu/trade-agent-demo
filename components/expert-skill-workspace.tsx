@@ -3,7 +3,9 @@
 import { Check } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AcquisitionGuide } from "@/components/acquisition-guide";
+import { MarketingGuide } from "@/components/marketing-guide";
 import { acquisitionGuide } from "@/lib/acquisition-guide";
+import { marketingGuide } from "@/lib/marketing-guide";
 import {
   getSceneStats,
   sceneCatalog,
@@ -74,12 +76,13 @@ export function ExpertSkillWorkspace({
         {sceneCatalog.map((scene) => {
           const selected = scene.id === selectedScene.id;
           const isAcquisition = scene.id === acquisitionGuide.sceneId;
+          const isMarketing = scene.id === marketingGuide.sceneId;
           const stats = getSceneStats(scene);
           return (
             <li key={scene.id}>
               <button
                 aria-pressed={selected}
-                className={`scene-card ${selected ? "selected" : ""} ${isAcquisition ? "scene-card-acquisition" : ""}`}
+                className={`scene-card ${selected ? "selected" : ""} ${isAcquisition ? "scene-card-acquisition" : isMarketing ? "scene-card-marketing" : ""}`}
                 data-testid={`scene-card-${scene.id}`}
                 onClick={() => selectScene(scene.id)}
                 type="button"
@@ -87,14 +90,18 @@ export function ExpertSkillWorkspace({
                 <span className="scene-card-heading">
                   <strong>{scene.name}</strong>
                   {isAcquisition ? (
-                    <span className="scene-external-label">需配合 DewuClaw</span>
+                    <span className="scene-external-label">需配合 DewuClaw 使用</span>
+                  ) : isMarketing ? (
+                    <span className="scene-external-label">{marketingGuide.sceneLabel}</span>
                   ) : scene.status === "coming-soon" ? (
                     <span className="scene-coming-soon-label">即将接入</span>
                   ) : null}
                 </span>
                 <span className="scene-stat-line">
                   {isAcquisition
-                    ? `${acquisitionGuide.capabilities.length} 类招商能力`
+                    ? `${acquisitionGuide.capabilities.length} 类能力`
+                    : isMarketing
+                    ? `${marketingGuide.capabilities.length} 类能力`
                     : `${stats.expertCount} 个专家 · ${stats.skillCount} 项技能`}
                 </span>
                 {selected ? (
@@ -110,6 +117,8 @@ export function ExpertSkillWorkspace({
 
       {selectedScene.id === acquisitionGuide.sceneId ? (
         <AcquisitionGuide />
+      ) : selectedScene.id === marketingGuide.sceneId ? (
+        <MarketingGuide />
       ) : (
         <>
           <div className="expert-directory-heading">

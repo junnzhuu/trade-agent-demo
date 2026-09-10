@@ -4,9 +4,9 @@ export const acquisitionGuide = {
   sceneId: "acquisition",
   title: "招商 Agent 能帮你做什么？",
   description:
-    "支持招商线索获取、商家信息采集、靶向池清洗与商家触达。目前需配合 DewuClaw 使用，暂不支持在交易智能助手中直接调用。",
+    "支持招商线索获取、商家信息采集、靶向池清洗与商家触达。目前需配合 DewuClaw 使用，暂不支持在交易智能助手中直接调用。具体使用方式请查看下方指南。",
   documentUrl: "https://poizon.feishu.cn/wiki/V1QTwsP7AiFcdBkypVDcjTaMndb",
-  documentLabel: "查看招商能力介绍与使用指南",
+  documentLabel: "查看使用指南",
   capabilities: [
     {
       id: "xianyu-leads",
