@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronRight,
   ClipboardList,
+  Clock3,
   Copy,
   Ellipsis,
   FilePlus2,
@@ -43,6 +44,7 @@ import {
 } from "react";
 import { ExpertSkillWorkspace } from "@/components/expert-skill-workspace";
 import { FeishuIntegrationDialog } from "@/components/feishu-integration-dialog";
+import { ScheduledTaskWorkspace } from "@/components/scheduled-task-workspace";
 import type {
   AgentSkillDefinition,
   SceneDefinition,
@@ -130,7 +132,7 @@ const feedbackReasons = [
 
 type ModelId = (typeof modelOptions)[number]["id"];
 
-type WorkspaceView = "chat" | "experts";
+type WorkspaceView = "chat" | "experts" | "scheduled";
 type LibraryDialog = "favorites" | "archive";
 type FeedbackMode = "answer" | "general";
 type FeedbackImage = { id: string; name: string; url: string };
@@ -1515,6 +1517,19 @@ export default function Home() {
             <Users size={18} strokeWidth={1.7} />
             <span>专家 · 技能</span>
           </button>
+          <button
+            aria-current={activeView === "scheduled" ? "page" : undefined}
+            className={activeView === "scheduled" ? "active" : ""}
+            onClick={() => {
+              activeViewRef.current = "scheduled";
+              setActiveView("scheduled");
+              setMobileSidebarOpen(false);
+            }}
+            type="button"
+          >
+            <Clock3 size={18} strokeWidth={1.7} />
+            <span>定时任务</span>
+          </button>
         </nav>
 
         {pinnedTasks.length ? (
@@ -1674,7 +1689,9 @@ export default function Home() {
           <PanelLeftOpen size={19} />
         </button>
 
-        {activeView === "experts" ? (
+        {activeView === "scheduled" ? (
+          <ScheduledTaskWorkspace />
+        ) : activeView === "experts" ? (
           <ExpertSkillWorkspace
             initialSceneId={expertWorkspaceSceneId}
             key={expertWorkspaceSceneId}
