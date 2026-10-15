@@ -45,6 +45,21 @@ import {
 import { ExpertSkillWorkspace } from "@/components/expert-skill-workspace";
 import { FeishuIntegrationDialog } from "@/components/feishu-integration-dialog";
 import { ScheduledTaskWorkspace } from "@/components/scheduled-task-workspace";
+import {
+  CREATE_SCHEDULED_TASK_PROMPT,
+  EDIT_SCHEDULED_TASK_PROMPT,
+  processScheduledTaskChat,
+  restoreScheduledConversation,
+  snapshotScheduledConversation,
+  type ScheduledChatDraft,
+} from "@/lib/scheduled-task-chat";
+import {
+  getScheduledTasksSnapshot,
+  parseScheduledTasksSnapshot,
+  saveScheduledConversation,
+  saveScheduledTask,
+} from "@/lib/scheduled-task-storage";
+import type { ScheduledTask } from "@/lib/scheduled-tasks";
 import type {
   AgentSkillDefinition,
   SceneDefinition,
@@ -201,6 +216,7 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [pendingScheduledInput, setPendingScheduledInput] = useState<string | null>(null);
   const [selectedComposerSkills, setSelectedComposerSkills] = useState<
     ComposerSkillOption[]
   >([]);
@@ -257,6 +273,7 @@ export default function Home() {
   const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
   const favoriteToastTimerRef = useRef<number | null>(null);
   const composerHandleRef = useRef<ComposerHandle | null>(null);
+  const scheduledDraftsRef = useRef(new Map<string, ScheduledChatDraft>());
 
   const filteredTasks = useMemo(
     () => filterRecentTasks(recentTasks, searchQuery),
@@ -419,6 +436,7 @@ export default function Home() {
 
   const startNewChat = useCallback(() => {
     setInput("");
+    setPendingScheduledInput(null);
     setSelectedComposerSkills([]);
     setPendingComposerSkill(null);
     setSelectedComposerExpert(null);
@@ -428,6 +446,11 @@ export default function Home() {
     setActiveView("chat");
     setMobileSidebarOpen(false);
   }, []);
+
+  const createScheduledTask = useCallback(() => {
+    startNewChat();
+    setPendingScheduledInput(CREATE_SCHEDULED_TASK_PROMPT);
+  }, [startNewChat]);
 
   const useExpertSkill = useCallback(
     (agent: SubAgentDefinition, skill: AgentSkillDefinition) => {
@@ -466,6 +489,23 @@ export default function Home() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [activeView, pendingComposerSkill]);
+
+  useEffect(() => {
+    if (activeView !== "chat" || pendingScheduledInput === null) return;
+    const frame = window.requestAnimationFrame(() => {
+      composerHandleRef.current?.setText(pendingScheduledInput);
+      scrollEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+      setPendingScheduledInput(null);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeView, activeTaskId, pendingScheduledInput]);
+
+  useEffect(() => {
+    // Only conversations associated with saved schedules are persisted by this helper.
+    for (const task of recentTasks) {
+      if (task.status !== "running") saveScheduledConversation(snapshotScheduledConversation(task));
+    }
+  }, [recentTasks]);
 
   useEffect(() => {
     scrollEndRef.current?.scrollIntoView({
@@ -791,6 +831,46 @@ export default function Home() {
       const conversationMessages =
         baseMessagesOverride ?? currentTask?.messages ?? [];
       const taskId = currentTask?.id ?? createId();
+      const submittedAt = Date.now();
+      const storedSchedules = parseScheduledTasksSnapshot(getScheduledTasksSnapshot());
+      const scheduleReply = processScheduledTaskChat(prompt, taskId, storedSchedules.tasks, scheduledDraftsRef.current.get(taskId), submittedAt, createId);
+      if (scheduleReply) {
+        const userMessage: TaskMessage = { id: createId(), role: "user", content: prompt };
+        const assistantMessage: TaskMessage = { id: createId(), role: "assistant", content: scheduleReply.message };
+        const conversation: RecentTask = {
+          ...currentTask,
+          id: taskId,
+          title: (!currentTask || currentTask.title === "创建定时任务") && scheduleReply.task
+            ? scheduleReply.task.name : currentTask?.title ?? "创建定时任务",
+          metadata: "定时任务",
+          icon: currentTask?.icon ?? "folder",
+          messages: [...conversationMessages, userMessage, assistantMessage],
+          createdAt: currentTask?.createdAt ?? submittedAt,
+          updatedAt: submittedAt,
+          status: "completed",
+          archived: false,
+          unreadCompletion: false,
+        };
+        if (scheduleReply.draft) scheduledDraftsRef.current.set(taskId, scheduleReply.draft);
+        else scheduledDraftsRef.current.delete(taskId);
+        if (storedSchedules.error) assistantMessage.content = storedSchedules.error;
+        else if (scheduleReply.task && scheduleReply.mode) {
+          const result = saveScheduledTask({ ...scheduleReply.task, sourceConversation: snapshotScheduledConversation(conversation) }, scheduleReply.mode);
+          if (!result.ok) {
+            assistantMessage.content = result.error ?? "保存失败，请重试。";
+            scheduledDraftsRef.current.set(taskId, { mode: scheduleReply.mode, values: {
+              name: scheduleReply.task.name, prompt: scheduleReply.task.prompt, schedule: scheduleReply.task.schedule,
+            } });
+          }
+        }
+        setInput("");
+        activeTaskIdRef.current = taskId;
+        activeViewRef.current = "chat";
+        setActiveTaskId(taskId);
+        setActiveView("chat");
+        setRecentTasks((current) => prependRecentTask(current, conversation));
+        return;
+      }
       const assistantId = createId();
       const answerGroupId = createId();
       const plan = createAudienceRunPlan(prompt);
@@ -813,7 +893,6 @@ export default function Home() {
         userMessage,
         pendingAssistantMessage,
       ];
-      const submittedAt = Date.now();
       const controller = new AbortController();
 
       setInput("");
@@ -1184,6 +1263,20 @@ export default function Home() {
     },
     [closeSearch, updateTask],
   );
+
+  const openScheduledTask = useCallback((task: ScheduledTask, editing: boolean): string | null => {
+    const existing = recentTasks.find((item) => item.id === task.sourceConversation?.id);
+    const conversation = existing ?? restoreScheduledConversation(task);
+    if (!task.sourceConversation) {
+      const result = saveScheduledTask({ ...task, sourceConversation: snapshotScheduledConversation(conversation) }, "update");
+      if (!result.ok) return result.error ?? "无法打开来源对话，请重试。";
+    }
+    scheduledDraftsRef.current.delete(conversation.id);
+    if (!existing) setRecentTasks((current) => prependRecentTask(current, conversation));
+    openTask(conversation);
+    setPendingScheduledInput(editing ? EDIT_SCHEDULED_TASK_PROMPT : "");
+    return null;
+  }, [recentTasks, openTask]);
 
   const commitTaskRename = (taskId: string) => {
     const title = renameValue.trim();
@@ -1690,7 +1783,7 @@ export default function Home() {
         </button>
 
         {activeView === "scheduled" ? (
-          <ScheduledTaskWorkspace />
+          <ScheduledTaskWorkspace onCreate={createScheduledTask} onOpenTask={openScheduledTask} />
         ) : activeView === "experts" ? (
           <ExpertSkillWorkspace
             initialSceneId={expertWorkspaceSceneId}

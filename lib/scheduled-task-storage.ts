@@ -1,4 +1,4 @@
-import type { ScheduledTask, TaskSchedule } from "./scheduled-tasks";
+import type { ScheduledConversation, ScheduledTask, TaskSchedule } from "./scheduled-tasks";
 
 export const SCHEDULED_TASKS_STORAGE_KEY = "trade-agent-scheduled-tasks-v1";
 const CHANGED_EVENT = "trade-agent-scheduled-tasks-changed";
@@ -66,8 +66,19 @@ function isTask(value: unknown): value is ScheduledTask {
     isSchedule(value.schedule) &&
     isTimestamp(value.createdAt) &&
     isTimestamp(value.updatedAt) &&
-    value.updatedAt >= value.createdAt
+    value.updatedAt >= value.createdAt &&
+    (value.enabled === undefined || typeof value.enabled === "boolean") &&
+    (value.sourceConversation === undefined || isConversation(value.sourceConversation))
   );
+}
+
+function isConversation(value: unknown): value is ScheduledConversation {
+  return isRecord(value) && isText(value.id) && isText(value.title) &&
+    isTimestamp(value.createdAt) && isTimestamp(value.updatedAt) &&
+    Array.isArray(value.messages) && value.messages.every((message) =>
+      isRecord(message) && isText(message.id) &&
+      (message.role === "user" || message.role === "assistant") &&
+      typeof message.content === "string");
 }
 
 export function parseScheduledTasksSnapshot(
@@ -174,10 +185,33 @@ export function createScheduledTaskStorage(options: {
     );
   }
 
+  function setScheduledTaskEnabled(id: string, enabled: boolean): ScheduledTaskMutationResult {
+    return mutate((tasks) => {
+      if (!tasks.some((task) => task.id === id)) return "该定时任务已被删除，请刷新列表。";
+      return tasks.map((task) => task.id === id ? { ...task, enabled, updatedAt: Date.now() } : task);
+    });
+  }
+
+  function saveScheduledConversation(conversation: ScheduledConversation): ScheduledTaskMutationResult {
+    if (!isConversation(conversation)) return { ok: false, error: "来源对话信息有误。" };
+    return mutate((tasks) => {
+      let changed = false;
+      const next = tasks.map((task) => {
+        if (task.sourceConversation?.id !== conversation.id ||
+          JSON.stringify(task.sourceConversation) === JSON.stringify(conversation)) return task;
+        changed = true;
+        return { ...task, sourceConversation: conversation };
+      });
+      return changed ? next : tasks;
+    });
+  }
+
   return {
     getScheduledTasksSnapshot,
     saveScheduledTask,
     deleteScheduledTask,
+    setScheduledTaskEnabled,
+    saveScheduledConversation,
   };
 }
 
@@ -189,6 +223,8 @@ const browserStorage = createScheduledTaskStorage({
 export const getScheduledTasksSnapshot = browserStorage.getScheduledTasksSnapshot;
 export const saveScheduledTask = browserStorage.saveScheduledTask;
 export const deleteScheduledTask = browserStorage.deleteScheduledTask;
+export const setScheduledTaskEnabled = browserStorage.setScheduledTaskEnabled;
+export const saveScheduledConversation = browserStorage.saveScheduledConversation;
 
 export function subscribeToScheduledTasks(listener: () => void): () => void {
   if (typeof window === "undefined") return () => {};

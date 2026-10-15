@@ -11,6 +11,16 @@ export type ScheduledTask = {
   schedule: TaskSchedule;
   createdAt: number;
   updatedAt: number;
+  enabled?: boolean;
+  sourceConversation?: ScheduledConversation;
+};
+
+export type ScheduledConversation = {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  messages: { id: string; role: "user" | "assistant"; content: string }[];
 };
 
 type ScheduleHint =

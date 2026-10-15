@@ -196,6 +196,41 @@ test("invalid input does not corrupt stored data", () => {
   assert.deepEqual(store.read().tasks, [task()]);
 });
 
+test("switch state survives reload, changes only one task, and older tasks remain readable", () => {
+  const first = task();
+  const second = task("unrelated");
+  const store = memoryStore(JSON.stringify([first, second]));
+  assert.equal(store.storage.setScheduledTaskEnabled(first.id, false).ok, true);
+  const reloaded = parseScheduledTasksSnapshot(createScheduledTaskStorage({ getStorage: () => store.adapter }).getScheduledTasksSnapshot()).tasks;
+  assert.equal(reloaded[0].enabled, false);
+  assert.deepEqual(reloaded[1], second);
+  assert.equal(store.storage.setScheduledTaskEnabled(first.id, true).ok, true);
+  assert.equal(store.read().tasks[0].enabled, true);
+  assert.equal(store.storage.setScheduledTaskEnabled("missing", true).ok, false);
+});
+
+test("source snapshots survive reload; saving another conversation never resurrects a deleted task", () => {
+  const conversation = { id: "source", title: "原对话", createdAt: now, updatedAt: now, messages: [{ id: "q", role: "user" as const, content: "原始输入" }] };
+  const first = { ...task(), sourceConversation: conversation };
+  const second = task("unrelated");
+  const store = memoryStore(JSON.stringify([first, second]));
+  const changed = { ...conversation, updatedAt: now + 1_000, messages: [...conversation.messages, { id: "a", role: "assistant" as const, content: "新回复" }] };
+  assert.equal(store.storage.saveScheduledConversation(changed).ok, true);
+  assert.deepEqual(store.read().tasks, [{ ...first, sourceConversation: changed }, second]);
+  store.storage.saveScheduledConversation(changed);
+  assert.equal(store.writes(), 1, "identical snapshots must not cause repeated writes");
+  store.storage.deleteScheduledTask(first.id);
+  store.storage.saveScheduledConversation(changed);
+  assert.deepEqual(store.read().tasks, [second]);
+});
+
+test("a failed switch write keeps the saved enabled state", () => {
+  const raw = JSON.stringify([{ ...task(), enabled: true }]);
+  const storage = createScheduledTaskStorage({ getStorage: () => ({ getItem: () => raw, setItem: () => { throw new Error("denied"); } }) });
+  assert.equal(storage.setScheduledTaskEnabled(task().id, false).ok, false);
+  assert.equal(parseScheduledTasksSnapshot(storage.getScheduledTasksSnapshot()).tasks[0].enabled, true);
+});
+
 test("server rendering is safe without window and mutations fail clearly", () => {
   assert.equal(getScheduledTasksSnapshot(), null);
   assert.equal(saveScheduledTask(task(), "create").ok, false);
