@@ -2,6 +2,7 @@ import type { ScheduledConversation, ScheduledTask, TaskSchedule } from "./sched
 
 export const SCHEDULED_TASKS_STORAGE_KEY = "trade-agent-scheduled-tasks-v1";
 const CHANGED_EVENT = "trade-agent-scheduled-tasks-changed";
+export const SCHEDULED_TASK_DEMO_INITIALIZED_KEY = "trade-agent-scheduled-tasks-demo-initialized-v1";
 const READ_FAILED_SNAPSHOT = "__scheduled_tasks_storage_read_failed__";
 const READ_ERROR =
   "无法读取当前浏览器中的定时任务，请检查浏览器存储权限后重试。";
@@ -206,12 +207,32 @@ export function createScheduledTaskStorage(options: {
     });
   }
 
+  function initializeScheduledTaskDemo(examples: ScheduledTask[]): ScheduledTaskMutationResult {
+    try {
+      const storage = options.getStorage();
+      if (!storage) return { ok: false, error: READ_ERROR };
+      if (storage.getItem(SCHEDULED_TASK_DEMO_INITIALIZED_KEY) === "1") return { ok: true };
+      const snapshot = parseScheduledTasksSnapshot(storage.getItem(SCHEDULED_TASKS_STORAGE_KEY));
+      if (snapshot.error) return { ok: false, error: snapshot.error };
+      if (!examples.every(isTask)) return { ok: false, error: "示例任务配置有误。" };
+      if (snapshot.tasks.length === 0) {
+        const result = mutate(() => examples);
+        if (!result.ok) return result;
+      }
+      storage.setItem(SCHEDULED_TASK_DEMO_INITIALIZED_KEY, "1");
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "演示任务初始化失败，请检查浏览器存储权限后刷新重试。" };
+    }
+  }
+
   return {
     getScheduledTasksSnapshot,
     saveScheduledTask,
     deleteScheduledTask,
     setScheduledTaskEnabled,
     saveScheduledConversation,
+    initializeScheduledTaskDemo,
   };
 }
 
@@ -225,6 +246,7 @@ export const saveScheduledTask = browserStorage.saveScheduledTask;
 export const deleteScheduledTask = browserStorage.deleteScheduledTask;
 export const setScheduledTaskEnabled = browserStorage.setScheduledTaskEnabled;
 export const saveScheduledConversation = browserStorage.saveScheduledConversation;
+export const initializeScheduledTaskDemo = browserStorage.initializeScheduledTaskDemo;
 
 export function subscribeToScheduledTasks(listener: () => void): () => void {
   if (typeof window === "undefined") return () => {};

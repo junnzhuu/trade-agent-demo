@@ -55,11 +55,13 @@ import {
 } from "@/lib/scheduled-task-chat";
 import {
   getScheduledTasksSnapshot,
+  initializeScheduledTaskDemo,
   parseScheduledTasksSnapshot,
   saveScheduledConversation,
   saveScheduledTask,
 } from "@/lib/scheduled-task-storage";
 import type { ScheduledTask } from "@/lib/scheduled-tasks";
+import { createScheduledTaskExamples } from "@/lib/scheduled-task-examples";
 import type {
   AgentSkillDefinition,
   SceneDefinition,
@@ -330,6 +332,17 @@ export default function Home() {
   const feishuIntegrationAuthorized = parseFeishuIntegrationState(
     feishuIntegrationSnapshot,
   ).authorized;
+
+  useEffect(() => {
+    initializeScheduledTaskDemo(createScheduledTaskExamples(Date.now()));
+    if (new URLSearchParams(window.location.search).get("view") === "scheduled") {
+      const frame = window.requestAnimationFrame(() => {
+        activeViewRef.current = "scheduled";
+        setActiveView("scheduled");
+      });
+      return () => window.cancelAnimationFrame(frame);
+    }
+  }, []);
 
   useEffect(() => {
     if (!taskMenuId) return;

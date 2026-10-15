@@ -4,7 +4,7 @@ import type { RecentTask } from "./task-history";
 export const CREATE_SCHEDULED_TASK_PROMPT = "帮我创建定时任务：";
 export const EDIT_SCHEDULED_TASK_PROMPT = "帮我修改这条定时任务，";
 
-export type ScheduledChatDraft = { mode: "create" | "update"; values: ScheduledTaskDraft };
+export type ScheduledChatDraft = { mode: "create" | "update"; values: ScheduledTaskDraft; awaitingConfirmation?: boolean };
 export type ScheduledChatResult = { message: string; draft?: ScheduledChatDraft; task?: ScheduledTask; mode?: "create" | "update" };
 
 /** Only scheduling requests enter this local demo parser; normal chat keeps its existing routing. */
@@ -17,7 +17,10 @@ export function processScheduledTaskChat(
   newId: () => string,
 ): ScheduledChatResult | null {
   const prompt = input.trim();
-  const creating = /^(?:请)?帮我创建定时任务\s*[:：]?/.test(prompt) || /^(?:请|帮我|帮忙)?(?:创建|新建|设置|安排).*(?:定时任务)/.test(prompt);
+  const naturalRequest = prompt.replace(/^(?:(?:请|帮我|帮忙|为我)\s*)+/, "");
+  const recurringRequest = /^(?:每天|每日|每个工作日|工作日|每周[一二三四五六日天1-7]|每星期[一二三四五六日天1-7])/.test(naturalRequest);
+  const onceRequest = /^(?:今天|明天|\d{4}[-/.年]\d{1,2}[-/.月]\d{1,2})/.test(naturalRequest) && /(?:\d{1,2}[:：]\d{2}|[0-9一二两三四五六七八九十]+[点时]|上午|下午|早上|晚上)/.test(naturalRequest);
+  const creating = /^(?:请)?帮我创建定时任务\s*[:：]?/.test(prompt) || /^(?:请|帮我|帮忙)?(?:创建|新建|设置|安排).*(?:定时任务)/.test(prompt) || (!pending && (recurringRequest || onceRequest));
   const editing = /^(?:请)?帮我修改这条定时任务\s*[，,：:]?/.test(prompt);
   const current = tasks.find((task) => task.sourceConversation?.id === conversationId);
   const shortEdit = Boolean(current && /^(?:改成|改为|调整为|名称改为|任务名称改为|执行内容改为|执行时间改为|时间改为)/.test(prompt));
@@ -30,10 +33,23 @@ export function processScheduledTaskChat(
   } : {};
   const text = prompt.replace(/^(?:请)?帮我创建定时任务\s*[:：]?\s*/, "")
     .replace(/^(?:请)?帮我修改这条定时任务\s*[，,：:]?\s*/, "");
-  const result = pending && /^(?:重试|再试一次)[。！!]*$/.test(text) && !validateScheduledTaskDraft(values, now)
+  const confirmingSuggestion = pending?.awaitingConfirmation && /^(?:确认|确认创建|确认修改|好|好的|可以|就这个时间|按这个时间)[。！!]*$/.test(text);
+  const retrying = pending && /^(?:重试|再试一次)[。！!]*$/.test(text);
+  const result = (confirmingSuggestion || retrying) && !validateScheduledTaskDraft(values, now)
     ? { ready: true, draft: values, message: "" }
     : parseScheduledTaskInput(text, values, now, mode === "update");
-  if (!result.ready) return { message: result.message, draft: { mode, values: result.draft } };
+  if (!result.ready) {
+    const period = result.draft.pendingPeriod;
+    const suggestedClock = period && ({ 早上: "上午9点", 早晨: "上午9点", 上午: "上午9点", 下午: "下午3点", 晚上: "晚上8点", 晚间: "晚上8点", 中午: "中午12点", 凌晨: "凌晨0点" } as Record<string, string>)[period];
+    if (suggestedClock && result.draft.pendingSchedule && !result.draft.schedule) {
+      const proposed = parseScheduledTaskInput(suggestedClock, result.draft, now, mode === "update");
+      if (proposed.ready) return {
+        message: `你说的“${period}”还没有具体时刻，建议按${formatSchedule(proposed.draft.schedule!)}${mode === "create" ? "创建" : "修改"}「${proposed.draft.name}」。回复“确认”即可保存，也可以告诉我其他时间，例如“10点”。`,
+        draft: { mode, values: { ...proposed.draft, pendingPeriod: period }, awaitingConfirmation: true },
+      };
+    }
+    return { message: result.message, draft: { mode, values: result.draft } };
+  }
   const task: ScheduledTask = {
     id: mode === "update" ? current!.id : newId(),
     name: result.draft.name ?? deriveTaskName(result.draft.prompt!),

@@ -117,3 +117,27 @@ test("legacy tasks open an explicitly restored conversation without inventing or
   assert.match(restored.messages[0].content, /旧版演示.*恢复对话/);
   assert.match(restored.messages[0].content, /查询上海今日气温/);
 });
+
+test("the reported weekly morning weather request offers a concrete time and only saves after confirmation", () => {
+  const first = processScheduledTaskChat("帮我创建定时任务：每周一早上发我一份上海当周的天气预报", "weather-chat", [], undefined, now, () => "weekly-weather");
+  assert.equal(first?.task, undefined, "vague morning time must not be saved without consent");
+  assert.ok(first?.draft?.awaitingConfirmation);
+  assert.match(first.message, /每周一 09:00/);
+  assert.match(first.message, /回复“确认”/);
+  const completed = processScheduledTaskChat("确认", "weather-chat", [], first.draft, now, () => "weekly-weather");
+  assert.equal(completed?.task?.prompt, "发我一份上海当周的天气预报");
+  assert.deepEqual(completed?.task?.schedule, { kind: "weekly", weekday: 1, hour: 9, minute: 0 });
+  const adjusted = processScheduledTaskChat("10点", "weather-chat", [], first.draft, now, () => "weekly-weather");
+  assert.deepEqual(adjusted?.task?.schedule, { kind: "weekly", weekday: 1, hour: 10, minute: 0 });
+  const cancelled = processScheduledTaskChat("取消", "weather-chat", [], first.draft, now, () => "unused");
+  assert.equal(cancelled?.task, undefined);
+  assert.equal(cancelled?.draft, undefined);
+});
+
+test("natural recurring requests can create tasks without a fixed command prefix", () => {
+  for (const input of ["每天9点生成昨日运营日报", "帮我每周一早上9点发我上海天气预报", "工作日下午3点检查指标", "明天下午3点提醒我看报名进度"]) {
+    const result = processScheduledTaskChat(input, "chat", [], undefined, now, () => "new");
+    assert.ok(result?.task, input);
+  }
+  assert.equal(processScheduledTaskChat("今天帮我查一下订单", "chat", [], undefined, now, () => "unused"), null);
+});
