@@ -47,7 +47,7 @@ import { FeishuIntegrationDialog } from "@/components/feishu-integration-dialog"
 import { ScheduledTaskWorkspace } from "@/components/scheduled-task-workspace";
 import {
   CREATE_SCHEDULED_TASK_PROMPT,
-  EDIT_SCHEDULED_TASK_PROMPT,
+  getScheduledTaskEditPrompt,
   processScheduledTaskChat,
   restoreScheduledConversation,
   snapshotScheduledConversation,
@@ -1287,7 +1287,7 @@ export default function Home() {
     scheduledDraftsRef.current.delete(conversation.id);
     if (!existing) setRecentTasks((current) => prependRecentTask(current, conversation));
     openTask(conversation);
-    setPendingScheduledInput(editing ? EDIT_SCHEDULED_TASK_PROMPT : "");
+    setPendingScheduledInput(editing ? getScheduledTaskEditPrompt(task.name) : "");
     return null;
   }, [recentTasks, openTask]);
 

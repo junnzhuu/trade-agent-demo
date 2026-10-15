@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   CREATE_SCHEDULED_TASK_PROMPT,
   EDIT_SCHEDULED_TASK_PROMPT,
+  getScheduledTaskEditPrompt,
   processScheduledTaskChat,
   restoreScheduledConversation,
   snapshotScheduledConversation,
@@ -58,6 +59,19 @@ test("creates from the homepage prefill, restores the source conversation and ed
   }
   storage.deleteScheduledTask(report.id);
   assert.deepEqual(parseScheduledTasksSnapshot(createScheduledTaskStorage({ getStorage: () => adapter }).getScheduledTasksSnapshot()).tasks, [existing()]);
+});
+
+test("the named edit prefill updates the original task without treating its name as task content", () => {
+  for (const name of ["上海每周天气预报", "上海「周报」，09:00"]) {
+    const task = { ...existing(), name };
+    const prefix = getScheduledTaskEditPrompt(task.name);
+    assert.equal(prefix, `帮我修改定时任务「${name}」，`);
+    const result = processScheduledTaskChat(`${prefix}改成每天10点执行`, task.sourceConversation!.id, [task], undefined, now + 1_000, () => { throw new Error("editing must retain the task ID"); });
+    assert.equal(result?.mode, "update");
+    assert.deepEqual(result?.task, {
+      ...task, schedule: { kind: "daily", hour: 10, minute: 0 }, enabled: true, updatedAt: now + 1_000,
+    });
+  }
 });
 
 test("missing time retains content, follow-up completes it and cancel abandons the draft", () => {

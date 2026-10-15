@@ -4,6 +4,10 @@ import type { RecentTask } from "./task-history";
 export const CREATE_SCHEDULED_TASK_PROMPT = "帮我创建定时任务：";
 export const EDIT_SCHEDULED_TASK_PROMPT = "帮我修改这条定时任务，";
 
+export function getScheduledTaskEditPrompt(name: string): string {
+  return `帮我修改定时任务「${name}」，`;
+}
+
 export type ScheduledChatDraft = { mode: "create" | "update"; values: ScheduledTaskDraft; awaitingConfirmation?: boolean };
 export type ScheduledChatResult = { message: string; draft?: ScheduledChatDraft; task?: ScheduledTask; mode?: "create" | "update" };
 
@@ -21,8 +25,12 @@ export function processScheduledTaskChat(
   const recurringRequest = /^(?:每天|每日|每个工作日|工作日|每周[一二三四五六日天1-7]|每星期[一二三四五六日天1-7])/.test(naturalRequest);
   const onceRequest = /^(?:今天|明天|\d{4}[-/.年]\d{1,2}[-/.月]\d{1,2})/.test(naturalRequest) && /(?:\d{1,2}[:：]\d{2}|[0-9一二两三四五六七八九十]+[点时]|上午|下午|早上|晚上)/.test(naturalRequest);
   const creating = /^(?:请)?帮我创建定时任务\s*[:：]?/.test(prompt) || /^(?:请|帮我|帮忙)?(?:创建|新建|设置|安排).*(?:定时任务)/.test(prompt) || (!pending && (recurringRequest || onceRequest));
-  const editing = /^(?:请)?帮我修改这条定时任务\s*[，,：:]?/.test(prompt);
   const current = tasks.find((task) => task.sourceConversation?.id === conversationId);
+  const namedEditPrompt = current ? getScheduledTaskEditPrompt(current.name) : undefined;
+  const editPrefix = namedEditPrompt && prompt.startsWith(namedEditPrompt)
+    ? namedEditPrompt
+    : prompt.match(/^(?:请)?帮我修改(?:这条定时任务|定时任务「[^」]*」)\s*[，,：:]?\s*/)?.[0];
+  const editing = Boolean(editPrefix);
   const shortEdit = Boolean(current && /^(?:改成|改为|调整为|名称改为|任务名称改为|执行内容改为|执行时间改为|时间改为)/.test(prompt));
   if (!creating && !editing && !shortEdit && !pending) return null;
   if (/^(?:取消|算了|不创建了|不修改了|不用了)[。！!]*$/.test(prompt)) return { message: "已取消本次定时任务操作。" };
@@ -31,8 +39,8 @@ export function processScheduledTaskChat(
   const values = !creating && pending?.mode === mode ? pending.values : mode === "update" ? {
     name: current!.name, prompt: current!.prompt, schedule: current!.schedule,
   } : {};
-  const text = prompt.replace(/^(?:请)?帮我创建定时任务\s*[:：]?\s*/, "")
-    .replace(/^(?:请)?帮我修改这条定时任务\s*[，,：:]?\s*/, "");
+  const text = editPrefix ? prompt.slice(editPrefix.length).trimStart()
+    : prompt.replace(/^(?:请)?帮我创建定时任务\s*[:：]?\s*/, "");
   const confirmingSuggestion = pending?.awaitingConfirmation && /^(?:确认|确认创建|确认修改|好|好的|可以|就这个时间|按这个时间)[。！!]*$/.test(text);
   const retrying = pending && /^(?:重试|再试一次)[。！!]*$/.test(text);
   const result = (confirmingSuggestion || retrying) && !validateScheduledTaskDraft(values, now)
